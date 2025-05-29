@@ -1,0 +1,12 @@
+{
+  "home": "Home",
+  "favorites": "Favorites",
+  "placeAd": "Place an Ad",
+  "chat": "Chat",
+  "profile": "Profile",
+  "search": "Search cars...",
+  "loginPrompt": "Please log in to access this feature",
+  "login": "Login",
+  "register": "Register",
+  "logout": "Logout"
+}

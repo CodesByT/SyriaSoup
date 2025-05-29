@@ -8,15 +8,14 @@ import {
   FlatList,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native";
-import CarCard from "../../components/CarCard";
-import SearchBar from "../../components/SearchBar";
-import { Car } from "../../types";
-import { addToWishlist, getCars } from "../../utils/api";
+import CarCard from "../components/CarCard";
+import SearchBar from "../components/SearchBar";
+import { Car } from "../types";
+import { addToWishlist, getCars } from "../utils/api";
 
-export default function Home() {
+export default function AllCars() {
   const { t } = useTranslation();
   const [cars, setCars] = useState<Car[]>([]);
   const [search, setSearch] = useState("");
@@ -25,47 +24,26 @@ export default function Home() {
   const router = useRouter();
 
   useEffect(() => {
-    console.log("Home: Fetching recent cars...");
+    console.log("AllCars: Fetching all cars...");
     setSearch("");
-    fetchRecentCars();
+    fetchAllCars();
   }, []);
 
-  const fetchRecentCars = async () => {
+  const fetchAllCars = async () => {
     try {
       setLoading(true);
-      // Try API with sort and limit params
-      const response = await getCars({ sort: "-createdAt", limit: 8 });
-      // console.log("Home: Raw API response:", JSON.stringify(response, null, 2));
-      const data = response.data?.data || response.data;
-      // console.log("Home: Extracted data:", JSON.stringify(data, null, 2));
-
-      const carArray = Array.isArray(data) ? data : [];
-
-      // Validate and sort client-side as fallback
-      const recentCars = carArray
-        .filter(
-          (car) => car.createdAt && !isNaN(new Date(car.createdAt).getTime())
-        ) // Ensure valid createdAt
-        .sort(
-          (a, b) =>
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-        )
-        .slice(0, 8);
-
+      const response = await getCars();
       console.log(
-        "Home: Recent cars:",
-        recentCars.map((car) => ({
-          _id: car._id,
-          make: car.make,
-          model: car.model,
-          createdAt: car.createdAt,
-        }))
+        "AllCars: Raw API response:",
+        JSON.stringify(response, null, 2)
       );
-
-      setCars(recentCars);
+      const data = response.data?.data || response.data;
+      console.log("AllCars: Extracted data:", JSON.stringify(data, null, 2));
+      const carArray = Array.isArray(data) ? data : [];
+      setCars(carArray);
       setError(null);
     } catch (error: any) {
-      console.error("Home: Error fetching cars:", error);
+      console.error("AllCars: Error fetching cars:", error);
       setCars([]);
       setError(error.message || t("failedToFetchCars"));
       Alert.alert(t("error"), error.message || t("failedToFetchCars"));
@@ -77,10 +55,10 @@ export default function Home() {
   const handleAddToWishlist = async (carId: string) => {
     try {
       await addToWishlist(carId);
-      console.log("Home: Added car to wishlist:", carId);
+      console.log("AllCars: Added car to wishlist:", carId);
       Alert.alert(t("success"), t("addedToWishlist"));
     } catch (error) {
-      console.error("Home: Error adding to wishlist:", error);
+      console.error("AllCars: Error adding to wishlist:", error);
       Alert.alert(t("error"), t("failedToAddWishlist"));
     }
   };
@@ -95,7 +73,7 @@ export default function Home() {
         const makeMatch = make.includes(searchLower);
         const modelMatch = model.includes(searchLower);
         const locationMatch = location.includes(searchLower);
-        console.log("Home: Filtering car:", car._id, {
+        console.log("AllCars: Filtering car:", car._id, {
           make,
           model,
           location,
@@ -109,7 +87,7 @@ export default function Home() {
     : [];
 
   console.log(
-    "Home: Total cars:",
+    "AllCars: Total cars:",
     cars.length,
     "Filtered cars:",
     filteredCars.length
@@ -118,22 +96,13 @@ export default function Home() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerText}>{t("SyriaSouq")}</Text>
+        <Text style={styles.headerText}>{t("Car Listings")}</Text>
       </View>
       <SearchBar
         value={search}
         onChange={setSearch}
         placeholder={t("Find Your Perfect Car")}
       />
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>{t("Recent Listings")}</Text>
-        <TouchableOpacity
-          style={styles.viewAllButton}
-          onPress={() => router.push("/all-cars")} // Fixed relative path
-        >
-          <Text style={styles.viewAllText}>{t("View All")}</Text>
-        </TouchableOpacity>
-      </View>
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#b80200" />
@@ -142,12 +111,10 @@ export default function Home() {
       ) : error ? (
         <View style={styles.errorContainer}>
           <Text style={styles.noResults}>{error}</Text>
-          <Button
-            title={t("retry")}
-            onPress={fetchRecentCars}
-            color="#b80200"
-          />
+          <Button title={t("retry")} onPress={fetchAllCars} color="#b80200" />
         </View>
+      ) : cars.length === 0 ? (
+        <Text style={styles.noResults}>{t("noCars")}</Text>
       ) : filteredCars.length === 0 ? (
         <Text style={styles.noResults}>{t("noResults", { search })}</Text>
       ) : (
@@ -157,13 +124,13 @@ export default function Home() {
           renderItem={({ item }) => (
             <CarCard
               car={item}
-              onPress={() => router.push(`/car-details?carId=${item._id}`)}
+              //   onPress={() => router.push(`/car-details?carId=${item._id}`)}
               onWishlist={() => handleAddToWishlist(item._id)}
             />
           )}
           contentContainerStyle={styles.listContent}
-          initialNumToRender={8}
-          maxToRenderPerBatch={4}
+          initialNumToRender={10}
+          maxToRenderPerBatch={5}
           windowSize={5}
           removeClippedSubviews={true}
         />
@@ -187,30 +154,6 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: "bold",
     color: "#ffffff",
-  },
-  sectionHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: "#ffffff",
-  },
-  sectionTitle: {
-    fontSize: 25,
-    fontWeight: "600",
-    color: "#313332",
-  },
-  viewAllButton: {
-    backgroundColor: "#b80200",
-    paddingVertical: 5,
-    paddingHorizontal: 10,
-    borderRadius: 5,
-  },
-  viewAllText: {
-    color: "#ffffff",
-    fontSize: 12,
-    fontWeight: "600",
   },
   listContent: {
     paddingBottom: 20,
