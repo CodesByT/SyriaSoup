@@ -47,6 +47,6 @@ export interface Message {
 
 export interface Wishlist {
   _id: string;
-  user: string;
-  car: string;
+  user: { _id: string; username: string; email?: string };
+  car: Car; // Ensure car is a full Car object
 }

@@ -1,23 +1,27 @@
+import React, { createContext, useContext, useState, useEffect } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import React, { createContext, useEffect, useState } from "react";
+import { login, register, forgotPassword, resetPassword } from "../utils/api";
 import { User } from "../types";
-import { login, register } from "../utils/api";
 
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
-  login: (phone: string, password: string) => Promise<void>;
-  register: (
+  loginUser: (phone: string, password: string) => Promise<void>;
+  registerUser: (
     username: string,
     phone: string,
     password: string
   ) => Promise<void>;
-  logout: () => void;
+  forgotPassword: (phone: string) => Promise<void>;
+  resetPassword: (
+    phone: string,
+    otp: string,
+    newPassword: string
+  ) => Promise<void>;
+  logout: () => Promise<void>;
 }
 
-export const AuthContext = createContext<AuthContextType>(
-  {} as AuthContextType
-);
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
@@ -26,53 +30,68 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
-    // Check for stored token/user on app start
     const loadUser = async () => {
       try {
-        console.log("Loading user from AsyncStorage...");
         const token = await AsyncStorage.getItem("token");
-        const userData = await AsyncStorage.getItem("user");
-        if (token && userData) {
-          console.log("User data found:", userData);
-          setUser(JSON.parse(userData));
+        const storedUser = await AsyncStorage.getItem("user");
+        if (token && storedUser) {
+          setUser(JSON.parse(storedUser));
           setIsAuthenticated(true);
-        } else {
-          console.log("No token or user data found");
         }
       } catch (error) {
-        console.error("Error loading user data:", error);
+        console.error("AuthProvider: Error loading user:", error);
       }
     };
     loadUser();
   }, []);
 
-  const handleLogin = async (phone: string, password: string) => {
+  const loginUser = async (phone: string, password: string) => {
     try {
-      const { data } = await login(phone, password); // Your /api/auth/login
-      await AsyncStorage.setItem("token", data.token);
-      await AsyncStorage.setItem("user", JSON.stringify(data.user));
-      setUser(data.user);
+      const response = await login(phone, password);
+      const { jwt, ...userData } = response.data;
+      await AsyncStorage.setItem("token", jwt);
+      await AsyncStorage.setItem("user", JSON.stringify(userData));
+      setUser(userData);
       setIsAuthenticated(true);
-    } catch (error) {
-      console.error("Login error:", error);
-      throw error;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || "Login failed");
     }
   };
 
-  const handleRegister = async (
+  const registerUser = async (
     username: string,
     phone: string,
     password: string
   ) => {
     try {
-      const { data } = await register(username, phone, password); // Your /api/auth/register
-      await AsyncStorage.setItem("token", data.token);
-      await AsyncStorage.setItem("user", JSON.stringify(data.user));
-      setUser(data.user);
+      const response = await register(username, phone, password);
+      const { jwt, ...userData } = response.data;
+      await AsyncStorage.setItem("token", jwt);
+      await AsyncStorage.setItem("user", JSON.stringify(userData));
+      setUser(userData);
       setIsAuthenticated(true);
-    } catch (error) {
-      console.error("Register error:", error);
-      throw error;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || "Registration failed");
+    }
+  };
+
+  const forgotPassword = async (phone: string) => {
+    try {
+      await forgotPassword(phone);
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || "Failed to send OTP");
+    }
+  };
+
+  const resetPassword = async (
+    phone: string,
+    otp: string,
+    newPassword: string
+  ) => {
+    try {
+      await resetPassword(phone, otp, newPassword);
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || "Password reset failed");
     }
   };
 
@@ -83,7 +102,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       setUser(null);
       setIsAuthenticated(false);
     } catch (error) {
-      console.error("Logout error:", error);
+      console.error("AuthProvider: Error logging out:", error);
     }
   };
 
@@ -92,12 +111,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       value={{
         user,
         isAuthenticated,
-        login: handleLogin,
-        register: handleRegister,
+        loginUser,
+        registerUser,
+        forgotPassword,
+        resetPassword,
         logout,
       }}
     >
       {children}
     </AuthContext.Provider>
   );
+};
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error("useAuth must be used within an AuthProvider");
+  }
+  return context;
 };
