@@ -1,5 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import axios, { AxiosResponse } from "axios";
+import axios, { type AxiosResponse } from "axios";
 
 const API_BASE_URL = "https://api.syriasouq.com";
 
@@ -10,7 +10,7 @@ export const api = axios.create({
 
 api.interceptors.request.use(async (config) => {
   const token = await AsyncStorage.getItem("token");
-  console.log("oye token mil ggayaaaaa:", token);
+  console.log("API: Token retrieved:", !!token);
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -24,12 +24,6 @@ api.interceptors.request.use(async (config) => {
 
 api.interceptors.response.use(
   (response: AxiosResponse) => {
-    console.log(
-      "API Response:",
-      response.status,
-      `${API_BASE_URL}${response.config.url}`,
-      response.data
-    ); // Debug response
     if (response.data?.data && Array.isArray(response.data.data)) {
       response.data.data = response.data.data.map((item: any) => {
         if (item.images && Array.isArray(item.images)) {
@@ -39,7 +33,6 @@ api.interceptors.response.use(
               : img || "https://via.placeholder.com/150?text=No+Image"
           );
         } else if (item.car?.images && Array.isArray(item.car.images)) {
-          // Handle wishlist car images
           item.car.images = item.car.images.map((img: string) =>
             img && !img.startsWith("http")
               ? `${API_BASE_URL}/Uploads/cars/${img}`
@@ -52,12 +45,18 @@ api.interceptors.response.use(
     return response;
   },
   (error) => {
-    console.error("API Error:", {
-      url: `${API_BASE_URL}${error.config?.url}`,
-      status: error.response?.status,
-      message: error.message,
-      responseData: error.response?.data,
-    });
+    if (
+      error.response?.status !== 404 ||
+      (!error.config?.url?.includes("/api/wishlist/uid/") &&
+        !error.config?.url?.includes("/api/cars/user/"))
+    ) {
+      console.error("API Error:", {
+        url: `${API_BASE_URL}${error.config?.url}`,
+        status: error.response?.status,
+        message: error.message,
+        responseData: error.response?.data,
+      });
+    }
     return Promise.reject(error);
   }
 );
@@ -79,15 +78,81 @@ export const getCars = (params: { sort?: string; limit?: number } = {}) =>
 export const getCarById = (id: string) => api.get(`/api/cars/${id}`);
 export const getUserById = (id: string) => api.get(`/api/users/${id}`);
 export const addCar = (carData: FormData) => api.post("/api/cars", carData);
+export const updateCar = (carId: string, carData: FormData) =>
+  api.put(`/api/cars/${carId}`, carData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+
+export const deleteCar = (carId: string) => api.delete(`/api/cars/${carId}`);
+
 export const getWishlist = () => api.get("/api/wishlist");
 export const addToWishlist = (carId: string) =>
   api.post("/api/wishlist", { carId });
 export const removeFromWishlist = (wishlistId: string) =>
   api.delete(`/api/wishlist/${wishlistId}`);
-export const getWishlistByUserId = (userId: string) =>
-  api.get(`/api/wishlist/uid/${userId}`);
+export const getWishlistByUserId = async (userId: string) => {
+  try {
+    const response = await api.get(`/api/wishlist/uid/${userId}`);
+    return response;
+  } catch (error: any) {
+    if (error.response?.status === 404) {
+      console.log("API: No wishlist found for user:", userId);
+      return { data: { success: true, data: [] } };
+    }
+    throw error;
+  }
+};
+export const getUserListings = async (userId: string) => {
+  try {
+    const response = await api.get(`/api/cars/user/${userId}`);
+    return response;
+  } catch (error: any) {
+    if (error.response?.status === 404) {
+      console.log("API: No listings found for user:", userId);
+      return { data: { success: true, data: [] } };
+    }
+    throw error;
+  }
+};
+export const updateProfileImage = (userId: string, formData: FormData) =>
+  api.put(`/api/users/${userId}/profile-image`, formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+export const updateUserProfile = (userId: string, profileData: FormData) =>
+  api.put(`/api/users/${userId}`, profileData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
 export const getConversations = () => api.get("/api/conversations");
 export const sendMessage = (conversationId: string, message: string) =>
   api.post("/api/messages", { conversationId, message });
 export const updateProfile = (profileData: FormData) =>
   api.put("/api/users/profile", profileData);
+export const checkWishlist = async (
+  carId: string,
+  userId: string
+): Promise<{ exists: boolean; wishlistId?: string }> => {
+  try {
+    const response = await getWishlistByUserId(userId);
+    const wishlistData = response.data?.data || response.data;
+    console.log("API: checkWishlist response:", wishlistData);
+    const item = Array.isArray(wishlistData)
+      ? wishlistData.find((item: any) => item.car?._id === carId)
+      : null;
+    const exists = !!item;
+    const wishlistId = item?._id;
+    console.log(
+      "API: checkWishlist for carId:",
+      carId,
+      "userId:",
+      userId,
+      "exists:",
+      exists,
+      "wishlistId:",
+      wishlistId
+    );
+    return { exists, wishlistId };
+  } catch (error: any) {
+    console.error("API: Error checking wishlist:", error);
+    return { exists: false };
+  }
+};

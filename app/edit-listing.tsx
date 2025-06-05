@@ -1,8 +1,11 @@
+"use client";
+
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
-import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import type { JSX } from "react"; // Import JSX to fix the lint error
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
@@ -17,13 +20,22 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { useAuth } from "../../contexts/AuthContext";
-import { addCar } from "../../utils/api";
+import { useAuth } from "../contexts/AuthContext";
+import type { Car } from "../types";
+import { getCarById, updateCar } from "../utils/api";
 
-export default function PlaceAd() {
+export default function EditListing(): JSX.Element {
   const { t } = useTranslation();
   const { isAuthenticated } = useAuth();
   const router = useRouter();
+  const { carId } = useLocalSearchParams();
+
+  const [loading, setLoading] = useState<boolean>(true);
+  const [updating, setUpdating] = useState<boolean>(false);
+  const [modalVisible, setModalVisible] = useState<boolean>(false);
+  const [currentField, setCurrentField] = useState<string>("");
+  const [modalOptions, setModalOptions] = useState<string[]>([]);
+
   const [formData, setFormData] = useState({
     make: "",
     model: "",
@@ -40,10 +52,6 @@ export default function PlaceAd() {
     description: "",
   });
   const [images, setImages] = useState<string[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [modalVisible, setModalVisible] = useState(false);
-  const [currentField, setCurrentField] = useState("");
-  const [modalOptions, setModalOptions] = useState<string[]>([]);
 
   const makeOptions = [
     "Chrysler",
@@ -84,6 +92,50 @@ export default function PlaceAd() {
     "Side airbags",
     "USB port",
   ];
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      router.replace("/login");
+      return;
+    }
+
+    if (carId) {
+      fetchCarDetails();
+    }
+  }, [carId, isAuthenticated]);
+
+  const fetchCarDetails = async (): Promise<void> => {
+    try {
+      setLoading(true);
+      const response = await getCarById(carId as string);
+      const car: Car = response.data?.data || response.data;
+
+      // Map backend fields to form fields
+      setFormData({
+        make: car.make || "",
+        model: car.model || "",
+        price_usd: car.priceUSD?.toString() || "",
+        year: car.year?.toString() || "",
+        kilometer: car.kilometer?.toString() || "",
+        number_of_cylinders: car.engineSize?.toString() || "",
+        location: car.location || "",
+        transmission: car.transmission || "",
+        fuel_type: car.fuelType || "",
+        exterior_color: car.exteriorColor || "",
+        interior_color: car.interiorColor || "",
+        selected_features: car.features || [], // Backend returns "features"
+        description: car.description || "",
+      });
+
+      setImages(car.images || []);
+    } catch (error: any) {
+      console.error("EditListing: Error fetching car details:", error);
+      Alert.alert(t("error"), t("failedToFetchCarDetails"));
+      router.back();
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleInputChange = (
     field: keyof typeof formData,
@@ -140,7 +192,7 @@ export default function PlaceAd() {
       return;
     }
 
-    setLoading(true);
+    setUpdating(true);
     try {
       const data = new FormData();
       const fieldMapping: { [key: string]: string } = {
@@ -149,59 +201,45 @@ export default function PlaceAd() {
         price_usd: "priceUSD",
         year: "year",
         kilometer: "kilometer",
-        number_of_cylinders: "numberOfCylinders",
+        number_of_cylinders: "engineSize",
         location: "location",
         transmission: "transmission",
         fuel_type: "fuelType",
         exterior_color: "exteriorColor",
         interior_color: "interiorColor",
-        selected_features: "selectedFeatures",
+        selected_features: "features", // Backend expects "features" for updates
         description: "description",
       };
 
       Object.entries(formData).forEach(([key, value]) => {
         const backendKey = fieldMapping[key] || key;
-        if (backendKey === "selectedFeatures") {
+        if (backendKey === "features") {
           data.append(backendKey, JSON.stringify(value));
         } else {
           data.append(backendKey, value as string);
         }
       });
 
-      images.forEach((uri, index) => {
-        const fileType = uri.split(".").pop();
-        const name = `image-${index}.${fileType}`;
-        data.append("files", {
+      // Only append new images (those starting with file://)
+      const newImages = images.filter((uri) => uri.startsWith("file://"));
+      newImages.forEach((uri, index) => {
+        const fileType = uri.split(".").pop() || "jpg";
+        const name = `image-${Date.now()}-${index}.${fileType}`;
+        data.append("images", {
           uri: Platform.OS === "android" ? uri : uri.replace("file://", ""),
           type: `image/${fileType}`,
           name,
         } as any);
       });
 
-      await addCar(data);
-      Alert.alert(t("success"), t("car_listing_created"));
-      setFormData({
-        make: "",
-        model: "",
-        price_usd: "",
-        year: "",
-        kilometer: "",
-        number_of_cylinders: "",
-        location: "",
-        transmission: "",
-        fuel_type: "",
-        exterior_color: "",
-        interior_color: "",
-        selected_features: [],
-        description: "",
-      });
-      setImages([]);
-      router.push("/(tabs)");
+      await updateCar(carId as string, data);
+      Alert.alert(t("success"), t("listing_updated"));
+      router.back();
     } catch (error: any) {
-      console.error("PlaceAd: Error submitting listing:", error);
-      Alert.alert(t("error"), error.message || t("failed_to_create_car"));
+      console.error("EditListing: Error updating listing:", error);
+      Alert.alert(t("error"), error.message || t("failed_to_update_listing"));
     } finally {
-      setLoading(false);
+      setUpdating(false);
     }
   };
 
@@ -209,6 +247,7 @@ export default function PlaceAd() {
     <View style={styles.form}>
       <Text style={styles.section_title}>{t("general_info")}</Text>
       <View style={styles.section_divider} />
+
       <View style={styles.input_container}>
         <Text style={styles.label}>{t("make")}</Text>
         <TouchableOpacity
@@ -223,6 +262,7 @@ export default function PlaceAd() {
           <Ionicons name="chevron-down" size={20} color="#314352" />
         </TouchableOpacity>
       </View>
+
       <View style={styles.input_container}>
         <Text style={styles.label}>{t("model")}</Text>
         <TouchableOpacity
@@ -237,6 +277,7 @@ export default function PlaceAd() {
           <Ionicons name="chevron-down" size={20} color="#314352" />
         </TouchableOpacity>
       </View>
+
       <View style={styles.input_container}>
         <Text style={styles.label}>{t("price_usd")}</Text>
         <TextInput
@@ -249,6 +290,7 @@ export default function PlaceAd() {
           textAlign="left"
         />
       </View>
+
       <View style={styles.input_container}>
         <Text style={styles.label}>{t("year")}</Text>
         <TextInput
@@ -261,6 +303,7 @@ export default function PlaceAd() {
           textAlign="left"
         />
       </View>
+
       <View style={styles.input_container}>
         <Text style={styles.label}>{t("kilometer")}</Text>
         <TextInput
@@ -273,6 +316,7 @@ export default function PlaceAd() {
           textAlign="left"
         />
       </View>
+
       <View style={styles.input_container}>
         <Text style={styles.label}>{t("number_of_cylinders")}</Text>
         <TouchableOpacity
@@ -290,6 +334,7 @@ export default function PlaceAd() {
           <Ionicons name="chevron-down" size={20} color="#314352" />
         </TouchableOpacity>
       </View>
+
       <View style={styles.input_container}>
         <Text style={styles.label}>{t("location")}</Text>
         <TouchableOpacity
@@ -307,6 +352,7 @@ export default function PlaceAd() {
           <Ionicons name="chevron-down" size={20} color="#314352" />
         </TouchableOpacity>
       </View>
+
       <View style={styles.input_container}>
         <Text style={styles.label}>{t("transmission")}</Text>
         <TouchableOpacity
@@ -324,6 +370,7 @@ export default function PlaceAd() {
           <Ionicons name="chevron-down" size={20} color="#314352" />
         </TouchableOpacity>
       </View>
+
       <View style={styles.input_container}>
         <Text style={styles.label}>{t("fuel_type")}</Text>
         <TouchableOpacity
@@ -341,6 +388,7 @@ export default function PlaceAd() {
           <Ionicons name="chevron-down" size={20} color="#314352" />
         </TouchableOpacity>
       </View>
+
       <View style={styles.input_container}>
         <Text style={styles.label}>{t("exterior_color")}</Text>
         <TouchableOpacity
@@ -358,6 +406,7 @@ export default function PlaceAd() {
           <Ionicons name="chevron-down" size={20} color="#314352" />
         </TouchableOpacity>
       </View>
+
       <View style={styles.input_container}>
         <Text style={styles.label}>{t("interior_color")}</Text>
         <TouchableOpacity
@@ -375,6 +424,7 @@ export default function PlaceAd() {
           <Ionicons name="chevron-down" size={20} color="#314352" />
         </TouchableOpacity>
       </View>
+
       <Text style={styles.section_title}>{t("features")}</Text>
       <View style={styles.section_divider} />
       <View style={styles.feature_container}>
@@ -405,6 +455,7 @@ export default function PlaceAd() {
           </TouchableOpacity>
         ))}
       </View>
+
       <Text style={styles.section_title}>{t("description")}</Text>
       <View style={styles.section_divider} />
       <TextInput
@@ -417,12 +468,14 @@ export default function PlaceAd() {
         numberOfLines={8}
         textAlign="left"
       />
+
       <Text style={styles.section_title}>{t("gallery")}</Text>
       <View style={styles.section_divider} />
       <TouchableOpacity style={styles.image_picker_button} onPress={pickImages}>
         <Ionicons name="image-outline" size={24} color="#B80200" />
         <Text style={styles.image_picker_text}>{t("choose_images")}</Text>
       </TouchableOpacity>
+
       <View style={styles.image_preview}>
         {images.map((uri, index) => (
           <View key={index} style={styles.image_item}>
@@ -440,25 +493,47 @@ export default function PlaceAd() {
           </View>
         ))}
       </View>
+
       <TouchableOpacity
-        style={[styles.submit_button, loading && styles.submit_button_disabled]}
+        style={[
+          styles.submit_button,
+          updating && styles.submit_button_disabled,
+        ]}
         onPress={handleSubmit}
-        disabled={loading}
+        disabled={updating}
       >
-        {loading ? (
+        {updating ? (
           <ActivityIndicator size="small" color="#ffffff" />
         ) : (
-          <Text style={styles.submit_button_text}>{t("add_listing")}</Text>
+          <Text style={styles.submit_button_text}>{t("update_listing")}</Text>
         )}
       </TouchableOpacity>
     </View>
   );
 
+  if (loading) {
+    return (
+      <View style={styles.loading_container}>
+        <ActivityIndicator size="large" color="#B80200" />
+        <Text style={styles.loading_text}>{t("loading")}</Text>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.header_text}>{t("add_listing")}</Text>
+        <TouchableOpacity
+          style={styles.back_button}
+          onPress={() => router.back()}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="arrow-back" size={24} color="#ffffff" />
+        </TouchableOpacity>
+        <Text style={styles.header_text}>{t("edit_listing")}</Text>
+        <View style={styles.header_spacer} />
       </View>
+
       <FlatList
         data={[0]}
         renderItem={renderForm}
@@ -466,6 +541,7 @@ export default function PlaceAd() {
         contentContainerStyle={styles.list_content}
         showsVerticalScrollIndicator={false}
       />
+
       <Modal
         visible={modalVisible}
         transparent
@@ -503,16 +579,35 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#f5f5f5",
   },
+  loading_container: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#f5f5f5",
+  },
+  loading_text: {
+    fontSize: 16,
+    color: "#666",
+    marginTop: 10,
+  },
   header: {
     backgroundColor: "#323232",
     padding: 20,
     paddingTop: 40,
+    flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
+  },
+  back_button: {
+    padding: 8,
   },
   header_text: {
     fontSize: 24,
     fontWeight: "bold",
     color: "#ffffff",
+  },
+  header_spacer: {
+    width: 40,
   },
   form: {
     padding: 16,

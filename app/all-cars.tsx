@@ -24,7 +24,7 @@ export default function AllCars() {
   const router = useRouter();
 
   useEffect(() => {
-    console.log("AllCars: Fetching all cars...");
+    // console.log("AllCars: Fetching all cars...");
     setSearch("");
     fetchAllCars();
   }, []);
@@ -73,15 +73,15 @@ export default function AllCars() {
         const makeMatch = make.includes(searchLower);
         const modelMatch = model.includes(searchLower);
         const locationMatch = location.includes(searchLower);
-        console.log("AllCars: Filtering car:", car._id, {
-          make,
-          model,
-          location,
-          searchLower,
-          makeMatch,
-          modelMatch,
-          locationMatch,
-        });
+        // console.log("AllCars: Filtering car:", car._id, {
+        //   make,
+        //   model,
+        //   location,
+        //   searchLower,
+        //   makeMatch,
+        //   modelMatch,
+        //   locationMatch,
+        // });
         return makeMatch || modelMatch || locationMatch;
       })
     : [];
@@ -124,7 +124,7 @@ export default function AllCars() {
           renderItem={({ item }) => (
             <CarCard
               car={item}
-              //   onPress={() => router.push(`/car-details?carId=${item._id}`)}
+              onPress={() => router.push(`/car-details?carId=${item._id}`)}
               onWishlist={() => handleAddToWishlist(item._id)}
             />
           )}

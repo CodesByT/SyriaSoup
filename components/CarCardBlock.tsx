@@ -71,11 +71,11 @@ export default function CarCardBlock({
             cachePolicy="none"
             transition={200} // Smooth transition
             onProgress={({ loaded, total }) => {
-              console.log(
-                "CarCardBlock: Image progress:",
-                car._id,
-                `${((loaded / total) * 100).toFixed(2)}%`
-              );
+              // console.log(
+              //   "CarCardBlock: Image progress:",
+              //   car._id,
+              //   `${((loaded / total) * 100).toFixed(2)}%`
+              // );
             }}
             onError={(e) => {
               console.log("CarCardBlock: Image load error:", {
