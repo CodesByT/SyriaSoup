@@ -1,67 +1,102 @@
-"use client"
+"use client";
 
-import type React from "react"
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react"
-import { useAuth } from "./AuthContext"
-import { getUnreadCount } from "../utils/chat-api"
+import type React from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  type ReactNode,
+} from "react";
+import { getUnreadCount } from "../utils/chat-api";
+import { useAuth } from "./AuthContext";
 
 interface ChatContextType {
-  unreadCount: number
-  updateUnreadCount: () => Promise<void>
-  incrementUnreadCount: () => void
-  decrementUnreadCount: (count?: number) => void
+  unreadCount: number;
+  updateUnreadCount: () => Promise<void>;
+  incrementUnreadCount: () => void;
+  decrementUnreadCount: (count?: number) => void;
+  hasUnread: boolean;
 }
 
-const ChatContext = createContext<ChatContextType | undefined>(undefined)
+const ChatContext = createContext<ChatContextType | undefined>(undefined);
 
 export const useChatContext = () => {
-  const context = useContext(ChatContext)
+  const context = useContext(ChatContext);
   if (!context) {
-    throw new Error("useChatContext must be used within a ChatProvider")
+    // Return default values instead of throwing error
+    return {
+      unreadCount: 0,
+      updateUnreadCount: async () => {},
+      incrementUnreadCount: () => {},
+      decrementUnreadCount: () => {},
+      hasUnread: false,
+    };
   }
-  return context
-}
+  return context;
+};
 
 interface ChatProviderProps {
-  children: ReactNode
+  children: ReactNode;
 }
 
 export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
-  const [unreadCount, setUnreadCount] = useState(0)
-  const { isAuthenticated, user } = useAuth()
+  const [unreadCount, setUnreadCount] = useState(0);
+  const { isAuthenticated, user } = useAuth();
 
   const updateUnreadCount = async () => {
-    if (!isAuthenticated) {
-      setUnreadCount(0)
-      return
+    if (!isAuthenticated || !user) {
+      console.log("ChatContext: Not authenticated, setting unread count to 0");
+      setUnreadCount(0);
+      return;
     }
 
     try {
-      const count = await getUnreadCount()
-      setUnreadCount(count)
+      console.log("ChatContext: Fetching unread count...");
+      const count = await getUnreadCount();
+      console.log("ChatContext: Updated unread count to:", count);
+      setUnreadCount(count);
     } catch (error) {
-      console.error("Error updating unread count:", error)
+      console.error("ChatContext: Error updating unread count:", error);
+      setUnreadCount(0);
     }
-  }
+  };
 
   const incrementUnreadCount = () => {
-    setUnreadCount((prev) => prev + 1)
-  }
+    console.log("ChatContext: Incrementing unread count");
+    setUnreadCount((prev) => prev + 1);
+  };
 
   const decrementUnreadCount = (count = 1) => {
-    setUnreadCount((prev) => Math.max(0, prev - count))
-  }
+    console.log("ChatContext: Decrementing unread count by:", count);
+    setUnreadCount((prev) => Math.max(0, prev - count));
+  };
 
   useEffect(() => {
-    if (isAuthenticated) {
-      updateUnreadCount()
+    console.log(
+      "ChatContext: Auth state changed - authenticated:",
+      isAuthenticated,
+      "user:",
+      !!user
+    );
+
+    if (isAuthenticated && user) {
+      updateUnreadCount();
       // Set up periodic refresh every 30 seconds
-      const interval = setInterval(updateUnreadCount, 30000)
-      return () => clearInterval(interval)
+      const interval = setInterval(() => {
+        console.log("ChatContext: Periodic unread count update");
+        updateUnreadCount();
+      }, 30000);
+      return () => clearInterval(interval);
     } else {
-      setUnreadCount(0)
+      setUnreadCount(0);
     }
-  }, [isAuthenticated, user])
+  }, [isAuthenticated, user]);
+
+  // Debug logging
+  useEffect(() => {
+    console.log("ChatContext: Unread count changed to:", unreadCount);
+  }, [unreadCount]);
 
   return (
     <ChatContext.Provider
@@ -70,9 +105,10 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
         updateUnreadCount,
         incrementUnreadCount,
         decrementUnreadCount,
+        hasUnread: unreadCount > 0,
       }}
     >
       {children}
     </ChatContext.Provider>
-  )
-}
+  );
+};

@@ -11,6 +11,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import Snackbar from "react-native-snackbar"; // This is the Snackbar library you're using
 import CarCardBlock from "../../components/CarCardBlock";
 import { useAuth } from "../../contexts/AuthContext";
 import { Wishlist } from "../../types";
@@ -98,7 +99,22 @@ export default function Favorites() {
                 (item) => item._id !== wishlistId
               );
               setWishlists(updatedWishlists);
-              Alert.alert(t("success"), t("removedFromWishlist"));
+              Snackbar.show({
+                text: t("removedFromWishlist"),
+                duration: 1500,
+                action: {
+                  text: t("undo"),
+                  onPress: () => {
+                    // Optionally handle undo action
+                    setWishlists((prev) => [
+                      ...prev,
+                      wishlists.find((item) => item._id === wishlistId)!,
+                    ]);
+                  },
+                },
+                backgroundColor: "#B80200",
+                textColor: "#FFFFFF",
+              });
               if (updatedWishlists.length === 0) {
                 setWishlists([]);
                 setError(null);

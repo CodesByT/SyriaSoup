@@ -3,7 +3,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
@@ -12,13 +12,17 @@ import {
   Image,
   KeyboardAvoidingView,
   Platform,
+  RefreshControl,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import { useAuth } from "../contexts/AuthContext";
 import { useChatContext } from "../contexts/ChatContext";
 import type { Message } from "../utils/chat-api";
@@ -42,26 +46,80 @@ export default function Conversation() {
   const [sending, setSending] = useState(false);
   const [messageText, setMessageText] = useState("");
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
+  // Decode the recipient name
+  const decodedRecipientName = recipientName
+    ? decodeURIComponent(recipientName as string)
+    : "Conversation";
+
+  // Auto-refresh messages every 3 seconds
   useEffect(() => {
     if (conversationId) {
       fetchMessages();
       markAsRead();
+
+      const interval = setInterval(() => {
+        fetchMessages(false); // Silent refresh
+      }, 3000);
+
+      return () => clearInterval(interval);
     }
   }, [conversationId]);
 
-  const fetchMessages = async () => {
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await fetchMessages(false);
+    setRefreshing(false);
+  }, [conversationId]);
+
+  const fetchMessages = async (showLoading = true) => {
     try {
-      setLoading(true);
+      if (showLoading) setLoading(true);
+      console.log(
+        "Conversation: Fetching messages for conversation:",
+        conversationId
+      );
+
       const response = await getMessages(conversationId as string);
       const messagesData = response.data?.data || response.data || [];
-      setMessages(messagesData);
+
+      console.log("Conversation: Fetched messages:", messagesData.length);
+      console.log("Conversation: Current user ID:", user?._id);
+
+      // Validate message data
+      const validatedMessages = messagesData.map((message: any) => {
+        console.log("Conversation: Processing message:", message._id);
+        console.log("Conversation: Message sender:", message.sender);
+
+        // Ensure sender is properly formatted
+        if (typeof message.sender === "string") {
+          console.warn(
+            "Conversation: Sender is still a string ID:",
+            message.sender
+          );
+          return {
+            ...message,
+            sender: {
+              _id: message.sender,
+              username: "Loading...",
+              profileImage: null,
+            },
+          };
+        }
+
+        return message;
+      });
+
+      setMessages(validatedMessages);
       setTimeout(() => scrollToBottom(), 100);
     } catch (error: any) {
-      console.error("Error fetching messages:", error);
-      Alert.alert(t("error"), t("failedToFetchMessages"));
+      console.error("Conversation: Error fetching messages:", error);
+      if (showLoading) {
+        Alert.alert(t("error"), t("failedToFetchMessages"));
+      }
     } finally {
-      setLoading(false);
+      if (showLoading) setLoading(false);
     }
   };
 
@@ -70,7 +128,7 @@ export default function Conversation() {
       await markMessagesAsRead(conversationId as string);
       await updateUnreadCount();
     } catch (error) {
-      console.error("Error marking messages as read:", error);
+      console.error("Conversation: Error marking messages as read:", error);
     }
   };
 
@@ -83,22 +141,35 @@ export default function Conversation() {
   const handleSendMessage = async () => {
     if (!messageText.trim() && !selectedImage) return;
 
+    const tempMessage = messageText.trim();
+    const tempImage = selectedImage;
+
+    // Clear input immediately for better UX
+    setMessageText("");
+    setSelectedImage(null);
+
     setSending(true);
     try {
+      console.log("Conversation: Sending message:", tempMessage);
+      console.log("Conversation: To conversation:", conversationId);
+
       const response = await sendMessage(
         conversationId as string,
-        messageText.trim(),
-        selectedImage || undefined
+        tempMessage,
+        tempImage || undefined
       );
+      console.log("Conversation: Message sent response:", response.data);
 
-      const newMessage = response.data?.data || response.data;
-      setMessages((prev) => [...prev, newMessage]);
-      setMessageText("");
-      setSelectedImage(null);
-      setTimeout(() => scrollToBottom(), 100);
+      // Refresh messages to get the latest
+      await fetchMessages(false);
+      await updateUnreadCount();
     } catch (error: any) {
-      console.error("Error sending message:", error);
+      console.error("Conversation: Error sending message:", error);
       Alert.alert(t("error"), t("failedToSendMessage"));
+
+      // Restore message on error
+      setMessageText(tempMessage);
+      setSelectedImage(tempImage);
     } finally {
       setSending(false);
     }
@@ -137,6 +208,10 @@ export default function Conversation() {
       new Date(messages[index + 1].createdAt).getTime() -
         new Date(item.createdAt).getTime() >
         300000; // 5 minutes
+
+    console.log(
+      `Conversation: Message ${index}: isMyMessage=${isMyMessage}, sender=${item.sender._id}, currentUser=${user?._id}`
+    );
 
     return (
       <View
@@ -197,26 +272,7 @@ export default function Conversation() {
 
   const renderInputArea = () => (
     <View style={styles.inputContainer}>
-      {selectedImage && (
-        <View style={styles.selectedImageContainer}>
-          <Image source={{ uri: selectedImage }} style={styles.selectedImage} />
-          <TouchableOpacity
-            style={styles.removeImageButton}
-            onPress={() => setSelectedImage(null)}
-          >
-            <Ionicons name="close-circle" size={20} color="#B80200" />
-          </TouchableOpacity>
-        </View>
-      )}
-
       <View style={styles.inputRow}>
-        <TouchableOpacity
-          style={styles.imageButton}
-          onPress={handleImagePicker}
-        >
-          <Ionicons name="image-outline" size={24} color="#B80200" />
-        </TouchableOpacity>
-
         <TextInput
           style={styles.textInput}
           value={messageText}
@@ -246,10 +302,7 @@ export default function Conversation() {
   );
 
   return (
-    <KeyboardAvoidingView
-      style={[styles.container, { paddingTop: insets.top }]}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-    >
+    <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
@@ -259,35 +312,48 @@ export default function Conversation() {
           <Ionicons name="arrow-back" size={24} color="#ffffff" />
         </TouchableOpacity>
         <Text style={styles.headerTitle} numberOfLines={1}>
-          {recipientName || t("conversation")}
+          {decodedRecipientName}
         </Text>
-        <TouchableOpacity style={styles.headerButton}>
-          <Ionicons name="call-outline" size={24} color="#ffffff" />
-        </TouchableOpacity>
       </View>
 
-      {/* Messages */}
-      <View style={styles.messagesContainer}>
-        {loading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#B80200" />
-          </View>
-        ) : (
-          <FlatList
-            ref={flatListRef}
-            data={messages}
-            keyExtractor={(item) => item._id}
-            renderItem={renderMessage}
-            contentContainerStyle={styles.messagesList}
-            showsVerticalScrollIndicator={false}
-            onContentSizeChange={scrollToBottom}
-          />
-        )}
-      </View>
-
-      {/* Input Area */}
-      {renderInputArea()}
-    </KeyboardAvoidingView>
+      <KeyboardAvoidingView
+        style={styles.keyboardAvoidingContainer}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? insets.top + 55 : 0}
+      >
+        {/* Messages */}
+        <View style={styles.messagesContainer}>
+          {loading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color="#B80200" />
+              <Text style={styles.loadingText}>{t("loading")}</Text>
+            </View>
+          ) : (
+            <FlatList
+              ref={flatListRef}
+              data={messages}
+              keyExtractor={(item) => item._id}
+              renderItem={renderMessage}
+              contentContainerStyle={styles.messagesList}
+              showsVerticalScrollIndicator={false}
+              onContentSizeChange={scrollToBottom}
+              onLayout={scrollToBottom}
+              refreshControl={
+                <RefreshControl
+                  refreshing={refreshing}
+                  onRefresh={onRefresh}
+                  tintColor="#B80200"
+                  colors={["#B80200"]}
+                  progressBackgroundColor="#ffffff"
+                />
+              }
+            />
+          )}
+        </View>
+        {/* Input Area */}
+        {renderInputArea()}
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
@@ -309,6 +375,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
+    zIndex: 1,
   },
   backButton: {
     padding: 8,
@@ -320,8 +387,8 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#ffffff",
   },
-  headerButton: {
-    padding: 8,
+  keyboardAvoidingContainer: {
+    flex: 1,
   },
   messagesContainer: {
     flex: 1,
@@ -331,6 +398,11 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+  },
+  loadingText: {
+    fontSize: 16,
+    color: "#666",
+    marginTop: 10,
   },
   messagesList: {
     paddingVertical: 10,
@@ -418,30 +490,10 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: "#e0e0e0",
   },
-  selectedImageContainer: {
-    position: "relative",
-    marginBottom: 12,
-    alignSelf: "flex-start",
-  },
-  selectedImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 8,
-  },
-  removeImageButton: {
-    position: "absolute",
-    top: -8,
-    right: -8,
-    backgroundColor: "#ffffff",
-    borderRadius: 10,
-  },
   inputRow: {
     flexDirection: "row",
     alignItems: "flex-end",
     gap: 12,
-  },
-  imageButton: {
-    padding: 8,
   },
   textInput: {
     flex: 1,

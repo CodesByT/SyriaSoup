@@ -2,7 +2,7 @@
 
 import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -13,9 +13,16 @@ import { useChatContext } from "../../contexts/ChatContext";
 export default function TabsLayout() {
   const { t } = useTranslation();
   const { isAuthenticated } = useAuth();
-  const { unreadCount } = useChatContext();
+  const { unreadCount, hasUnread } = useChatContext(); // Moved useChatContext hook to top level
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [pendingTab, setPendingTab] = useState<string | null>(null);
+
+  // Debug logging
+  useEffect(() => {
+    console.log("TabsLayout - Unread count:", unreadCount);
+    console.log("TabsLayout - Has unread:", hasUnread);
+    console.log("TabsLayout - Is authenticated:", isAuthenticated);
+  }, [unreadCount, hasUnread, isAuthenticated]);
 
   const handleTabPress = (tabName: string) => (e: any) => {
     if (tabName === "index") return; // Allow Home tab without auth check
@@ -34,7 +41,7 @@ export default function TabsLayout() {
   const ChatIcon = ({ color, size }: { color: string; size: number }) => (
     <View style={styles.chatIconContainer}>
       <Ionicons name="chatbubbles-outline" size={size} color={color} />
-      {unreadCount > 0 && (
+      {isAuthenticated && unreadCount > 0 && (
         <View style={styles.badge}>
           <Text style={styles.badgeText}>
             {unreadCount > 99 ? "99+" : unreadCount.toString()}

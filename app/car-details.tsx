@@ -1,13 +1,15 @@
+"use client";
+
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
+import type { JSX } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   Alert,
-  Button,
+  Dimensions,
   FlatList,
-  Image,
   Linking,
   ScrollView,
   StyleSheet,
@@ -15,27 +17,44 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import CarCardGrid from "../components/CarCardGrid";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import ImageCarousel from "../components/ImageCarousel";
+import SimpleImageViewer from "../components/SimpleImageViewer"; // Using the simple version
+import CarCard from "../components/car-card";
 import { useAuth } from "../contexts/AuthContext";
-import { Car } from "../types";
+import { useChatContext } from "../contexts/ChatContext";
+import type { Car } from "../types";
 import {
   addToWishlist,
   checkWishlist,
   getCarById,
   getCars,
+  getUserById,
 } from "../utils/api";
+import { startConversation } from "../utils/chat-api";
 
-export default function CarDetails() {
+const { width } = Dimensions.get("window");
+
+export default function CarDetails(): JSX.Element {
   const { t } = useTranslation();
   const { isAuthenticated, user } = useAuth();
+  const { updateUnreadCount } = useChatContext();
   const { carId } = useLocalSearchParams();
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
+
   const [car, setCar] = useState<Car | null>(null);
+  const [carOwner, setCarOwner] = useState<any>(null);
   const [relatedCars, setRelatedCars] = useState<Car[]>([]);
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [wishlistId, setWishlistId] = useState<string | undefined>(undefined);
   const [loading, setLoading] = useState(true);
+  const [chatLoading, setChatLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const router = useRouter();
+
+  // Image viewer state
+  const [imageViewerVisible, setImageViewerVisible] = useState(false);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
   useEffect(() => {
     if (carId) {
@@ -50,10 +69,37 @@ export default function CarDetails() {
   const fetchCarDetails = async () => {
     try {
       setLoading(true);
+      console.log("Fetching car details for ID:", carId);
+
       const response = await getCarById(carId as string);
       const carData = response.data?.data || response.data;
-      console.log("CarDetails: Car data:", carData);
+
+      console.log("Car data received:", carData);
+      console.log("Car images:", carData.images);
+
       setCar(carData);
+
+      // Fetch car owner details
+      if (carData.user) {
+        const userId =
+          typeof carData.user === "object" ? carData.user._id : carData.user;
+        console.log("Fetching owner for user ID:", userId);
+
+        try {
+          const ownerResponse = await getUserById(userId);
+          const ownerData = ownerResponse.data?.data || ownerResponse.data;
+          console.log("Owner data:", ownerData);
+          setCarOwner(ownerData);
+        } catch (ownerError) {
+          console.error("Error fetching owner:", ownerError);
+          setCarOwner({
+            _id: userId,
+            username: "Car Owner",
+            phone: "963968888721",
+          });
+        }
+      }
+
       setError(null);
     } catch (error: any) {
       console.error("CarDetails: Error fetching car:", error);
@@ -66,12 +112,11 @@ export default function CarDetails() {
 
   const fetchRelatedCars = async () => {
     try {
-      const response = await getCars({ limit: 6 });
+      const response = await getCars({ limit: 10 });
       const data = response.data?.data || response.data;
       const carArray = Array.isArray(data)
         ? data.filter((c: Car) => c._id !== carId).slice(0, 6)
         : [];
-      console.log("CarDetails: Related cars:", carArray);
       setRelatedCars(carArray);
     } catch (error: any) {
       console.error("CarDetails: Error fetching related cars:", error);
@@ -85,7 +130,6 @@ export default function CarDetails() {
         carId as string,
         user._id
       );
-      console.log("CarDetails: Wishlist check:", { exists, wishlistId });
       setIsWishlisted(exists);
       setWishlistId(wishlistId);
     } catch (error: any) {
@@ -96,24 +140,18 @@ export default function CarDetails() {
   const handleToggleWishlist = async () => {
     if (!isAuthenticated || !user?._id) {
       Alert.alert(t("error"), t("please_login_to_wishlist"));
-      router.push("/(auth)/login");
+      router.push("/login");
       return;
     }
 
     try {
       if (isWishlisted && wishlistId) {
-        console.log("CarDetails: Car already in wishlist:", carId, wishlistId);
         Alert.alert(t("info"), t("already_in_wishlist"));
         return;
       }
       const response = await addToWishlist(carId as string);
       const newWishlistItem = response.data?.data;
       if (newWishlistItem?._id) {
-        console.log(
-          "CarDetails: Added car to wishlist:",
-          carId,
-          newWishlistItem._id
-        );
         setIsWishlisted(true);
         setWishlistId(newWishlistItem._id);
         Alert.alert(t("success"), t("added_to_wishlist"));
@@ -132,7 +170,47 @@ export default function CarDetails() {
     }
   };
 
-  const handleContact = (phone: string, isWhatsApp: boolean = false) => {
+  const handleStartChat = async () => {
+    if (!isAuthenticated || !user?._id) {
+      Alert.alert(t("error"), t("please_login_to_chat"));
+      router.push("/login");
+      return;
+    }
+
+    if (!car?.user) {
+      Alert.alert(t("error"), t("car_owner_not_found"));
+      return;
+    }
+
+    const ownerId = typeof car.user === "object" ? car.user._id : car.user;
+
+    if (ownerId === user._id) {
+      Alert.alert(t("error"), t("cannot_chat_with_yourself"));
+      return;
+    }
+
+    setChatLoading(true);
+    try {
+      console.log("Starting conversation with user:", ownerId);
+      const response = await startConversation(ownerId);
+      const conversation = response.data?.data || response.data;
+      console.log("Conversation created/found:", conversation);
+
+      await updateUnreadCount();
+
+      const recipientName = carOwner?.username || "Car Owner";
+      router.push(
+        `/conversation?conversationId=${conversation._id}&recipientName=${recipientName}`
+      );
+    } catch (error: any) {
+      console.error("CarDetails: Error starting conversation:", error);
+      Alert.alert(t("error"), t("failed_to_start_chat"));
+    } finally {
+      setChatLoading(false);
+    }
+  };
+
+  const handleContact = (phone: string, isWhatsApp = false) => {
     const url = isWhatsApp ? `whatsapp://send?phone=${phone}` : `tel:${phone}`;
     Linking.openURL(url).catch((err) =>
       Alert.alert(t("error"), t("failed_to_contact"))
@@ -149,41 +227,55 @@ export default function CarDetails() {
     ]);
   };
 
-  const checkRelatedCarWishlist = async (
-    carId: string
-  ): Promise<{ isWishlisted: boolean; wishlistId?: string }> => {
-    if (!isAuthenticated || !user?._id) {
-      return { isWishlisted: false };
-    }
-    try {
-      const { exists, wishlistId } = await checkWishlist(carId, user._id);
-      return { isWishlisted: exists, wishlistId };
-    } catch (error: any) {
-      console.error("CarDetails: Error checking related car wishlist:", error);
-      return { isWishlisted: false };
-    }
+  const handleImagePress = (imageUrl: string, index: number) => {
+    console.log("Image pressed:", imageUrl, "at index:", index);
+    setSelectedImageIndex(index);
+    setImageViewerVisible(true);
   };
+
+  const formatPrice = (price: number | string | undefined): string => {
+    if (!price) return t("priceOnRequest");
+    const numericPrice =
+      typeof price === "string" ? Number.parseFloat(price) : price;
+    return `$${numericPrice.toLocaleString()}`;
+  };
+
+  const renderRelatedCarItem = ({ item }: { item: Car }) => (
+    <View style={styles.relatedCarItem}>
+      <CarCard
+        car={item}
+        onPress={() => router.push(`/car-details?carId=${item._id}`)}
+        onEdit={() => {}}
+        onDelete={() => {}}
+        showActions={false}
+      />
+    </View>
+  );
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
+      <View style={[styles.loadingContainer, { paddingTop: insets.top }]}>
         <ActivityIndicator size="large" color="#b80200" />
-        <Text style={styles.noResults}>{t("loading")}</Text>
+        <Text style={styles.loadingText}>{t("loading")}</Text>
       </View>
     );
   }
 
   if (error || !car) {
     return (
-      <View style={styles.errorContainer}>
-        <Text style={styles.noResults}>{error || t("car_not_found")}</Text>
-        <Button title={t("retry")} onPress={fetchCarDetails} color="#b80200" />
+      <View style={[styles.errorContainer, { paddingTop: insets.top }]}>
+        <Ionicons name="alert-circle-outline" size={60} color="#b80200" />
+        <Text style={styles.errorText}>{error || t("car_not_found")}</Text>
+        <TouchableOpacity style={styles.retryButton} onPress={fetchCarDetails}>
+          <Text style={styles.retryButtonText}>{t("retry")}</Text>
+        </TouchableOpacity>
       </View>
     );
   }
 
   return (
-    <ScrollView style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
+      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
           onPress={() => router.back()}
@@ -191,301 +283,559 @@ export default function CarDetails() {
         >
           <Ionicons name="arrow-back" size={24} color="#ffffff" />
         </TouchableOpacity>
-        <Text style={styles.headerText}>{t("car_details")}</Text>
-      </View>
-
-      <View style={styles.imageContainer}>
-        <Image
-          source={{
-            uri:
-              car.images?.[0] ||
-              "https://via.placeholder.com/400x200?text=No+Image",
-          }}
-          style={styles.mainImage}
-          resizeMode="cover"
-        />
-        <TouchableOpacity
-          onPress={handleToggleWishlist}
-          style={[
-            styles.wishlistIcon,
-            isWishlisted && isAuthenticated && styles.wishlistIconActive,
-          ]}
-        >
-          <Ionicons
-            name={isWishlisted && isAuthenticated ? "heart" : "heart-outline"}
-            size={24}
-            color="#b80200"
-          />
+        <Text style={styles.headerTitle} numberOfLines={1}>
+          {car.make} {car.model}
+        </Text>
+        <TouchableOpacity style={styles.shareButton}>
+          <Ionicons name="share-outline" size={24} color="#ffffff" />
         </TouchableOpacity>
       </View>
 
-      <View style={styles.detailsContainer}>
-        <Text style={styles.title}>
-          {car.make} {car.model} {car.year}
-        </Text>
-        <Text style={styles.price}>${car.priceUSD}</Text>
-        <Text style={styles.location}>{car.location}</Text>
+      <ScrollView
+        style={styles.scrollContainer}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Image Carousel */}
+        <ImageCarousel
+          images={car.images || []}
+          onWishlistPress={handleToggleWishlist}
+          isWishlisted={isWishlisted}
+          isAuthenticated={isAuthenticated}
+          onImagePress={handleImagePress}
+        />
 
-        <View style={styles.infoSection}>
-          <Text style={styles.sectionTitle}>{t("information")}</Text>
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>{t("make")}:</Text>
-            <Text style={styles.infoValue}>{car.make}</Text>
+        {/* Car Details */}
+        <View style={styles.detailsContainer}>
+          {/* Title and Price */}
+          <View style={styles.titleSection}>
+            <Text style={styles.carTitle}>
+              {car.year} {car.make} {car.model}
+            </Text>
+            <Text style={styles.carPrice}>{formatPrice(car.priceUSD)}</Text>
+            <View style={styles.locationContainer}>
+              <Ionicons name="location-outline" size={16} color="#666" />
+              <Text style={styles.locationText}>{car.location}</Text>
+            </View>
           </View>
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>{t("model")}:</Text>
-            <Text style={styles.infoValue}>{car.model}</Text>
+
+          {/* Quick Info */}
+          <View style={styles.quickInfoSection}>
+            <View style={styles.quickInfoItem}>
+              <Ionicons name="speedometer-outline" size={20} color="#b80200" />
+              <Text style={styles.quickInfoText}>
+                {car.kilometer
+                  ? `${car.kilometer.toLocaleString()} km`
+                  : t("notSpecified")}
+              </Text>
+            </View>
+            <View style={styles.quickInfoItem}>
+              <Ionicons name="car-outline" size={20} color="#b80200" />
+              <Text style={styles.quickInfoText}>
+                {car.transmission || t("notSpecified")}
+              </Text>
+            </View>
+            <View style={styles.quickInfoItem}>
+              <Ionicons name="flash-outline" size={20} color="#b80200" />
+              <Text style={styles.quickInfoText}>
+                {car.fuelType || t("notSpecified")}
+              </Text>
+            </View>
           </View>
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>{t("kilometer")}:</Text>
-            <Text style={styles.infoValue}>{car.kilometer} km</Text>
+
+          {/* Contact Buttons */}
+          <View style={styles.contactSection}>
+            <TouchableOpacity
+              style={styles.chatButton}
+              onPress={handleStartChat}
+              disabled={chatLoading}
+            >
+              {chatLoading ? (
+                <ActivityIndicator size="small" color="#ffffff" />
+              ) : (
+                <Ionicons name="chatbubble-outline" size={20} color="#ffffff" />
+              )}
+              <Text style={styles.chatButtonText}>
+                {chatLoading ? t("connecting") : t("chat")}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.callButton}
+              onPress={() => handleContact(carOwner?.phone || "963968888721")}
+            >
+              <Ionicons name="call-outline" size={20} color="#ffffff" />
+              <Text style={styles.callButtonText}>{t("call")}</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.whatsappButton}
+              onPress={() =>
+                handleContact(carOwner?.phone || "963968888721", true)
+              }
+            >
+              <Ionicons name="logo-whatsapp" size={20} color="#ffffff" />
+              <Text style={styles.whatsappButtonText}>{t("whatsapp")}</Text>
+            </TouchableOpacity>
           </View>
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>{t("price")}:</Text>
-            <Text style={styles.infoValue}>${car.priceUSD}</Text>
+
+          {/* Seller Info */}
+          {carOwner && (
+            <View style={styles.sellerSection}>
+              <Text style={styles.sectionTitle}>{t("seller")}</Text>
+              <View style={styles.sellerInfo}>
+                <View style={styles.sellerAvatar}>
+                  <Ionicons name="person" size={24} color="#666" />
+                </View>
+                <View style={styles.sellerDetails}>
+                  <Text style={styles.sellerName}>{carOwner.username}</Text>
+                  <Text style={styles.sellerPhone}>{carOwner.phone}</Text>
+                </View>
+              </View>
+            </View>
+          )}
+
+          {/* Specifications */}
+          <View style={styles.specsSection}>
+            <Text style={styles.sectionTitle}>{t("specifications")}</Text>
+            <View style={styles.specsGrid}>
+              <View style={styles.specItem}>
+                <Text style={styles.specLabel}>{t("make")}</Text>
+                <Text style={styles.specValue}>{car.make}</Text>
+              </View>
+              <View style={styles.specItem}>
+                <Text style={styles.specLabel}>{t("model")}</Text>
+                <Text style={styles.specValue}>{car.model}</Text>
+              </View>
+              <View style={styles.specItem}>
+                <Text style={styles.specLabel}>{t("year")}</Text>
+                <Text style={styles.specValue}>{car.year}</Text>
+              </View>
+              <View style={styles.specItem}>
+                <Text style={styles.specLabel}>{t("kilometer")}</Text>
+                <Text style={styles.specValue}>
+                  {car.kilometer
+                    ? `${car.kilometer.toLocaleString()} km`
+                    : t("notSpecified")}
+                </Text>
+              </View>
+              <View style={styles.specItem}>
+                <Text style={styles.specLabel}>{t("engine_size")}</Text>
+                <Text style={styles.specValue}>
+                  {car.engineSize || t("notSpecified")}
+                </Text>
+              </View>
+              <View style={styles.specItem}>
+                <Text style={styles.specLabel}>{t("transmission")}</Text>
+                <Text style={styles.specValue}>
+                  {car.transmission || t("notSpecified")}
+                </Text>
+              </View>
+              <View style={styles.specItem}>
+                <Text style={styles.specLabel}>{t("fuel_type")}</Text>
+                <Text style={styles.specValue}>
+                  {car.fuelType || t("notSpecified")}
+                </Text>
+              </View>
+              <View style={styles.specItem}>
+                <Text style={styles.specLabel}>{t("exterior_color")}</Text>
+                <Text style={styles.specValue}>
+                  {car.exteriorColor || t("notSpecified")}
+                </Text>
+              </View>
+              <View style={styles.specItem}>
+                <Text style={styles.specLabel}>{t("interior_color")}</Text>
+                <Text style={styles.specValue}>
+                  {car.interiorColor || t("notSpecified")}
+                </Text>
+              </View>
+            </View>
           </View>
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>{t("interior_color")}:</Text>
-            <Text style={styles.infoValue}>{car.interiorColor}</Text>
-          </View>
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>{t("exterior_color")}:</Text>
-            <Text style={styles.infoValue}>{car.exteriorColor}</Text>
-          </View>
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>{t("engine_size")}:</Text>
-            <Text style={styles.infoValue}>{car.engineSize}</Text>
-          </View>
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>{t("fuel_type")}:</Text>
-            <Text style={styles.infoValue}>{car.fuelType}</Text>
-          </View>
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>{t("transmission")}:</Text>
-            <Text style={styles.infoValue}>{car.transmission}</Text>
-          </View>
+
+          {/* Features */}
           {car.features && car.features.length > 0 && (
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>{t("features")}:</Text>
-              <Text style={styles.infoValue}>{car.features.join(", ")}</Text>
+            <View style={styles.featuresSection}>
+              <Text style={styles.sectionTitle}>{t("features")}</Text>
+              <View style={styles.featuresGrid}>
+                {car.features.map((feature, index) => (
+                  <View key={index} style={styles.featureItem}>
+                    <Ionicons
+                      name="checkmark-circle"
+                      size={16}
+                      color="#28a745"
+                    />
+                    <Text style={styles.featureText}>{feature}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          )}
+
+          {/* Description */}
+          {car.description && (
+            <View style={styles.descriptionSection}>
+              <Text style={styles.sectionTitle}>{t("description")}</Text>
+              <Text style={styles.descriptionText}>{car.description}</Text>
+            </View>
+          )}
+
+          {/* Report Button */}
+          <TouchableOpacity
+            style={styles.reportButton}
+            onPress={handleReportAbuse}
+          >
+            <Ionicons name="flag-outline" size={16} color="#dc3545" />
+            <Text style={styles.reportButtonText}>{t("report_abuse")}</Text>
+          </TouchableOpacity>
+
+          {/* Related Cars */}
+          {relatedCars.length > 0 && (
+            <View style={styles.relatedSection}>
+              <Text style={styles.sectionTitle}>{t("you_may_also_like")}</Text>
+              <FlatList
+                data={relatedCars}
+                keyExtractor={(item) => item._id}
+                renderItem={renderRelatedCarItem}
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.relatedList}
+                ItemSeparatorComponent={() => <View style={{ width: 12 }} />}
+              />
             </View>
           )}
         </View>
+      </ScrollView>
 
-        <View style={styles.descriptionSection}>
-          <Text style={styles.sectionTitle}>{t("description")}</Text>
-          <Text style={styles.description}>
-            {car.description || t("no_description")}
-          </Text>
-        </View>
-
-        <View style={styles.contactSection}>
-          <Text style={styles.sectionTitle}>{t("contact_seller")}</Text>
-          <View style={styles.contactButtons}>
-            <TouchableOpacity
-              style={styles.contactButton}
-              onPress={() => handleContact("963968888721")}
-            >
-              <Text style={styles.contactButtonText}>{t("call")}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.contactButton, styles.whatsappButton]}
-              onPress={() => handleContact("963968888721", true)}
-            >
-              <Text style={styles.contactButtonText}>{t("whatsapp")}</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        <TouchableOpacity
-          style={styles.reportButton}
-          onPress={handleReportAbuse}
-        >
-          <Text style={styles.reportButtonText}>{t("report_abuse")}</Text>
-        </TouchableOpacity>
-
-        {relatedCars.length > 0 && (
-          <View style={styles.relatedSection}>
-            <Text style={styles.sectionTitle}>{t("you_may_also_like")}</Text>
-            <FlatList
-              data={relatedCars}
-              keyExtractor={(item) => item._id}
-              renderItem={({ item }: { item: Car }) => (
-                <CarCardGrid
-                  car={item}
-                  onPress={() => router.push(`/car-details?carId=${item._id}`)}
-                  onWishlist={async () => {
-                    const { isWishlisted, wishlistId } =
-                      await checkRelatedCarWishlist(item._id);
-                    if (!isWishlisted) {
-                      await handleToggleWishlist();
-                    } else {
-                      Alert.alert(t("info"), t("already_in_wishlist"));
-                    }
-                  }}
-                  isWishlisted={false} // Determined dynamically
-                  wishlistId={undefined} // Determined dynamically
-                  isAuthenticated={isAuthenticated}
-                />
-              )}
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.relatedList}
-            />
-          </View>
-        )}
-      </View>
-    </ScrollView>
+      {/* Simple Image Viewer Modal */}
+      <SimpleImageViewer
+        visible={imageViewerVisible}
+        images={car.images || []}
+        initialIndex={selectedImageIndex}
+        onClose={() => setImageViewerVisible(false)}
+      />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#ffffff",
+    backgroundColor: "#1a1a1a",
   },
   header: {
-    backgroundColor: "#323232",
-    padding: 20,
-    paddingTop: 40,
+    backgroundColor: "#1a1a1a",
+    paddingHorizontal: 20,
+    paddingVertical: 15,
     flexDirection: "row",
     alignItems: "center",
-    position: "fixed",
+    justifyContent: "space-between",
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   backButton: {
-    marginRight: 10,
+    padding: 8,
   },
-  headerText: {
-    fontSize: 24,
-    fontWeight: "bold",
+  headerTitle: {
+    flex: 1,
+    fontSize: 18,
+    fontWeight: "600",
     color: "#ffffff",
+    textAlign: "center",
+    marginHorizontal: 16,
   },
-  imageContainer: {
-    position: "relative",
-    height: 200,
+  shareButton: {
+    padding: 8,
   },
-  mainImage: {
-    width: "100%",
-    height: "100%",
-  },
-  wishlistIcon: {
-    position: "absolute",
-    top: 10,
-    right: 10,
-    backgroundColor: "rgba(255, 255, 255, 0.8)",
-    borderRadius: 20,
-    padding: 6,
-    zIndex: 10,
-  },
-  wishlistIconActive: {
-    opacity: 1,
+  scrollContainer: {
+    flex: 1,
+    backgroundColor: "#f8f9fa",
   },
   detailsContainer: {
-    padding: 16,
+    padding: 20,
   },
-  title: {
+  titleSection: {
+    marginBottom: 20,
+  },
+  carTitle: {
     fontSize: 24,
-    fontWeight: "bold",
-    color: "#314352",
+    fontWeight: "700",
+    color: "#1a1a1a",
     marginBottom: 8,
   },
-  price: {
-    fontSize: 20,
-    fontWeight: "600",
+  carPrice: {
+    fontSize: 28,
+    fontWeight: "700",
     color: "#b80200",
     marginBottom: 8,
   },
-  location: {
-    fontSize: 16,
-    color: "#555555",
-    marginBottom: 16,
+  locationContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
   },
-  infoSection: {
-    marginBottom: 16,
+  locationText: {
+    fontSize: 16,
+    color: "#666",
+  },
+  quickInfoSection: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    backgroundColor: "#ffffff",
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  quickInfoItem: {
+    alignItems: "center",
+    gap: 8,
+  },
+  quickInfoText: {
+    fontSize: 12,
+    color: "#666",
+    fontWeight: "600",
+    textAlign: "center",
+  },
+  contactSection: {
+    flexDirection: "row",
+    gap: 12,
+    marginBottom: 20,
+  },
+  chatButton: {
+    flex: 1,
+    backgroundColor: "#b80200",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 14,
+    borderRadius: 12,
+    gap: 8,
+    shadowColor: "#b80200",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  chatButtonText: {
+    color: "#ffffff",
+    fontSize: 16,
+    fontWeight: "700",
+  },
+  callButton: {
+    flex: 1,
+    backgroundColor: "#007bff",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 14,
+    borderRadius: 12,
+    gap: 8,
+  },
+  callButtonText: {
+    color: "#ffffff",
+    fontSize: 16,
+    fontWeight: "700",
+  },
+  whatsappButton: {
+    flex: 1,
+    backgroundColor: "#25D366",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 14,
+    borderRadius: 12,
+    gap: 8,
+  },
+  whatsappButtonText: {
+    color: "#ffffff",
+    fontSize: 16,
+    fontWeight: "700",
+  },
+  sellerSection: {
+    backgroundColor: "#ffffff",
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  sellerInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  sellerAvatar: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: "#f0f0f0",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  sellerDetails: {
+    flex: 1,
+  },
+  sellerName: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#1a1a1a",
+    marginBottom: 4,
+  },
+  sellerPhone: {
+    fontSize: 14,
+    color: "#666",
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: "600",
-    color: "#314352",
-    marginBottom: 8,
+    fontWeight: "700",
+    color: "#1a1a1a",
+    marginBottom: 12,
   },
-  infoRow: {
+  specsSection: {
+    backgroundColor: "#ffffff",
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  specsGrid: {
     flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 16,
+  },
+  specItem: {
+    width: (width - 80) / 2,
+    marginBottom: 12,
+  },
+  specLabel: {
+    fontSize: 12,
+    color: "#666",
+    fontWeight: "600",
     marginBottom: 4,
   },
-  infoLabel: {
+  specValue: {
     fontSize: 14,
-    fontWeight: "500",
-    color: "#314352",
-    width: 120,
+    color: "#1a1a1a",
+    fontWeight: "600",
   },
-  infoValue: {
+  featuresSection: {
+    backgroundColor: "#ffffff",
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  featuresGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 12,
+  },
+  featureItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    width: (width - 80) / 2,
+    marginBottom: 8,
+  },
+  featureText: {
     fontSize: 14,
-    color: "#555555",
+    color: "#1a1a1a",
     flex: 1,
   },
   descriptionSection: {
-    marginBottom: 16,
+    backgroundColor: "#ffffff",
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  description: {
+  descriptionText: {
     fontSize: 14,
-    color: "#555555",
-  },
-  contactSection: {
-    marginBottom: 16,
-  },
-  contactButtons: {
-    flexDirection: "row",
-    gap: 10,
-  },
-  contactButton: {
-    backgroundColor: "#b80200",
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-    flex: 1,
-    alignItems: "center",
-  },
-  whatsappButton: {
-    backgroundColor: "#25D366",
-  },
-  contactButtonText: {
-    color: "#ffffff",
-    fontSize: 14,
-    fontWeight: "600",
+    color: "#666",
+    lineHeight: 20,
   },
   reportButton: {
-    backgroundColor: "#f5f5f5",
-    padding: 10,
-    borderRadius: 8,
+    flexDirection: "row",
     alignItems: "center",
-    marginBottom: 16,
+    justifyContent: "center",
+    backgroundColor: "#f8f9fa",
+    borderWidth: 1,
+    borderColor: "#dc3545",
+    borderRadius: 12,
+    paddingVertical: 12,
+    marginBottom: 20,
+    gap: 8,
   },
   reportButtonText: {
-    color: "#b80200",
+    color: "#dc3545",
     fontSize: 14,
     fontWeight: "600",
   },
   relatedSection: {
-    marginBottom: 16,
+    marginBottom: 20,
   },
   relatedList: {
-    paddingHorizontal: 8,
+    paddingHorizontal: 4,
+  },
+  relatedCarItem: {
+    width: 280,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+    backgroundColor: "#f8f9fa",
+  },
+  loadingText: {
+    fontSize: 16,
+    color: "#666",
+    marginTop: 10,
   },
   errorContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+    backgroundColor: "#f8f9fa",
+    padding: 20,
   },
-  noResults: {
-    textAlign: "center",
-    marginTop: 20,
+  errorText: {
     fontSize: 16,
-    color: "#314352",
+    color: "#666",
+    textAlign: "center",
+    marginVertical: 20,
+  },
+  retryButton: {
+    backgroundColor: "#b80200",
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: "#ffffff",
+    fontSize: 16,
+    fontWeight: "600",
   },
 });

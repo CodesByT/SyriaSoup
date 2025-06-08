@@ -7,10 +7,11 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
-  Alert,
+  Alert, // Keep Alert for other uses if needed
   Dimensions,
   FlatList,
   Image,
+  Modal,
   RefreshControl,
   ScrollView,
   StatusBar,
@@ -21,6 +22,7 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Snackbar from "react-native-snackbar";
 import CarCard from "../../components/car-card";
 import { useAuth } from "../../contexts/AuthContext";
 import type { Car } from "../../types";
@@ -65,6 +67,8 @@ export default function Profile() {
     username: false,
     phone: false,
   });
+  // State for the custom logout modal
+  const [showLogoutModal, setShowLogoutModal] = useState<boolean>(false);
 
   useEffect(() => {
     if (isAuthenticated && user?._id) {
@@ -85,7 +89,13 @@ export default function Profile() {
       });
     } catch (error: any) {
       console.error("Profile: Error fetching user details:", error);
-      Alert.alert(t("error"), t("failedToFetchProfile"));
+      // Alert.alert(t("error"), t("failedToFetchProfile"));
+      Snackbar.show({
+        text: t("failedToFetchProfile"),
+        duration: 2000,
+        backgroundColor: "#B80200",
+        textColor: "#FFFFFF",
+      });
     } finally {
       setLoading(false);
     }
@@ -98,7 +108,13 @@ export default function Profile() {
       setListings(Array.isArray(listingsData) ? listingsData : []);
     } catch (error: any) {
       console.error("Profile: Error fetching listings:", error);
-      Alert.alert(t("error"), t("failedToFetchListings"));
+      // Alert.alert(t("error"), t("failedToFetchListings"));
+      Snackbar.show({
+        text: t("failedToFetchListings"),
+        duration: 2000,
+        backgroundColor: "#B80200",
+        textColor: "#FFFFFF",
+      });
     }
   };
 
@@ -112,7 +128,13 @@ export default function Profile() {
     const permissionResult =
       await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permissionResult.granted) {
-      Alert.alert(t("error"), t("photoPermissionRequired"));
+      // Alert.alert(t("error"), t("photoPermissionRequired"));
+      Snackbar.show({
+        text: t("photoPermissionRequired"),
+        duration: 2000,
+        backgroundColor: "#B80200",
+        textColor: "#FFFFFF",
+      });
       return;
     }
 
@@ -137,10 +159,22 @@ export default function Profile() {
           ...userDetails,
           profileImage: response.data.profileImage,
         });
-        Alert.alert(t("success"), t("profileImageUpdated"));
+        Snackbar.show({
+          text: t("profileImageUpdated"),
+          duration: 2000,
+          backgroundColor: "green",
+          textColor: "#FFFFFF",
+        });
+        //Alert.alert(t("success"), t("profileImageUpdated"));
       } catch (error: any) {
         console.error("Profile: Error updating profile image:", error);
-        Alert.alert(t("error"), t("failedToUpdateImage"));
+        Snackbar.show({
+          text: t("failedToUpdateImage"),
+          duration: 2000,
+          backgroundColor: "#B80200",
+          textColor: "#FFFFFF",
+        });
+        // Alert.alert(t("error"), t("failedToUpdateImage"));
       } finally {
         setImageUploading(false);
       }
@@ -156,38 +190,65 @@ export default function Profile() {
 
       await updateProfile(formData);
       setEditing(false);
-      Alert.alert(t("success"), t("profileUpdated"));
+      // Alert.alert(t("success"), t("profileUpdated"));
+      Snackbar.show({
+        text: t("profileUpdated"),
+        duration: 2000,
+        backgroundColor: "green",
+        textColor: "#FFFFFF",
+      });
     } catch (error: any) {
       console.error("Profile: Error updating profile:", error);
-      Alert.alert(t("error"), t("failedToUpdateProfile"));
+      // Alert.alert(t("error"), t("failedToUpdateProfile"));
+      Snackbar.show({
+        text: t("failedToUpdateProfile"),
+        duration: 2000,
+        backgroundColor: "#B80200",
+        textColor: "#FFFFFF",
+      });
     } finally {
       setLoading(false);
     }
   };
 
+  // --- MODIFIED LOGOUT HANDLER AND ADDED CUSTOM MODAL ---
   const handleLogout = async (): Promise<void> => {
-    Alert.alert(t("confirmLogout"), t("logoutConfirmMessage"), [
-      { text: t("cancel"), style: "cancel" },
-      {
-        text: t("logout"),
-        style: "destructive",
-        onPress: async () => {
-          try {
-            await logout();
-            Alert.alert(t("success"), t("loggedOut"));
-            router.replace("/(tabs)");
-          } catch (error: any) {
-            console.error("Profile: Error logging out:", error);
-            Alert.alert(t("error"), t("failedToLogout"));
-          }
-        },
-      },
-    ]);
+    setShowLogoutModal(true); // Show the custom logout modal
   };
+
+  const confirmLogout = async () => {
+    setShowLogoutModal(false); // Hide modal
+    try {
+      await logout();
+      Snackbar.show({
+        text: t("loggedOut"),
+        duration: 2000,
+        backgroundColor: "green",
+        textColor: "#FFFFFF",
+      });
+      router.replace("/(tabs)");
+    } catch (error: any) {
+      console.error("Profile: Error logging out:", error);
+      // Alert.alert(t("error"), t("failedToLogout"));
+      Snackbar.show({
+        text: t("failedToLogout"),
+        duration: 2000,
+        backgroundColor: "#B80200",
+        textColor: "#FFFFFF",
+      });
+    }
+  };
+  // ------------------------------------------------------
 
   const changeLanguage = (lang: "en" | "ar"): void => {
     i18n.changeLanguage(lang);
-    Alert.alert(t("success"), t("languageChanged"));
+    // Alert.alert(t("success"), t("languageChanged"));
+    Snackbar.show({
+      text: t("languageChanged"),
+      duration: 2000,
+      backgroundColor: "green",
+      textColor: "#FFFFFF",
+    });
   };
 
   const handleFocus = (field: keyof FocusState): void => {
@@ -215,11 +276,21 @@ export default function Profile() {
         onPress: async () => {
           try {
             await deleteCar(carId);
-            Alert.alert(t("success"), t("listingDeleted"));
+            Snackbar.show({
+              text: t("listingDeleted"),
+              duration: 2000,
+              backgroundColor: "green",
+              textColor: "#FFFFFF",
+            });
             fetchUserListings(); // Refresh the listings
           } catch (error: any) {
             console.error("Profile: Error deleting listing:", error);
-            Alert.alert(t("error"), t("failedToDeleteListing"));
+            Snackbar.show({
+              text: t("failedToDeleteListing"),
+              duration: 2000,
+              backgroundColor: "#B80200",
+              textColor: "#FFFFFF",
+            });
           }
         },
       },
@@ -434,7 +505,7 @@ export default function Profile() {
       {/* Logout Button */}
       <TouchableOpacity
         style={styles.logoutButton}
-        onPress={handleLogout}
+        onPress={handleLogout} // Now opens the custom modal
         disabled={loading}
         activeOpacity={0.8}
       >
@@ -557,18 +628,6 @@ export default function Profile() {
       </View>
 
       {/* Content Area */}
-      {/* <View style={styles.contentContainer}>
-        {loading && !refreshing ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#B80200" />
-            <Text style={styles.loadingText}>{t("loading")}</Text>
-          </View>
-        ) : activeTab === "profile" ? (
-          renderProfileContent()
-        ) : (
-          renderListingsContent()
-        )}
-      </View> */}
       <View style={styles.contentContainer}>
         {loading && !refreshing
           ? renderProfileContent()
@@ -576,6 +635,38 @@ export default function Profile() {
           ? renderProfileContent()
           : renderListingsContent()}
       </View>
+
+      {/* Custom Logout Modal */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={showLogoutModal}
+        onRequestClose={() => setShowLogoutModal(false)} // For Android back button
+      >
+        <View style={styles.centeredView}>
+          <View style={styles.modalView}>
+            <Ionicons name="log-out-outline" size={50} color="#B80200" />
+            <Text style={styles.modalTitle}>{t("confirmLogout")}</Text>
+            <Text style={styles.modalMessage}>{t("logoutConfirmMessage")}</Text>
+            <View style={styles.modalButtonContainer}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalCancelButton]}
+                onPress={() => setShowLogoutModal(false)}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.modalButtonText}>{t("cancel")}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalConfirmButton]}
+                onPress={confirmLogout}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.modalButtonText}>{t("logout")}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -940,5 +1031,68 @@ const styles = StyleSheet.create({
     color: "#ffffff",
     fontSize: 16,
     fontWeight: "700",
+  },
+  // --- NEW STYLES FOR CUSTOM MODAL ---
+  centeredView: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.6)", // Semi-transparent background
+  },
+  modalView: {
+    margin: 20,
+    backgroundColor: "white",
+    borderRadius: 15,
+    padding: 30,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 8,
+    width: "85%", // Adjust width as needed
+    maxWidth: 350,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#1a1a1a",
+    marginTop: 15,
+    marginBottom: 10,
+    textAlign: "center",
+  },
+  modalMessage: {
+    fontSize: 15,
+    color: "#666",
+    textAlign: "center",
+    marginBottom: 25,
+    lineHeight: 22,
+  },
+  modalButtonContainer: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    width: "100%",
+    gap: 15, // Space between buttons
+  },
+  modalButton: {
+    flex: 1, // Make buttons take equal space
+    paddingVertical: 12,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  modalConfirmButton: {
+    backgroundColor: "#B80200", // Your primary app color for confirm
+  },
+  modalCancelButton: {
+    backgroundColor: "#6c6b6b", // A neutral color for cancel
+  },
+  modalButtonText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "600",
   },
 });
