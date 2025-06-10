@@ -17,6 +17,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Snackbar from "react-native-snackbar";
 import CarCardGrid from "../../components/CarCardGrid";
 import InlineSearchBar from "../../components/InlineSearchBar";
+import { LanguageSwitcher } from "../../components/LanguageSwitcher";
 import { useAuth } from "../../contexts/AuthContext";
 import { useRTL } from "../../hooks/useRTL";
 import type { Car } from "../../types";
@@ -26,9 +27,10 @@ import {
   getCars,
   getWishlistByUserId,
 } from "../../utils/api";
+import { arabicMakes, locations, makes } from "../../utils/constants";
 
 export default function Home() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { isAuthenticated, user } = useAuth();
   const [cars, setCars] = useState<Car[]>([]);
   const [search, setSearch] = useState({ make: "", model: "", location: "" });
@@ -41,6 +43,7 @@ export default function Home() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { rtlViewStyle, rtlStyle } = useRTL();
+  const isArabic = i18n.language === "ar";
 
   useEffect(() => {
     setSearch({ make: "", model: "", location: "" });
@@ -231,18 +234,87 @@ export default function Home() {
     }
   };
 
+  // Helper function to find English equivalent of Arabic make
+  const findEnglishMake = (arabicMake: string): string => {
+    const found = arabicMakes.find(
+      (m) =>
+        m.label.toLowerCase() === arabicMake.toLowerCase() ||
+        m.value.toLowerCase() === arabicMake.toLowerCase()
+    );
+    return found?.enValue || arabicMake;
+  };
+
+  // Helper function to find English equivalent of Arabic model
+  const findEnglishModel = (
+    arabicModel: string,
+    arabicMake: string
+  ): string => {
+    const foundMake = arabicMakes.find(
+      (m) =>
+        m.label.toLowerCase() === arabicMake.toLowerCase() ||
+        m.value.toLowerCase() === arabicMake.toLowerCase()
+    );
+
+    if (foundMake && foundMake.models) {
+      const modelIndex = foundMake.models.findIndex(
+        (m) => m.toLowerCase() === arabicModel.toLowerCase()
+      );
+
+      if (modelIndex >= 0) {
+        const englishMake = makes.find(
+          (m) => m.value.toLowerCase() === foundMake.enValue.toLowerCase()
+        );
+
+        if (
+          englishMake &&
+          englishMake.models &&
+          englishMake.models[modelIndex]
+        ) {
+          return englishMake.models[modelIndex];
+        }
+      }
+    }
+
+    return arabicModel;
+  };
+
   const filteredCars = Array.isArray(cars)
     ? cars.filter((car) => {
-        const makeLower = search.make.toLowerCase();
-        const modelLower = search.model.toLowerCase();
-        const locationLower = search.location.toLowerCase();
+        // Get search terms, accounting for language
+        let searchMake = search.make.toLowerCase();
+        let searchModel = search.model.toLowerCase();
+        let searchLocation = search.location.toLowerCase();
+
+        // If in Arabic mode, convert search terms to English for comparison
+        if (isArabic && searchMake) {
+          searchMake = findEnglishMake(searchMake).toLowerCase();
+        }
+
+        if (isArabic && searchModel && searchMake) {
+          searchModel = findEnglishModel(
+            searchModel,
+            search.make
+          ).toLowerCase();
+        }
+
+        if (isArabic && searchLocation) {
+          // Find English location equivalent
+          const locationObj = locations.find(
+            (loc) => loc.arValue.toLowerCase() === searchLocation
+          );
+          if (locationObj) {
+            searchLocation = locationObj.value.toLowerCase();
+          }
+        }
+
         const carMake = car.make?.toLowerCase() || "";
         const carModel = car.model?.toLowerCase() || "";
         const carLocation = car.location?.toLowerCase() || "";
+
         return (
-          (!makeLower || carMake.includes(makeLower)) &&
-          (!modelLower || carModel.includes(modelLower)) &&
-          (!locationLower || carLocation.includes(locationLower))
+          (!searchMake || carMake.includes(searchMake)) &&
+          (!searchModel || carModel.includes(searchModel)) &&
+          (!searchLocation || carLocation.includes(searchLocation))
         );
       })
     : [];
@@ -251,7 +323,14 @@ export default function Home() {
     <View style={[styles.container, { paddingTop: insets.top }]}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>{t("syria_souq")}</Text>
+        <View style={styles.headerContent}>
+          <View style={styles.headerTitleContainer}>
+            <Text style={styles.headerTitle}>{t("syria_souq")}</Text>
+          </View>
+          <View style={styles.languageSwitcherContainer}>
+            <LanguageSwitcher compact={true} />
+          </View>
+        </View>
       </View>
 
       {/* Content */}
@@ -296,7 +375,7 @@ export default function Home() {
             </TouchableOpacity>
           </View>
         ) : filteredCars.length === 0 ? (
-          <View style={[styles.noResultsContainer]}>
+          <View style={styles.noResultsContainer}>
             <Text style={[styles.noResults, rtlStyle]}>
               {t("no_results", {
                 search: search.make || search.model || search.location,
@@ -348,9 +427,7 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: "#1a1a1a",
-    paddingHorizontal: 20,
     paddingVertical: 15,
-    alignItems: "center",
     borderBottomLeftRadius: 20,
     borderBottomRightRadius: 20,
     shadowColor: "#000",
@@ -359,10 +436,29 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
+  headerContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    position: "relative",
+    height: 44,
+  },
+  headerTitleContainer: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   headerTitle: {
     fontSize: 24,
     fontWeight: "700",
     color: "#ffffff",
+    textAlign: "center",
+  },
+  languageSwitcherContainer: {
+    position: "absolute",
+    right: 16,
+    zIndex: 1,
   },
   content: {
     flex: 1,
@@ -400,14 +496,13 @@ const styles = StyleSheet.create({
     marginHorizontal: -8,
   },
   noResultsContainer: {
-    flex: 0, // This makes the container take up all available space
-    justifyContent: "center", // Centers children vertically
-    alignItems: "center", // Centers children horizontally
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 20,
   },
-
   noResults: {
     textAlign: "center",
-    marginTop: 20,
     fontSize: 16,
     color: "#314352",
   },
@@ -434,6 +529,8 @@ const styles = StyleSheet.create({
   },
 });
 
+// "use client";
+
 // import AsyncStorage from "@react-native-async-storage/async-storage";
 // import { useRouter } from "expo-router";
 // import { useEffect, useState } from "react";
@@ -450,7 +547,7 @@ const styles = StyleSheet.create({
 // import { useSafeAreaInsets } from "react-native-safe-area-context";
 // import Snackbar from "react-native-snackbar";
 // import CarCardGrid from "../../components/CarCardGrid";
-// import SearchBar from "../../components/SearchBar";
+// import InlineSearchBar from "../../components/InlineSearchBar";
 // import { useAuth } from "../../contexts/AuthContext";
 // import { useRTL } from "../../hooks/useRTL";
 // import type { Car } from "../../types";
@@ -460,9 +557,10 @@ const styles = StyleSheet.create({
 //   getCars,
 //   getWishlistByUserId,
 // } from "../../utils/api";
+// import { arabicMakes, locations, makes } from "../../utils/constants";
 
 // export default function Home() {
-//   const { t } = useTranslation();
+//   const { t, i18n } = useTranslation();
 //   const { isAuthenticated, user } = useAuth();
 //   const [cars, setCars] = useState<Car[]>([]);
 //   const [search, setSearch] = useState({ make: "", model: "", location: "" });
@@ -475,6 +573,7 @@ const styles = StyleSheet.create({
 //   const router = useRouter();
 //   const insets = useSafeAreaInsets();
 //   const { rtlViewStyle, rtlStyle } = useRTL();
+//   const isArabic = i18n.language === "ar";
 
 //   useEffect(() => {
 //     setSearch({ make: "", model: "", location: "" });
@@ -665,18 +764,87 @@ const styles = StyleSheet.create({
 //     }
 //   };
 
+//   // Helper function to find English equivalent of Arabic make
+//   const findEnglishMake = (arabicMake: string): string => {
+//     const found = arabicMakes.find(
+//       (m) =>
+//         m.label.toLowerCase() === arabicMake.toLowerCase() ||
+//         m.value.toLowerCase() === arabicMake.toLowerCase()
+//     );
+//     return found?.enValue || arabicMake;
+//   };
+
+//   // Helper function to find English equivalent of Arabic model
+//   const findEnglishModel = (
+//     arabicModel: string,
+//     arabicMake: string
+//   ): string => {
+//     const foundMake = arabicMakes.find(
+//       (m) =>
+//         m.label.toLowerCase() === arabicMake.toLowerCase() ||
+//         m.value.toLowerCase() === arabicMake.toLowerCase()
+//     );
+
+//     if (foundMake && foundMake.models) {
+//       const modelIndex = foundMake.models.findIndex(
+//         (m) => m.toLowerCase() === arabicModel.toLowerCase()
+//       );
+
+//       if (modelIndex >= 0) {
+//         const englishMake = makes.find(
+//           (m) => m.value.toLowerCase() === foundMake.enValue.toLowerCase()
+//         );
+
+//         if (
+//           englishMake &&
+//           englishMake.models &&
+//           englishMake.models[modelIndex]
+//         ) {
+//           return englishMake.models[modelIndex];
+//         }
+//       }
+//     }
+
+//     return arabicModel;
+//   };
+
 //   const filteredCars = Array.isArray(cars)
 //     ? cars.filter((car) => {
-//         const makeLower = search.make.toLowerCase();
-//         const modelLower = search.model.toLowerCase();
-//         const locationLower = search.location.toLowerCase();
+//         // Get search terms, accounting for language
+//         let searchMake = search.make.toLowerCase();
+//         let searchModel = search.model.toLowerCase();
+//         let searchLocation = search.location.toLowerCase();
+
+//         // If in Arabic mode, convert search terms to English for comparison
+//         if (isArabic && searchMake) {
+//           searchMake = findEnglishMake(searchMake).toLowerCase();
+//         }
+
+//         if (isArabic && searchModel && searchMake) {
+//           searchModel = findEnglishModel(
+//             searchModel,
+//             search.make
+//           ).toLowerCase();
+//         }
+
+//         if (isArabic && searchLocation) {
+//           // Find English location equivalent
+//           const locationObj = locations.find(
+//             (loc) => loc.arValue.toLowerCase() === searchLocation
+//           );
+//           if (locationObj) {
+//             searchLocation = locationObj.value.toLowerCase();
+//           }
+//         }
+
 //         const carMake = car.make?.toLowerCase() || "";
 //         const carModel = car.model?.toLowerCase() || "";
 //         const carLocation = car.location?.toLowerCase() || "";
+
 //         return (
-//           (!makeLower || carMake.includes(makeLower)) &&
-//           (!modelLower || carModel.includes(modelLower)) &&
-//           (!locationLower || carLocation.includes(locationLower))
+//           (!searchMake || carMake.includes(searchMake)) &&
+//           (!searchModel || carModel.includes(searchModel)) &&
+//           (!searchLocation || carLocation.includes(searchLocation))
 //         );
 //       })
 //     : [];
@@ -690,7 +858,7 @@ const styles = StyleSheet.create({
 
 //       {/* Content */}
 //       <View style={styles.content}>
-//         <SearchBar
+//         <InlineSearchBar
 //           value={search}
 //           onChange={setSearch}
 //           placeholder={t("find_your_perfect_car")}

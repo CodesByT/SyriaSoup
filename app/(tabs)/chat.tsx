@@ -16,7 +16,6 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import type { JSX } from "react/jsx-runtime";
 import { useAuth } from "../../contexts/AuthContext";
 import { useChatContext } from "../../contexts/ChatContext";
 import { useRTL } from "../../hooks/useRTL";
@@ -26,11 +25,11 @@ import {
   getConversationUnreadCount,
 } from "../../utils/chat-api";
 
-const Chat = (): JSX.Element => {
+const Chat = () => {
   const { t } = useTranslation();
   const router = useRouter();
   const { user, isAuthenticated } = useAuth();
-  const { isRTL, rtlStyle, getFlexDirection } = useRTL();
+  const { isRTL, rtlStyle, rtlViewStyle, getFlexDirection } = useRTL();
   const insets = useSafeAreaInsets();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -234,6 +233,7 @@ const Chat = (): JSX.Element => {
         style={[
           styles.conversationItem,
           hasUnread && styles.unreadConversation,
+          isRTL && styles.conversationItemRTL,
         ]}
         onPress={() => handleConversationPress(item)}
         activeOpacity={0.7}
@@ -241,7 +241,7 @@ const Chat = (): JSX.Element => {
         <View
           style={[
             styles.avatarContainer,
-            { marginRight: isRTL ? 0 : 12, marginLeft: isRTL ? 12 : 0 },
+            isRTL ? styles.avatarContainerRTL : styles.avatarContainerLTR,
           ]}
         >
           {otherParticipant?.profileImage ? (
@@ -259,16 +259,18 @@ const Chat = (): JSX.Element => {
               <Text style={styles.avatarText}>{firstLetter}</Text>
             </View>
           )}
-          {hasUnread && <View style={styles.unreadIndicator} />}
+          {hasUnread && (
+            <View
+              style={[
+                styles.unreadIndicator,
+                isRTL ? styles.unreadIndicatorRTL : styles.unreadIndicatorLTR,
+              ]}
+            />
+          )}
         </View>
 
         <View style={styles.conversationContent}>
-          <View
-            style={[
-              styles.conversationHeader,
-              { flexDirection: getFlexDirection() },
-            ]}
-          >
+          <View style={[styles.conversationHeader, rtlViewStyle]}>
             <Text
               style={[
                 styles.participantName,
@@ -279,21 +281,7 @@ const Chat = (): JSX.Element => {
             >
               {displayName}
             </Text>
-            <View
-              style={[
-                styles.timestampContainer,
-                { flexDirection: getFlexDirection() },
-              ]}
-            >
-              <Text
-                style={[
-                  styles.timestamp,
-                  hasUnread && styles.unreadTimestamp,
-                  rtlStyle,
-                ]}
-              >
-                {formatTime(item.lastMessageAt)}
-              </Text>
+            <View style={[styles.timestampContainer, rtlViewStyle]}>
               {hasUnread && (
                 <View style={styles.unreadBadge}>
                   <Text style={styles.unreadBadgeText}>
@@ -303,15 +291,19 @@ const Chat = (): JSX.Element => {
                   </Text>
                 </View>
               )}
+              <Text
+                style={[
+                  styles.timestamp,
+                  hasUnread && styles.unreadTimestamp,
+                  rtlStyle,
+                ]}
+              >
+                {formatTime(item.lastMessageAt)}
+              </Text>
             </View>
           </View>
 
-          <View
-            style={[
-              styles.messagePreview,
-              { flexDirection: getFlexDirection() },
-            ]}
-          >
+          <View style={[styles.messagePreview, rtlViewStyle]}>
             <Text
               style={[
                 styles.lastMessage,
@@ -326,7 +318,9 @@ const Chat = (): JSX.Element => {
               <View
                 style={[
                   styles.newMessageIndicator,
-                  { marginLeft: isRTL ? 0 : 8, marginRight: isRTL ? 8 : 0 },
+                  isRTL
+                    ? styles.newMessageIndicatorRTL
+                    : styles.newMessageIndicatorLTR,
                 ]}
               >
                 <Ionicons name="ellipse" size={8} color="#B80200" />
@@ -376,13 +370,8 @@ const Chat = (): JSX.Element => {
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       {/* Header */}
-      <View style={[styles.header, { flexDirection: getFlexDirection() }]}>
-        <Text style={[styles.headerTitle, rtlStyle]}>
-          {t("messages") || "Messages"}
-        </Text>
-        <TouchableOpacity style={styles.headerButton} activeOpacity={0.7}>
-          <Ionicons name="create-outline" size={24} color="#ffffff" />
-        </TouchableOpacity>
+      <View style={[styles.header, rtlViewStyle]}>
+        <Text style={[styles.headerTitle, rtlStyle]}>{t("messages")}</Text>
       </View>
 
       {/* Content */}
@@ -424,8 +413,7 @@ const styles = StyleSheet.create({
   header: {
     backgroundColor: "#1a1a1a",
     paddingHorizontal: 20,
-    paddingVertical: 15,
-    justifyContent: "space-between",
+    paddingVertical: 15, // justifyContent: "space-between", // Remove this line
     alignItems: "center",
     borderBottomLeftRadius: 20,
     borderBottomRightRadius: 20,
@@ -433,12 +421,14 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 3,
+    elevation: 3, // Add this to center content horizontally
+    justifyContent: "center",
   },
   headerTitle: {
     fontSize: 24,
     fontWeight: "700",
     color: "#ffffff",
+    textAlign: "center",
   },
   headerButton: {
     padding: 8,
@@ -472,6 +462,9 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "#f0f0f0",
   },
+  conversationItemRTL: {
+    flexDirection: "row-reverse",
+  },
   unreadConversation: {
     backgroundColor: "#fafafa",
     borderLeftWidth: 4,
@@ -479,6 +472,12 @@ const styles = StyleSheet.create({
   },
   avatarContainer: {
     position: "relative",
+  },
+  avatarContainerLTR: {
+    marginRight: 12,
+  },
+  avatarContainerRTL: {
+    marginLeft: 12,
   },
   avatar: {
     width: 50,
@@ -512,13 +511,18 @@ const styles = StyleSheet.create({
   unreadIndicator: {
     position: "absolute",
     bottom: 2,
-    right: 2,
     width: 12,
     height: 12,
     borderRadius: 6,
     backgroundColor: "#B80200",
     borderWidth: 2,
     borderColor: "#ffffff",
+  },
+  unreadIndicatorLTR: {
+    right: 2,
+  },
+  unreadIndicatorRTL: {
+    left: 2,
   },
   conversationContent: {
     flex: 1,
@@ -574,6 +578,12 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   newMessageIndicator: {},
+  newMessageIndicatorLTR: {
+    marginLeft: 8,
+  },
+  newMessageIndicatorRTL: {
+    marginRight: 8,
+  },
   emptyState: {
     alignItems: "center",
     paddingVertical: 60,
@@ -627,3 +637,14 @@ const styles = StyleSheet.create({
 });
 
 export default Chat;
+
+//     borderRadius: 12,
+//   },
+//   authButtonText: {
+//     color: "#ffffff",
+//     fontSize: 16,
+//     fontWeight: "700",
+//   },
+// });
+
+// export default Chat;

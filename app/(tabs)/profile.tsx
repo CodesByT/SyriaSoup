@@ -2,13 +2,14 @@
 
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useFocusEffect } from "@react-navigation/native";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
-  Alert, // Keep Alert for other uses if needed
+  Alert,
   Dimensions,
   FlatList,
   Image,
@@ -73,6 +74,9 @@ export default function Profile() {
   });
   // State for the custom logout modal
   const [showLogoutModal, setShowLogoutModal] = useState<boolean>(false);
+  // State for the custom delete listing modal
+  const [showDeleteModal, setShowDeleteModal] = useState<boolean>(false);
+  const [carToDelete, setCarToDelete] = useState<string | null>(null);
 
   useEffect(() => {
     if (isAuthenticated && user?._id) {
@@ -80,6 +84,15 @@ export default function Profile() {
       fetchUserListings();
     }
   }, [isAuthenticated, user?._id]);
+
+  // Refresh listings when user comes back to profile (e.g., after posting an ad)
+  useFocusEffect(
+    useCallback(() => {
+      if (isAuthenticated && user?._id && activeTab === "listings") {
+        fetchUserListings();
+      }
+    }, [isAuthenticated, user?._id, activeTab])
+  );
 
   const fetchUserDetails = async (): Promise<void> => {
     setLoading(true);
@@ -266,33 +279,34 @@ export default function Profile() {
   };
 
   const handleDeleteListing = (carId: string): void => {
-    Alert.alert(t("confirmDelete"), t("deleteListingConfirmMessage"), [
-      { text: t("cancel"), style: "cancel" },
-      {
-        text: t("delete"),
-        style: "destructive",
-        onPress: async () => {
-          try {
-            await deleteCar(carId);
-            Snackbar.show({
-              text: t("listingDeleted"),
-              duration: 2000,
-              backgroundColor: "green",
-              textColor: "#FFFFFF",
-            });
-            fetchUserListings();
-          } catch (error: any) {
-            console.error("Profile: Error deleting listing:", error);
-            Snackbar.show({
-              text: t("failedToDeleteListing"),
-              duration: 2000,
-              backgroundColor: "#B80200",
-              textColor: "#FFFFFF",
-            });
-          }
-        },
-      },
-    ]);
+    setCarToDelete(carId);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDeleteListing = async (): Promise<void> => {
+    if (!carToDelete) return;
+
+    setShowDeleteModal(false);
+    try {
+      await deleteCar(carToDelete);
+      Snackbar.show({
+        text: t("listingDeleted"),
+        duration: 2000,
+        backgroundColor: "green",
+        textColor: "#FFFFFF",
+      });
+      fetchUserListings();
+    } catch (error: any) {
+      console.error("Profile: Error deleting listing:", error);
+      Snackbar.show({
+        text: t("failedToDeleteListing"),
+        duration: 2000,
+        backgroundColor: "#B80200",
+        textColor: "#FFFFFF",
+      });
+    } finally {
+      setCarToDelete(null);
+    }
   };
 
   const renderListingItem = ({ item }: { item: Car }) => (
@@ -502,17 +516,27 @@ export default function Profile() {
 
         {/* Other Options */}
         {[
-          { key: "aboutUs", icon: "information-circle-outline" },
-          { key: "termsOfUse", icon: "document-text-outline" },
-          { key: "privacyPolicy", icon: "shield-checkmark-outline" },
-          { key: "contactUs", icon: "mail-outline" },
+          { key: "aboutUs", icon: "information-circle-outline" as const },
+          { key: "termsOfUse", icon: "document-text-outline" as const },
+          { key: "privacyPolicy", icon: "shield-checkmark-outline" as const },
+          { key: "contactUs", icon: "mail-outline" as const },
         ].map((option) => (
           <TouchableOpacity
             key={option.key}
             style={[styles.optionItem, { flexDirection: getFlexDirection() }]}
-            onPress={() =>
-              Alert.alert(t(option.key), t(`${option.key}Content`))
-            }
+            onPress={() => {
+              if (option.key === "contactUs") {
+                router.push("/contact-us");
+              } else if (option.key === "termsOfUse") {
+                router.push("/terms-of-use");
+              } else if (option.key === "aboutUs") {
+                router.push("/about-us");
+              } else if (option.key === "privacyPolicy") {
+                router.push("/privacy-policy");
+              } else {
+                Alert.alert(t(option.key), t(`${option.key}Content`));
+              }
+            }}
             activeOpacity={0.7}
           >
             <View
@@ -559,7 +583,13 @@ export default function Profile() {
   const renderListingsContent = () => (
     <View style={styles.listingsContainer}>
       {listings.length === 0 ? (
-        <View style={styles.emptyState}>
+        <ScrollView
+          contentContainerStyle={styles.emptyState}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
+          showsVerticalScrollIndicator={false}
+        >
           <Ionicons name="car-outline" size={60} color="#ccc" />
           <Text style={[styles.emptyStateTitle, rtlStyle]}>
             {t("noListings")}
@@ -575,7 +605,7 @@ export default function Profile() {
             <Ionicons name="add" size={20} color="#FFFFFF" />
             <Text style={styles.addListingButtonText}>{t("addListing")}</Text>
           </TouchableOpacity>
-        </View>
+        </ScrollView>
       ) : (
         <FlatList
           data={listings}
@@ -711,6 +741,47 @@ export default function Profile() {
                 activeOpacity={0.8}
               >
                 <Text style={styles.modalButtonText}>{t("logout")}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Custom Delete Listing Modal */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={showDeleteModal}
+        onRequestClose={() => setShowDeleteModal(false)}
+      >
+        <View style={styles.centeredView}>
+          <View style={styles.modalView}>
+            <Ionicons name="trash-outline" size={50} color="#B80200" />
+            <Text style={[styles.modalTitle, rtlStyle]}>
+              {t("confirmDelete")}
+            </Text>
+            <Text style={[styles.modalMessage, rtlStyle]}>
+              {t("deleteListingConfirmMessage")}
+            </Text>
+            <View
+              style={[
+                styles.modalButtonContainer,
+                { flexDirection: getFlexDirection("row") },
+              ]}
+            >
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalCancelButton]}
+                onPress={() => setShowDeleteModal(false)}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.modalButtonText}>{t("cancel")}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalConfirmButton]}
+                onPress={confirmDeleteListing}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.modalButtonText}>{t("delete")}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -998,6 +1069,8 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   emptyState: {
+    flexGrow: 1,
+    justifyContent: "center",
     alignItems: "center",
     paddingVertical: 40,
   },
@@ -1140,10 +1213,9 @@ const styles = StyleSheet.create({
 // import { useTranslation } from "react-i18next";
 // import {
 //   ActivityIndicator,
-//   Alert, // Keep Alert for other uses if needed
+//   Alert,
 //   Dimensions,
 //   FlatList,
-//   I18nManager,
 //   Image,
 //   Modal,
 //   RefreshControl,
@@ -1159,6 +1231,7 @@ const styles = StyleSheet.create({
 // import Snackbar from "react-native-snackbar";
 // import CarCard from "../../components/car-card";
 // import { useAuth } from "../../contexts/AuthContext";
+// import { useRTL } from "../../hooks/useRTL";
 // import type { Car } from "../../types";
 // import {
 //   deleteCar,
@@ -1183,6 +1256,8 @@ const styles = StyleSheet.create({
 
 // export default function Profile() {
 //   const { t, i18n } = useTranslation();
+//   const { isRTL, rtlStyle, rtlViewStyle, getRTLStyle, getFlexDirection } =
+//     useRTL();
 //   const router = useRouter();
 //   const { user, logout, isAuthenticated } = useAuth();
 //   const insets = useSafeAreaInsets();
@@ -1203,6 +1278,9 @@ const styles = StyleSheet.create({
 //   });
 //   // State for the custom logout modal
 //   const [showLogoutModal, setShowLogoutModal] = useState<boolean>(false);
+//   // State for the custom delete listing modal
+//   const [showDeleteModal, setShowDeleteModal] = useState<boolean>(false);
+//   const [carToDelete, setCarToDelete] = useState<string | null>(null);
 
 //   useEffect(() => {
 //     if (isAuthenticated && user?._id) {
@@ -1223,7 +1301,6 @@ const styles = StyleSheet.create({
 //       });
 //     } catch (error: any) {
 //       console.error("Profile: Error fetching user details:", error);
-//       // Alert.alert(t("error"), t("failedToFetchProfile"));
 //       Snackbar.show({
 //         text: t("failedToFetchProfile"),
 //         duration: 2000,
@@ -1242,7 +1319,6 @@ const styles = StyleSheet.create({
 //       setListings(Array.isArray(listingsData) ? listingsData : []);
 //     } catch (error: any) {
 //       console.error("Profile: Error fetching listings:", error);
-//       // Alert.alert(t("error"), t("failedToFetchListings"));
 //       Snackbar.show({
 //         text: t("failedToFetchListings"),
 //         duration: 2000,
@@ -1262,7 +1338,6 @@ const styles = StyleSheet.create({
 //     const permissionResult =
 //       await ImagePicker.requestMediaLibraryPermissionsAsync();
 //     if (!permissionResult.granted) {
-//       // Alert.alert(t("error"), t("photoPermissionRequired"));
 //       Snackbar.show({
 //         text: t("photoPermissionRequired"),
 //         duration: 2000,
@@ -1299,7 +1374,6 @@ const styles = StyleSheet.create({
 //           backgroundColor: "green",
 //           textColor: "#FFFFFF",
 //         });
-//         //Alert.alert(t("success"), t("profileImageUpdated"));
 //       } catch (error: any) {
 //         console.error("Profile: Error updating profile image:", error);
 //         Snackbar.show({
@@ -1308,7 +1382,6 @@ const styles = StyleSheet.create({
 //           backgroundColor: "#B80200",
 //           textColor: "#FFFFFF",
 //         });
-//         // Alert.alert(t("error"), t("failedToUpdateImage"));
 //       } finally {
 //         setImageUploading(false);
 //       }
@@ -1324,7 +1397,6 @@ const styles = StyleSheet.create({
 
 //       await updateProfile(formData);
 //       setEditing(false);
-//       // Alert.alert(t("success"), t("profileUpdated"));
 //       Snackbar.show({
 //         text: t("profileUpdated"),
 //         duration: 2000,
@@ -1333,7 +1405,6 @@ const styles = StyleSheet.create({
 //       });
 //     } catch (error: any) {
 //       console.error("Profile: Error updating profile:", error);
-//       // Alert.alert(t("error"), t("failedToUpdateProfile"));
 //       Snackbar.show({
 //         text: t("failedToUpdateProfile"),
 //         duration: 2000,
@@ -1345,13 +1416,12 @@ const styles = StyleSheet.create({
 //     }
 //   };
 
-//   // --- MODIFIED LOGOUT HANDLER AND ADDED CUSTOM MODAL ---
 //   const handleLogout = async (): Promise<void> => {
-//     setShowLogoutModal(true); // Show the custom logout modal
+//     setShowLogoutModal(true);
 //   };
 
 //   const confirmLogout = async () => {
-//     setShowLogoutModal(false); // Hide modal
+//     setShowLogoutModal(false);
 //     try {
 //       await logout();
 //       Snackbar.show({
@@ -1363,7 +1433,6 @@ const styles = StyleSheet.create({
 //       router.replace("/(tabs)");
 //     } catch (error: any) {
 //       console.error("Profile: Error logging out:", error);
-//       // Alert.alert(t("error"), t("failedToLogout"));
 //       Snackbar.show({
 //         text: t("failedToLogout"),
 //         duration: 2000,
@@ -1372,30 +1441,11 @@ const styles = StyleSheet.create({
 //       });
 //     }
 //   };
-//   // ------------------------------------------------------
 
 //   const changeLanguage = async (lang: "en" | "ar"): Promise<void> => {
 //     try {
-//       // Change language in i18n
 //       await i18n.changeLanguage(lang);
-
-//       // Store the selected language
 //       await AsyncStorage.setItem("user-language", lang);
-
-//       // Handle RTL layout for Arabic
-//       const isRTL = lang === "ar";
-//       if (I18nManager.isRTL !== isRTL) {
-//         I18nManager.forceRTL(isRTL);
-//         // In a production app, you might want to reload the app here
-//         // to properly apply RTL changes
-//       }
-
-//       Snackbar.show({
-//         text: t("languageChanged"),
-//         duration: 2000,
-//         backgroundColor: "green",
-//         textColor: "#FFFFFF",
-//       });
 //     } catch (error) {
 //       console.error("Error changing language:", error);
 //       Snackbar.show({
@@ -1424,33 +1474,34 @@ const styles = StyleSheet.create({
 //   };
 
 //   const handleDeleteListing = (carId: string): void => {
-//     Alert.alert(t("confirmDelete"), t("deleteListingConfirmMessage"), [
-//       { text: t("cancel"), style: "cancel" },
-//       {
-//         text: t("delete"),
-//         style: "destructive",
-//         onPress: async () => {
-//           try {
-//             await deleteCar(carId);
-//             Snackbar.show({
-//               text: t("listingDeleted"),
-//               duration: 2000,
-//               backgroundColor: "green",
-//               textColor: "#FFFFFF",
-//             });
-//             fetchUserListings(); // Refresh the listings
-//           } catch (error: any) {
-//             console.error("Profile: Error deleting listing:", error);
-//             Snackbar.show({
-//               text: t("failedToDeleteListing"),
-//               duration: 2000,
-//               backgroundColor: "#B80200",
-//               textColor: "#FFFFFF",
-//             });
-//           }
-//         },
-//       },
-//     ]);
+//     setCarToDelete(carId);
+//     setShowDeleteModal(true);
+//   };
+
+//   const confirmDeleteListing = async (): Promise<void> => {
+//     if (!carToDelete) return;
+
+//     setShowDeleteModal(false);
+//     try {
+//       await deleteCar(carToDelete);
+//       Snackbar.show({
+//         text: t("listingDeleted"),
+//         duration: 2000,
+//         backgroundColor: "green",
+//         textColor: "#FFFFFF",
+//       });
+//       fetchUserListings();
+//     } catch (error: any) {
+//       console.error("Profile: Error deleting listing:", error);
+//       Snackbar.show({
+//         text: t("failedToDeleteListing"),
+//         duration: 2000,
+//         backgroundColor: "#B80200",
+//         textColor: "#FFFFFF",
+//       });
+//     } finally {
+//       setCarToDelete(null);
+//     }
 //   };
 
 //   const renderListingItem = ({ item }: { item: Car }) => (
@@ -1491,16 +1542,19 @@ const styles = StyleSheet.create({
 //             <Ionicons name="camera" size={18} color="#FFFFFF" />
 //           </View>
 //         </TouchableOpacity>
-//         <Text style={styles.imageHint}>{t("tapToChangePhoto")}</Text>
+//         <Text style={[styles.imageHint, rtlStyle]}>
+//           {t("tapToChangePhoto")}
+//         </Text>
 //       </View>
 
 //       {/* User Details Form */}
 //       <View style={styles.formContainer}>
 //         <View style={styles.inputGroup}>
-//           <Text style={styles.label}>{t("username")}</Text>
+//           <Text style={[styles.label, rtlStyle]}>{t("username")}</Text>
 //           <View
 //             style={[
 //               styles.inputContainer,
+//               { flexDirection: getFlexDirection() },
 //               focused.username && styles.inputFocused,
 //               !editing && styles.inputDisabled,
 //             ]}
@@ -1509,10 +1563,13 @@ const styles = StyleSheet.create({
 //               name="person-outline"
 //               size={20}
 //               color={focused.username ? "#B80200" : "#666"}
-//               style={styles.inputIcon}
+//               style={[
+//                 styles.inputIcon,
+//                 isRTL && { marginRight: 0, marginLeft: 12 },
+//               ]}
 //             />
 //             <TextInput
-//               style={styles.textInput}
+//               style={[styles.textInput, rtlStyle]}
 //               value={userDetails.username}
 //               onChangeText={(text) =>
 //                 setUserDetails({ ...userDetails, username: text })
@@ -1527,10 +1584,11 @@ const styles = StyleSheet.create({
 //         </View>
 
 //         <View style={styles.inputGroup}>
-//           <Text style={styles.label}>{t("phoneNumber")}</Text>
+//           <Text style={[styles.label, rtlStyle]}>{t("phoneNumber")}</Text>
 //           <View
 //             style={[
 //               styles.inputContainer,
+//               { flexDirection: getFlexDirection() },
 //               focused.phone && styles.inputFocused,
 //               !editing && styles.inputDisabled,
 //             ]}
@@ -1539,10 +1597,13 @@ const styles = StyleSheet.create({
 //               name="call-outline"
 //               size={20}
 //               color={focused.phone ? "#B80200" : "#666"}
-//               style={styles.inputIcon}
+//               style={[
+//                 styles.inputIcon,
+//                 isRTL && { marginRight: 0, marginLeft: 12 },
+//               ]}
 //             />
 //             <TextInput
-//               style={styles.textInput}
+//               style={[styles.textInput, rtlStyle]}
 //               value={userDetails.phone}
 //               onChangeText={(text) =>
 //                 setUserDetails({ ...userDetails, phone: text })
@@ -1581,20 +1642,34 @@ const styles = StyleSheet.create({
 //             onPress={() => setEditing(false)}
 //             activeOpacity={0.8}
 //           >
-//             <Text style={styles.cancelButtonText}>{t("cancel")}</Text>
+//             <Text style={[styles.cancelButtonText, rtlStyle]}>
+//               {t("cancel")}
+//             </Text>
 //           </TouchableOpacity>
 //         )}
 //       </View>
 
 //       {/* App Options */}
 //       <View style={styles.optionsContainer}>
-//         <Text style={styles.sectionTitle}>{t("appSettings")}</Text>
+//         <Text style={[styles.sectionTitle, rtlStyle]}>{t("appSettings")}</Text>
 
 //         {/* Language Selection */}
-//         <View style={styles.optionItem}>
-//           <View style={styles.optionLeft}>
+//         <View
+//           style={[styles.optionItem, { flexDirection: getFlexDirection() }]}
+//         >
+//           <View
+//             style={[styles.optionLeft, { flexDirection: getFlexDirection() }]}
+//           >
 //             <Ionicons name="language-outline" size={22} color="#B80200" />
-//             <Text style={styles.optionText}>{t("language")}</Text>
+//             <Text
+//               style={[
+//                 styles.optionText,
+//                 rtlStyle,
+//                 isRTL && { marginRight: 12, marginLeft: 0 },
+//               ]}
+//             >
+//               {t("language")}
+//             </Text>
 //           </View>
 //           <View style={styles.languageButtons}>
 //             <TouchableOpacity
@@ -1636,24 +1711,60 @@ const styles = StyleSheet.create({
 
 //         {/* Other Options */}
 //         {[
-//           { key: "aboutUs", icon: "information-circle-outline" },
-//           { key: "termsOfUse", icon: "document-text-outline" },
-//           { key: "privacyPolicy", icon: "shield-checkmark-outline" },
-//           { key: "contactUs", icon: "mail-outline" },
+//           {
+//             key: "aboutUs",
+//             icon: "information-circle-outline" as const,
+//           },
+//           {
+//             key: "termsOfUse",
+//             icon: "document-text-outline" as const,
+//           },
+//           {
+//             key: "privacyPolicy",
+//             icon: "shield-checkmark-outline" as const,
+//           },
+//           {
+//             key: "contactUs",
+//             icon: "mail-outline" as const,
+//           },
 //         ].map((option) => (
 //           <TouchableOpacity
 //             key={option.key}
-//             style={styles.optionItem}
-//             onPress={() =>
-//               Alert.alert(t(option.key), t(`${option.key}Content`))
-//             }
+//             style={[styles.optionItem, { flexDirection: getFlexDirection() }]}
+//             onPress={() => {
+//               if (option.key === "contactUs") {
+//                 router.push("/contact-us");
+//               } else if (option.key === "termsOfUse") {
+//                 router.push("/terms-of-use");
+//               } else if (option.key === "aboutUs") {
+//                 router.push("/about-us");
+//               } else if (option.key === "privacyPolicy") {
+//                 router.push("/privacy-policy");
+//               } else {
+//                 Alert.alert(t(option.key), t(`${option.key}Content`));
+//               }
+//             }}
 //             activeOpacity={0.7}
 //           >
-//             <View style={styles.optionLeft}>
-//               <Ionicons name={option.icon as any} size={22} color="#B80200" />
-//               <Text style={styles.optionText}>{t(option.key)}</Text>
+//             <View
+//               style={[styles.optionLeft, { flexDirection: getFlexDirection() }]}
+//             >
+//               <Ionicons name={option.icon} size={22} color="#B80200" />
+//               <Text
+//                 style={[
+//                   styles.optionText,
+//                   rtlStyle,
+//                   isRTL && { marginRight: 12, marginLeft: 0 },
+//                 ]}
+//               >
+//                 {t(option.key)}
+//               </Text>
 //             </View>
-//             <Ionicons name="chevron-forward" size={20} color="#999" />
+//             <Ionicons
+//               name={isRTL ? "chevron-back" : "chevron-forward"}
+//               size={20}
+//               color="#999"
+//             />
 //           </TouchableOpacity>
 //         ))}
 //       </View>
@@ -1661,7 +1772,7 @@ const styles = StyleSheet.create({
 //       {/* Logout Button */}
 //       <TouchableOpacity
 //         style={styles.logoutButton}
-//         onPress={handleLogout} // Now opens the custom modal
+//         onPress={handleLogout}
 //         disabled={loading}
 //         activeOpacity={0.8}
 //       >
@@ -1681,8 +1792,10 @@ const styles = StyleSheet.create({
 //       {listings.length === 0 ? (
 //         <View style={styles.emptyState}>
 //           <Ionicons name="car-outline" size={60} color="#ccc" />
-//           <Text style={styles.emptyStateTitle}>{t("noListings")}</Text>
-//           <Text style={styles.emptyStateDescription}>
+//           <Text style={[styles.emptyStateTitle, rtlStyle]}>
+//             {t("noListings")}
+//           </Text>
+//           <Text style={[styles.emptyStateDescription, rtlStyle]}>
 //             {t("noListingsDescription")}
 //           </Text>
 //           <TouchableOpacity
@@ -1715,8 +1828,10 @@ const styles = StyleSheet.create({
 //         <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
 //         <View style={styles.authContent}>
 //           <Ionicons name="person-circle-outline" size={80} color="#B80200" />
-//           <Text style={styles.authTitle}>{t("accountRequired")}</Text>
-//           <Text style={styles.authDescription}>
+//           <Text style={[styles.authTitle, rtlStyle]}>
+//             {t("accountRequired")}
+//           </Text>
+//           <Text style={[styles.authDescription, rtlStyle]}>
 //             {t("loginToAccessProfile")}
 //           </Text>
 //           <TouchableOpacity
@@ -1739,7 +1854,7 @@ const styles = StyleSheet.create({
 //         translucent={false}
 //       />
 
-//       {/* Header with Integrated Tab Navigation */}
+//       {/* Header with Integrated Tab Navigation - ALWAYS LTR */}
 //       <View style={styles.header}>
 //         <View style={styles.tabContainer}>
 //           <TouchableOpacity
@@ -1797,14 +1912,23 @@ const styles = StyleSheet.create({
 //         animationType="fade"
 //         transparent={true}
 //         visible={showLogoutModal}
-//         onRequestClose={() => setShowLogoutModal(false)} // For Android back button
+//         onRequestClose={() => setShowLogoutModal(false)}
 //       >
 //         <View style={styles.centeredView}>
 //           <View style={styles.modalView}>
 //             <Ionicons name="log-out-outline" size={50} color="#B80200" />
-//             <Text style={styles.modalTitle}>{t("confirmLogout")}</Text>
-//             <Text style={styles.modalMessage}>{t("logoutConfirmMessage")}</Text>
-//             <View style={styles.modalButtonContainer}>
+//             <Text style={[styles.modalTitle, rtlStyle]}>
+//               {t("confirmLogout")}
+//             </Text>
+//             <Text style={[styles.modalMessage, rtlStyle]}>
+//               {t("logoutConfirmMessage")}
+//             </Text>
+//             <View
+//               style={[
+//                 styles.modalButtonContainer,
+//                 { flexDirection: getFlexDirection("row") },
+//               ]}
+//             >
 //               <TouchableOpacity
 //                 style={[styles.modalButton, styles.modalCancelButton]}
 //                 onPress={() => setShowLogoutModal(false)}
@@ -1823,6 +1947,47 @@ const styles = StyleSheet.create({
 //           </View>
 //         </View>
 //       </Modal>
+
+//       {/* Custom Delete Listing Modal */}
+//       <Modal
+//         animationType="fade"
+//         transparent={true}
+//         visible={showDeleteModal}
+//         onRequestClose={() => setShowDeleteModal(false)}
+//       >
+//         <View style={styles.centeredView}>
+//           <View style={styles.modalView}>
+//             <Ionicons name="trash-outline" size={50} color="#B80200" />
+//             <Text style={[styles.modalTitle, rtlStyle]}>
+//               {t("confirmDelete")}
+//             </Text>
+//             <Text style={[styles.modalMessage, rtlStyle]}>
+//               {t("deleteListingConfirmMessage")}
+//             </Text>
+//             <View
+//               style={[
+//                 styles.modalButtonContainer,
+//                 { flexDirection: getFlexDirection("row") },
+//               ]}
+//             >
+//               <TouchableOpacity
+//                 style={[styles.modalButton, styles.modalCancelButton]}
+//                 onPress={() => setShowDeleteModal(false)}
+//                 activeOpacity={0.8}
+//               >
+//                 <Text style={styles.modalButtonText}>{t("cancel")}</Text>
+//               </TouchableOpacity>
+//               <TouchableOpacity
+//                 style={[styles.modalButton, styles.modalConfirmButton]}
+//                 onPress={confirmDeleteListing}
+//                 activeOpacity={0.8}
+//               >
+//                 <Text style={styles.modalButtonText}>{t("delete")}</Text>
+//               </TouchableOpacity>
+//             </View>
+//           </View>
+//         </View>
+//       </Modal>
 //     </View>
 //   );
 // }
@@ -1830,11 +1995,11 @@ const styles = StyleSheet.create({
 // const styles = StyleSheet.create({
 //   container: {
 //     flex: 1,
-//     backgroundColor: "#1a1a1a", // Header background color extends to top
+//     backgroundColor: "#1a1a1a",
 //   },
 //   header: {
 //     backgroundColor: "#1a1a1a",
-//     paddingTop: 15, // Fixed padding
+//     paddingTop: 15,
 //     paddingBottom: 20,
 //     paddingHorizontal: 20,
 //     borderBottomLeftRadius: 20,
@@ -1846,7 +2011,7 @@ const styles = StyleSheet.create({
 //     elevation: 5,
 //   },
 //   tabContainer: {
-//     flexDirection: "row",
+//     flexDirection: "row", // ALWAYS LTR for tabs
 //     backgroundColor: "#ffffff",
 //     borderRadius: 15,
 //     padding: 4,
@@ -1858,7 +2023,7 @@ const styles = StyleSheet.create({
 //   },
 //   tab: {
 //     flex: 1,
-//     flexDirection: "row",
+//     flexDirection: "row", // ALWAYS LTR for tabs
 //     alignItems: "center",
 //     justifyContent: "center",
 //     paddingVertical: 12,
@@ -1962,7 +2127,6 @@ const styles = StyleSheet.create({
 //     marginLeft: 2,
 //   },
 //   inputContainer: {
-//     flexDirection: "row",
 //     alignItems: "center",
 //     backgroundColor: "#f8f9fa",
 //     borderRadius: 12,
@@ -2046,7 +2210,6 @@ const styles = StyleSheet.create({
 //     marginBottom: 15,
 //   },
 //   optionItem: {
-//     flexDirection: "row",
 //     justifyContent: "space-between",
 //     alignItems: "center",
 //     paddingVertical: 12,
@@ -2054,7 +2217,6 @@ const styles = StyleSheet.create({
 //     borderBottomColor: "#f0f0f0",
 //   },
 //   optionLeft: {
-//     flexDirection: "row",
 //     alignItems: "center",
 //     gap: 12,
 //   },
@@ -2139,17 +2301,6 @@ const styles = StyleSheet.create({
 //     fontSize: 14,
 //     fontWeight: "600",
 //   },
-//   loadingContainer: {
-//     flex: 1,
-//     alignItems: "center",
-//     justifyContent: "center",
-//     paddingVertical: 40,
-//   },
-//   loadingText: {
-//     fontSize: 14,
-//     color: "#666",
-//     marginTop: 10,
-//   },
 //   authContainer: {
 //     flex: 1,
 //     backgroundColor: "#ffffff",
@@ -2188,12 +2339,11 @@ const styles = StyleSheet.create({
 //     fontSize: 16,
 //     fontWeight: "700",
 //   },
-//   // --- NEW STYLES FOR CUSTOM MODAL ---
 //   centeredView: {
 //     flex: 1,
 //     justifyContent: "center",
 //     alignItems: "center",
-//     backgroundColor: "rgba(0, 0, 0, 0.6)", // Semi-transparent background
+//     backgroundColor: "rgba(0, 0, 0, 0.6)",
 //   },
 //   modalView: {
 //     margin: 20,
@@ -2209,7 +2359,7 @@ const styles = StyleSheet.create({
 //     shadowOpacity: 0.3,
 //     shadowRadius: 5,
 //     elevation: 8,
-//     width: "85%", // Adjust width as needed
+//     width: "85%",
 //     maxWidth: 350,
 //   },
 //   modalTitle: {
@@ -2228,23 +2378,22 @@ const styles = StyleSheet.create({
 //     lineHeight: 22,
 //   },
 //   modalButtonContainer: {
-//     flexDirection: "row",
 //     justifyContent: "space-around",
 //     width: "100%",
-//     gap: 15, // Space between buttons
+//     gap: 15,
 //   },
 //   modalButton: {
-//     flex: 1, // Make buttons take equal space
+//     flex: 1,
 //     paddingVertical: 12,
 //     borderRadius: 10,
 //     alignItems: "center",
 //     justifyContent: "center",
 //   },
 //   modalConfirmButton: {
-//     backgroundColor: "#B80200", // Your primary app color for confirm
+//     backgroundColor: "#B80200",
 //   },
 //   modalCancelButton: {
-//     backgroundColor: "#6c6b6b", // A neutral color for cancel
+//     backgroundColor: "#6c6b6b",
 //   },
 //   modalButtonText: {
 //     color: "#FFFFFF",

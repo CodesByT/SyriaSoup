@@ -11,9 +11,11 @@ import {
   Dimensions,
   FlatList,
   Linking,
+  Modal,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -34,17 +36,25 @@ import {
   getUserById,
 } from "../utils/api";
 import { startConversation } from "../utils/chat-api";
+import {
+  translateCarField,
+  translateDescription,
+  translateLocation,
+  translateMake,
+  translateModel,
+} from "../utils/translation-helpers";
 
 const { width } = Dimensions.get("window");
 
 export default function CarDetails(): JSX.Element {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { isAuthenticated, user } = useAuth();
   const { updateUnreadCount } = useChatContext();
   const { isRTL, rtlStyle, getFlexDirection } = useRTL();
   const { carId } = useLocalSearchParams();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const isArabic = i18n.language === "ar";
 
   const [car, setCar] = useState<Car | null>(null);
   const [carOwner, setCarOwner] = useState<any>(null);
@@ -54,10 +64,71 @@ export default function CarDetails(): JSX.Element {
   const [loading, setLoading] = useState(true);
   const [chatLoading, setChatLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [translatedDescription, setTranslatedDescription] =
+    useState<string>("");
+
+  // Report modal state
+  const [reportModalVisible, setReportModalVisible] = useState(false);
+  const [reportReason, setReportReason] = useState("");
+  const [reportDescription, setReportDescription] = useState("");
+  const [reportContact, setReportContact] = useState("");
+  const [reportPhone, setReportPhone] = useState("");
+  const [reportLoading, setReportLoading] = useState(false);
+  const [showReasonDropdown, setShowReasonDropdown] = useState(false);
 
   // Image viewer state
   const [imageViewerVisible, setImageViewerVisible] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+
+  // Translate car data when car or language changes
+  useEffect(() => {
+    if (car && car.description) {
+      translateDescription(car.description, isArabic).then(
+        setTranslatedDescription
+      );
+    }
+  }, [car, isArabic]);
+
+  // Function to translate features
+  const translateFeatures = (features: string[]): string => {
+    if (!features || features.length === 0) return "N/A";
+
+    const translatedFeatures = features.map((feature) => {
+      // Try to get translation, fallback to original if not found
+      const translationKey = feature.replace(/\s+/g, "_");
+      const translated = t(translationKey);
+      return translated !== translationKey ? translated : feature;
+    });
+
+    return translatedFeatures.join(isArabic ? "، " : ", ");
+  };
+
+  // Get translated car data
+  const getTranslatedCarData = () => {
+    if (!car) return null;
+
+    return {
+      make: translateMake(car.make, isArabic),
+      model: translateModel(car.model, car.make, isArabic),
+      location: translateLocation(car.location, isArabic),
+      transmission: translateCarField(
+        "transmission",
+        car.transmission,
+        isArabic
+      ),
+      fuelType: translateCarField("fuelType", car.fuelType, isArabic),
+      exteriorColor: translateCarField("color", car.exteriorColor, isArabic),
+      interiorColor: translateCarField("color", car.interiorColor, isArabic),
+      features: translateFeatures(car.features || []),
+    };
+  };
+
+  const translatedCar = getTranslatedCarData();
+
+  // Update the car title display with proper translation
+  const carTitle = translatedCar
+    ? `${car?.year} ${translatedCar.make} ${translatedCar.model}`
+    : "";
 
   useEffect(() => {
     if (carId) {
@@ -72,13 +143,13 @@ export default function CarDetails(): JSX.Element {
   const fetchCarDetails = async () => {
     try {
       setLoading(true);
-      console.log("Fetching car details for ID:", carId);
+      // console.log("Fetching car details for ID:", carId);
 
       const response = await getCarById(carId as string);
       const carData = response.data?.data || response.data;
 
-      console.log("Car data received:", carData);
-      console.log("Car images:", carData.images);
+      // console.log("Car data received:", carData);
+      // console.log("Car images:", carData.images);
 
       setCar(carData);
 
@@ -86,12 +157,12 @@ export default function CarDetails(): JSX.Element {
       if (carData.user) {
         const userId =
           typeof carData.user === "object" ? carData.user._id : carData.user;
-        console.log("Fetching owner for user ID:", userId);
+        // console.log("Fetching owner for user ID:", userId);
 
         try {
           const ownerResponse = await getUserById(userId);
           const ownerData = ownerResponse.data?.data || ownerResponse.data;
-          console.log("Owner data:", ownerData);
+          // console.log("Owner data:", ownerData);
           setCarOwner(ownerData);
         } catch (ownerError) {
           console.error("Error fetching owner:", ownerError);
@@ -240,10 +311,10 @@ export default function CarDetails(): JSX.Element {
 
     setChatLoading(true);
     try {
-      console.log("Starting conversation with user:", ownerId);
+      // console.log("Starting conversation with user:", ownerId);
       const response = await startConversation(ownerId);
       const conversation = response.data?.data || response.data;
-      console.log("Conversation created/found:", conversation);
+      // console.log("Conversation created/found:", conversation);
 
       await updateUnreadCount();
 
@@ -277,23 +348,71 @@ export default function CarDetails(): JSX.Element {
   };
 
   const handleReportAbuse = () => {
-    Alert.alert(t("report_abuse"), t("report_abuse_message"), [
-      { text: t("cancel"), style: "cancel" },
-      {
-        text: t("submit"),
-        onPress: () =>
-          Snackbar.show({
-            text: t("report_submitted"),
-            duration: 1000,
-            backgroundColor: "#b80200",
-            textColor: "#fff",
+    setReportModalVisible(true);
+  };
+
+  const submitReport = async () => {
+    if (!reportReason) {
+      Snackbar.show({
+        text: t("please_select_reason"),
+        duration: 2000,
+        backgroundColor: "#b80200",
+        textColor: "#fff",
+      });
+      return;
+    }
+
+    setReportLoading(true);
+    try {
+      const response = await fetch(
+        `${process.env.EXPO_PUBLIC_API_URL}/api/reports`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            carId: carId,
+            reason: reportReason,
+            description: reportDescription || "No additional details provided",
+            contact: reportContact || "Not provided",
+            phone: "Not provided", // Made optional
+            language: i18n.language,
           }),
-      },
-    ]);
+        }
+      );
+
+      if (response.ok) {
+        Snackbar.show({
+          text: t("report_submitted_thanks"),
+          duration: 2000,
+          backgroundColor: "green",
+          textColor: "#fff",
+        });
+        setReportModalVisible(false);
+        // Reset form
+        setReportReason("");
+        setReportDescription("");
+        setReportContact("");
+        setReportPhone("");
+      } else {
+        throw new Error("Failed to submit report");
+      }
+    } catch (error: any) {
+      // console.error("Error submitting report:", error);
+      Snackbar.show({
+        text: t("something_went_wrong"),
+        duration: 2000,
+        backgroundColor: "#b80200",
+        textColor: "#fff",
+      });
+    } finally {
+      setReportLoading(false);
+    }
   };
 
   const handleImagePress = (imageUrl: string, index: number) => {
-    console.log("Image pressed:", imageUrl, "at index:", index);
+    // console.log("Image pressed:", imageUrl, "at index:", index);
     setSelectedImageIndex(index);
     setImageViewerVisible(true);
   };
@@ -315,6 +434,406 @@ export default function CarDetails(): JSX.Element {
         showActions={false}
       />
     </View>
+  );
+
+  // Updated specifications section to match the screenshot layout
+  const renderSpecifications = () => (
+    <View style={styles.specsSection}>
+      <Text style={[styles.sectionTitle, rtlStyle]}>{t("information")}</Text>
+      <View style={styles.specsList}>
+        <View
+          style={[
+            styles.specRow,
+            { flexDirection: isRTL ? "row-reverse" : "row" },
+          ]}
+        >
+          <Text style={[styles.specLabel, rtlStyle]}>{t("make")}:</Text>
+          <Text
+            style={[
+              styles.specValue,
+              rtlStyle,
+              { textAlign: isRTL ? "left" : "right" },
+            ]}
+          >
+            {translatedCar?.make || car?.make}
+          </Text>
+        </View>
+        <View
+          style={[
+            styles.specRow,
+            { flexDirection: isRTL ? "row-reverse" : "row" },
+          ]}
+        >
+          <Text style={[styles.specLabel, rtlStyle]}>{t("model")}:</Text>
+          <Text
+            style={[
+              styles.specValue,
+              rtlStyle,
+              { textAlign: isRTL ? "left" : "right" },
+            ]}
+          >
+            {translatedCar?.model || car?.model}
+          </Text>
+        </View>
+        <View
+          style={[
+            styles.specRow,
+            { flexDirection: isRTL ? "row-reverse" : "row" },
+          ]}
+        >
+          <Text style={[styles.specLabel, rtlStyle]}>{t("kilometer")}:</Text>
+          <Text
+            style={[
+              styles.specValue,
+              rtlStyle,
+              { textAlign: isRTL ? "left" : "right" },
+            ]}
+          >
+            {car?.kilometer
+              ? `${car.kilometer.toLocaleString()} km`
+              : t("notSpecified")}
+          </Text>
+        </View>
+        <View
+          style={[
+            styles.specRow,
+            { flexDirection: isRTL ? "row-reverse" : "row" },
+          ]}
+        >
+          <Text style={[styles.specLabel, rtlStyle]}>{t("price")}:</Text>
+          <Text
+            style={[
+              styles.specValue,
+              rtlStyle,
+              { textAlign: isRTL ? "left" : "right" },
+            ]}
+          >
+            {formatPrice(car?.priceUSD)}
+          </Text>
+        </View>
+        <View
+          style={[
+            styles.specRow,
+            { flexDirection: isRTL ? "row-reverse" : "row" },
+          ]}
+        >
+          <Text style={[styles.specLabel, rtlStyle]}>
+            {t("interior_color")}:
+          </Text>
+          <Text
+            style={[
+              styles.specValue,
+              rtlStyle,
+              { textAlign: isRTL ? "left" : "right" },
+            ]}
+          >
+            {translatedCar?.interiorColor || t("notSpecified")}
+          </Text>
+        </View>
+        <View
+          style={[
+            styles.specRow,
+            { flexDirection: isRTL ? "row-reverse" : "row" },
+          ]}
+        >
+          <Text style={[styles.specLabel, rtlStyle]}>
+            {t("exterior_color")}:
+          </Text>
+          <Text
+            style={[
+              styles.specValue,
+              rtlStyle,
+              { textAlign: isRTL ? "left" : "right" },
+            ]}
+          >
+            {translatedCar?.exteriorColor || t("notSpecified")}
+          </Text>
+        </View>
+        <View
+          style={[
+            styles.specRow,
+            { flexDirection: isRTL ? "row-reverse" : "row" },
+          ]}
+        >
+          <Text style={[styles.specLabel, rtlStyle]}>{t("engine_size")}:</Text>
+          <Text
+            style={[
+              styles.specValue,
+              rtlStyle,
+              { textAlign: isRTL ? "left" : "right" },
+            ]}
+          >
+            {car?.engineSize || t("notSpecified")}
+          </Text>
+        </View>
+        <View
+          style={[
+            styles.specRow,
+            { flexDirection: isRTL ? "row-reverse" : "row" },
+          ]}
+        >
+          <Text style={[styles.specLabel, rtlStyle]}>{t("fuel_type")}:</Text>
+          <Text
+            style={[
+              styles.specValue,
+              rtlStyle,
+              { textAlign: isRTL ? "left" : "right" },
+            ]}
+          >
+            {translatedCar?.fuelType || t("notSpecified")}
+          </Text>
+        </View>
+        <View
+          style={[
+            styles.specRow,
+            { flexDirection: isRTL ? "row-reverse" : "row" },
+          ]}
+        >
+          <Text style={[styles.specLabel, rtlStyle]}>{t("transmission")}:</Text>
+          <Text
+            style={[
+              styles.specValue,
+              rtlStyle,
+              { textAlign: isRTL ? "left" : "right" },
+            ]}
+          >
+            {translatedCar?.transmission || t("notSpecified")}
+          </Text>
+        </View>
+        <View
+          style={[
+            styles.specRow,
+            { flexDirection: isRTL ? "row-reverse" : "row" },
+          ]}
+        >
+          <Text style={[styles.specLabel, rtlStyle]}>{t("features")}:</Text>
+          <Text
+            style={[
+              styles.specValue,
+              rtlStyle,
+              { textAlign: isRTL ? "left" : "right" },
+            ]}
+          >
+            {translatedCar?.features || "N/A"}
+          </Text>
+        </View>
+      </View>
+    </View>
+  );
+
+  // Update the car title section
+  const renderTitleSection = () => (
+    <View style={styles.titleSection}>
+      <Text style={[styles.carTitle, rtlStyle]}>{carTitle}</Text>
+      <Text style={[styles.carPrice, rtlStyle]}>
+        {formatPrice(car?.priceUSD)}
+      </Text>
+      <View
+        style={[
+          styles.locationContainer,
+          { flexDirection: getFlexDirection() },
+        ]}
+      >
+        <Ionicons name="location-outline" size={16} color="#666" />
+        <Text
+          style={[
+            styles.locationText,
+            rtlStyle,
+            { marginLeft: isRTL ? 0 : 4, marginRight: isRTL ? 4 : 0 },
+          ]}
+        >
+          {translatedCar?.location || car?.location}
+        </Text>
+      </View>
+    </View>
+  );
+
+  // Update the quick info section
+  const renderQuickInfo = () => (
+    <View style={styles.quickInfoSection}>
+      <View style={styles.quickInfoItem}>
+        <Ionicons name="speedometer-outline" size={20} color="#b80200" />
+        <Text style={[styles.quickInfoText, rtlStyle]}>
+          {car?.kilometer
+            ? `${car.kilometer.toLocaleString()} km`
+            : t("notSpecified")}
+        </Text>
+      </View>
+      <View style={styles.quickInfoItem}>
+        <Ionicons name="car-outline" size={20} color="#b80200" />
+        <Text style={[styles.quickInfoText, rtlStyle]}>
+          {translatedCar?.transmission || t("notSpecified")}
+        </Text>
+      </View>
+      <View style={styles.quickInfoItem}>
+        <Ionicons name="flash-outline" size={20} color="#b80200" />
+        <Text style={[styles.quickInfoText, rtlStyle]}>
+          {translatedCar?.fuelType || t("notSpecified")}
+        </Text>
+      </View>
+    </View>
+  );
+
+  // Update the description section
+  const renderDescription = () =>
+    car?.description && (
+      <View style={styles.descriptionSection}>
+        <Text style={[styles.sectionTitle, rtlStyle]}>{t("description")}</Text>
+        <Text style={[styles.descriptionText, rtlStyle]}>
+          {translatedDescription || car.description}
+        </Text>
+      </View>
+    );
+
+  // Report Modal Component - Mobile Friendly
+  const renderReportModal = () => (
+    <Modal visible={reportModalVisible} transparent animationType="slide">
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContainer}>
+          {/* Header */}
+          <View style={styles.modalHeader}>
+            <Text style={[styles.modalTitle, rtlStyle]}>{t("report")}</Text>
+            <TouchableOpacity onPress={() => setReportModalVisible(false)}>
+              <Ionicons name="close" size={20} color="#666" />
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView
+            style={styles.modalContent}
+            showsVerticalScrollIndicator={false}
+          >
+            {/* Reason */}
+            <Text style={[styles.fieldLabel, rtlStyle]}>
+              {t("reason")} <Text style={styles.required}>*</Text>
+            </Text>
+            <TouchableOpacity
+              style={styles.dropdownContainer}
+              onPress={() => setShowReasonDropdown(!showReasonDropdown)}
+            >
+              <Text style={[styles.dropdownText, rtlStyle]}>
+                {reportReason ? t(reportReason) : t("select_a_reason")}
+              </Text>
+              <Ionicons
+                name={showReasonDropdown ? "chevron-up" : "chevron-down"}
+                size={16}
+                color="#666"
+              />
+            </TouchableOpacity>
+
+            {/* Reason Options - Only show when dropdown is open */}
+            {showReasonDropdown && (
+              <View style={styles.reasonOptions}>
+                {[
+                  "spam",
+                  "inappropriate_content",
+                  "fraud_scam",
+                  "fake_listing",
+                  "already_sold",
+                  "other_reason",
+                ].map((reason) => (
+                  <TouchableOpacity
+                    key={reason}
+                    style={[
+                      styles.reasonOption,
+                      reportReason === reason && styles.reasonOptionSelected,
+                    ]}
+                    onPress={() => {
+                      setReportReason(reason);
+                      setShowReasonDropdown(false);
+                    }}
+                  >
+                    <Text style={[styles.reasonOptionText, rtlStyle]}>
+                      {t(reason)}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+
+            {/* Description */}
+            <Text style={[styles.fieldLabel, rtlStyle]}>
+              {t("description")} <Text style={styles.required}>*</Text>
+            </Text>
+            <TextInput
+              style={[styles.textArea, rtlStyle]}
+              value={reportDescription}
+              onChangeText={setReportDescription}
+              placeholder={t("please_provide_details_about_issue")}
+              placeholderTextColor="#999"
+              multiline
+              numberOfLines={3}
+              textAlignVertical="top"
+            />
+
+            {/* Contact Email */}
+            <Text style={[styles.fieldLabel, rtlStyle]}>
+              {t("email")} <Text style={styles.required}>*</Text>
+            </Text>
+            <TextInput
+              style={[styles.textInput, rtlStyle]}
+              value={reportContact}
+              onChangeText={setReportContact}
+              placeholder={t("your_email_for_followup")}
+              placeholderTextColor="#999"
+              keyboardType="email-address"
+              autoCapitalize="none"
+            />
+
+            {/* Phone Number */}
+            <Text style={[styles.fieldLabel, rtlStyle]}>
+              {t("phone_number")} <Text style={styles.required}>*</Text>
+            </Text>
+            <TextInput
+              style={[styles.textInput, rtlStyle]}
+              value={reportPhone}
+              onChangeText={setReportPhone}
+              placeholder={t("your_phone_number")}
+              placeholderTextColor="#999"
+              keyboardType="phone-pad"
+            />
+            <View style={styles.emptyBox}></View>
+          </ScrollView>
+
+          {/* Footer */}
+          <View style={styles.modalFooter}>
+            <TouchableOpacity
+              style={styles.cancelButton}
+              onPress={() => setReportModalVisible(false)}
+            >
+              <Text style={[styles.cancelButtonText, rtlStyle]}>
+                {t("cancel")}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.submitButton,
+                (!reportReason ||
+                  !reportDescription ||
+                  !reportContact ||
+                  !reportPhone) &&
+                  styles.submitButtonDisabled,
+              ]}
+              onPress={submitReport}
+              disabled={
+                reportLoading ||
+                !reportReason ||
+                !reportDescription ||
+                !reportContact ||
+                !reportPhone
+              }
+            >
+              {reportLoading ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Text style={[styles.submitButtonText, rtlStyle]}>
+                  {t("submit_report")}
+                </Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
   );
 
   if (loading) {
@@ -342,7 +861,7 @@ export default function CarDetails(): JSX.Element {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      {/* Header */}
+      {/* Header with proper Arabic translation */}
       <View style={[styles.header, { flexDirection: getFlexDirection() }]}>
         <TouchableOpacity
           onPress={() => router.back()}
@@ -355,11 +874,8 @@ export default function CarDetails(): JSX.Element {
           />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, rtlStyle]} numberOfLines={1}>
-          {car.make} {car.model}
+          {translatedCar?.make || car.make} {translatedCar?.model || car.model}
         </Text>
-        <TouchableOpacity style={styles.shareButton}>
-          <Ionicons name="share-outline" size={24} color="#ffffff" />
-        </TouchableOpacity>
       </View>
 
       <ScrollView
@@ -378,55 +894,10 @@ export default function CarDetails(): JSX.Element {
         {/* Car Details */}
         <View style={styles.detailsContainer}>
           {/* Title and Price */}
-          <View style={styles.titleSection}>
-            <Text style={[styles.carTitle, rtlStyle]}>
-              {car.year} {car.make} {car.model}
-            </Text>
-            <Text style={[styles.carPrice, rtlStyle]}>
-              {formatPrice(car.priceUSD)}
-            </Text>
-            <View
-              style={[
-                styles.locationContainer,
-                { flexDirection: getFlexDirection() },
-              ]}
-            >
-              <Ionicons name="location-outline" size={16} color="#666" />
-              <Text
-                style={[
-                  styles.locationText,
-                  rtlStyle,
-                  { marginLeft: isRTL ? 0 : 4, marginRight: isRTL ? 4 : 0 },
-                ]}
-              >
-                {car.location}
-              </Text>
-            </View>
-          </View>
+          {renderTitleSection()}
 
           {/* Quick Info */}
-          <View style={styles.quickInfoSection}>
-            <View style={styles.quickInfoItem}>
-              <Ionicons name="speedometer-outline" size={20} color="#b80200" />
-              <Text style={[styles.quickInfoText, rtlStyle]}>
-                {car.kilometer
-                  ? `${car.kilometer.toLocaleString()} km`
-                  : t("notSpecified")}
-              </Text>
-            </View>
-            <View style={styles.quickInfoItem}>
-              <Ionicons name="car-outline" size={20} color="#b80200" />
-              <Text style={[styles.quickInfoText, rtlStyle]}>
-                {car.transmission || t("notSpecified")}
-              </Text>
-            </View>
-            <View style={styles.quickInfoItem}>
-              <Ionicons name="flash-outline" size={20} color="#b80200" />
-              <Text style={[styles.quickInfoText, rtlStyle]}>
-                {car.fuelType || t("notSpecified")}
-              </Text>
-            </View>
-          </View>
+          {renderQuickInfo()}
 
           {/* Contact Buttons */}
           <View
@@ -501,126 +972,11 @@ export default function CarDetails(): JSX.Element {
             </View>
           )}
 
-          {/* Specifications */}
-          <View style={styles.specsSection}>
-            <Text style={[styles.sectionTitle, rtlStyle]}>
-              {t("specifications")}
-            </Text>
-            <View style={styles.specsGrid}>
-              <View style={styles.specItem}>
-                <Text style={[styles.specLabel, rtlStyle]}>{t("make")}</Text>
-                <Text style={[styles.specValue, rtlStyle]}>{car.make}</Text>
-              </View>
-              <View style={styles.specItem}>
-                <Text style={[styles.specLabel, rtlStyle]}>{t("model")}</Text>
-                <Text style={[styles.specValue, rtlStyle]}>{car.model}</Text>
-              </View>
-              <View style={styles.specItem}>
-                <Text style={[styles.specLabel, rtlStyle]}>{t("year")}</Text>
-                <Text style={[styles.specValue, rtlStyle]}>{car.year}</Text>
-              </View>
-              <View style={styles.specItem}>
-                <Text style={[styles.specLabel, rtlStyle]}>
-                  {t("kilometer")}
-                </Text>
-                <Text style={[styles.specValue, rtlStyle]}>
-                  {car.kilometer
-                    ? `${car.kilometer.toLocaleString()} km`
-                    : t("notSpecified")}
-                </Text>
-              </View>
-              <View style={styles.specItem}>
-                <Text style={[styles.specLabel, rtlStyle]}>
-                  {t("engine_size")}
-                </Text>
-                <Text style={[styles.specValue, rtlStyle]}>
-                  {car.engineSize || t("notSpecified")}
-                </Text>
-              </View>
-              <View style={styles.specItem}>
-                <Text style={[styles.specLabel, rtlStyle]}>
-                  {t("transmission")}
-                </Text>
-                <Text style={[styles.specValue, rtlStyle]}>
-                  {car.transmission || t("notSpecified")}
-                </Text>
-              </View>
-              <View style={styles.specItem}>
-                <Text style={[styles.specLabel, rtlStyle]}>
-                  {t("fuel_type")}
-                </Text>
-                <Text style={[styles.specValue, rtlStyle]}>
-                  {car.fuelType || t("notSpecified")}
-                </Text>
-              </View>
-              <View style={styles.specItem}>
-                <Text style={[styles.specLabel, rtlStyle]}>
-                  {t("exterior_color")}
-                </Text>
-                <Text style={[styles.specValue, rtlStyle]}>
-                  {car.exteriorColor || t("notSpecified")}
-                </Text>
-              </View>
-              <View style={styles.specItem}>
-                <Text style={[styles.specLabel, rtlStyle]}>
-                  {t("interior_color")}
-                </Text>
-                <Text style={[styles.specValue, rtlStyle]}>
-                  {car.interiorColor || t("notSpecified")}
-                </Text>
-              </View>
-            </View>
-          </View>
-
-          {/* Features */}
-          {car.features && car.features.length > 0 && (
-            <View style={styles.featuresSection}>
-              <Text style={[styles.sectionTitle, rtlStyle]}>
-                {t("features")}
-              </Text>
-              <View style={styles.featuresGrid}>
-                {car.features.map((feature, index) => (
-                  <View
-                    key={index}
-                    style={[
-                      styles.featureItem,
-                      { flexDirection: getFlexDirection() },
-                    ]}
-                  >
-                    <Ionicons
-                      name="checkmark-circle"
-                      size={16}
-                      color="#28a745"
-                    />
-                    <Text
-                      style={[
-                        styles.featureText,
-                        rtlStyle,
-                        {
-                          marginLeft: isRTL ? 0 : 8,
-                          marginRight: isRTL ? 8 : 0,
-                        },
-                      ]}
-                    >
-                      {feature}
-                    </Text>
-                  </View>
-                ))}
-              </View>
-            </View>
-          )}
+          {/* Specifications - Updated to match screenshot */}
+          {renderSpecifications()}
 
           {/* Description */}
-          {car.description && (
-            <View style={styles.descriptionSection}>
-              <Text style={[styles.sectionTitle, rtlStyle]}>
-                {t("description")}
-              </Text>
-              <Text style={[styles.descriptionText, rtlStyle]}>
-                {car.description}
-              </Text>
-            </View>
-          )}
+          {renderDescription()}
 
           {/* Report Button */}
           <TouchableOpacity
@@ -658,6 +1014,10 @@ export default function CarDetails(): JSX.Element {
           )}
         </View>
       </ScrollView>
+
+      {/* Report Modal */}
+      {renderReportModal()}
+
       {/* Simple Image Viewer Modal */}
       <SimpleImageViewer
         visible={imageViewerVisible}
@@ -851,6 +1211,7 @@ const styles = StyleSheet.create({
     color: "#1a1a1a",
     marginBottom: 12,
   },
+  // Updated specifications styles to match screenshot
   specsSection: {
     backgroundColor: "#ffffff",
     borderRadius: 12,
@@ -862,52 +1223,29 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
-  specsGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 16,
-  },
-  specItem: {
-    width: (width - 80) / 2,
-    marginBottom: 12,
-  },
-  specLabel: {
-    fontSize: 12,
-    color: "#666",
-    fontWeight: "600",
-    marginBottom: 4,
-  },
-  specValue: {
-    fontSize: 14,
-    color: "#1a1a1a",
-    fontWeight: "600",
-  },
-  featuresSection: {
-    backgroundColor: "#ffffff",
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  featuresGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
+  specsList: {
     gap: 12,
   },
-  featureItem: {
+  specRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
-    gap: 8,
-    width: (width - 80) / 2,
-    marginBottom: 8,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f0f0f0",
   },
-  featureText: {
-    fontSize: 14,
-    color: "#1a1a1a",
+  specLabel: {
+    fontSize: 16,
+    color: "#666",
+    fontWeight: "600",
     flex: 1,
+  },
+  specValue: {
+    fontSize: 16,
+    color: "#1a1a1a",
+    fontWeight: "600",
+    flex: 1,
+    textAlign: "right",
   },
   descriptionSection: {
     backgroundColor: "#ffffff",
@@ -985,6 +1323,148 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
   },
+  // Report Modal Styles - Mobile Friendly
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 16,
+  },
+  modalContainer: {
+    backgroundColor: "#ffffff",
+    borderRadius: 12,
+    width: width - 32,
+    maxHeight: "85%",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f0f0f0",
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#1a1a1a",
+    flex: 1,
+  },
+  modalContent: {
+    padding: 16,
+    maxHeight: 400,
+  },
+  fieldLabel: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#333",
+    marginBottom: 6,
+    marginTop: 12,
+  },
+  required: {
+    color: "#dc3545",
+  },
+  dropdownContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 8,
+    backgroundColor: "#fff",
+  },
+  dropdownText: {
+    fontSize: 14,
+    color: "#666",
+    flex: 1,
+  },
+  reasonOptions: {
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: "#eee",
+    borderRadius: 8,
+    backgroundColor: "#f9f9f9",
+  },
+  reasonOption: {
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#eee",
+  },
+  reasonOptionSelected: {
+    backgroundColor: "#e3f2fd",
+  },
+  reasonOptionText: {
+    fontSize: 14,
+    color: "#333",
+  },
+  textInput: {
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 14,
+    backgroundColor: "#fff",
+    marginBottom: 12,
+  },
+  textArea: {
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 14,
+    backgroundColor: "#fff",
+    height: 80,
+    textAlignVertical: "top",
+    marginBottom: 12,
+  },
+  modalFooter: {
+    flexDirection: "row",
+    padding: 16,
+    borderTopWidth: 1,
+    borderTopColor: "#f0f0f0",
+    gap: 12,
+  },
+  cancelButton: {
+    flex: 1,
+    backgroundColor: "#f8f9fa",
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#ddd",
+  },
+  cancelButtonText: {
+    color: "#666",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  submitButton: {
+    flex: 1,
+    backgroundColor: "#dc3545",
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  submitButtonDisabled: {
+    backgroundColor: "#ccc",
+  },
+  submitButtonText: {
+    color: "#ffffff",
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  emptyBox: {
+    height: 30,
+  },
 });
 
 // "use client";
@@ -1000,19 +1480,22 @@ const styles = StyleSheet.create({
 //   Dimensions,
 //   FlatList,
 //   Linking,
+//   Modal,
 //   ScrollView,
 //   StyleSheet,
 //   Text,
+//   TextInput,
 //   TouchableOpacity,
 //   View,
 // } from "react-native";
 // import { useSafeAreaInsets } from "react-native-safe-area-context";
 // import Snackbar from "react-native-snackbar";
 // import ImageCarousel from "../components/ImageCarousel";
-// import SimpleImageViewer from "../components/SimpleImageViewer"; // Using the simple version
+// import SimpleImageViewer from "../components/SimpleImageViewer";
 // import CarCard from "../components/car-card";
 // import { useAuth } from "../contexts/AuthContext";
 // import { useChatContext } from "../contexts/ChatContext";
+// import { useRTL } from "../hooks/useRTL";
 // import type { Car } from "../types";
 // import {
 //   addToWishlist,
@@ -1022,16 +1505,25 @@ const styles = StyleSheet.create({
 //   getUserById,
 // } from "../utils/api";
 // import { startConversation } from "../utils/chat-api";
+// import {
+//   translateCarField,
+//   translateDescription,
+//   translateLocation,
+//   translateMake,
+//   translateModel,
+// } from "../utils/translation-helpers";
 
 // const { width } = Dimensions.get("window");
 
 // export default function CarDetails(): JSX.Element {
-//   const { t } = useTranslation();
+//   const { t, i18n } = useTranslation();
 //   const { isAuthenticated, user } = useAuth();
 //   const { updateUnreadCount } = useChatContext();
+//   const { isRTL, rtlStyle, getFlexDirection } = useRTL();
 //   const { carId } = useLocalSearchParams();
 //   const router = useRouter();
 //   const insets = useSafeAreaInsets();
+//   const isArabic = i18n.language === "ar";
 
 //   const [car, setCar] = useState<Car | null>(null);
 //   const [carOwner, setCarOwner] = useState<any>(null);
@@ -1041,10 +1533,56 @@ const styles = StyleSheet.create({
 //   const [loading, setLoading] = useState(true);
 //   const [chatLoading, setChatLoading] = useState(false);
 //   const [error, setError] = useState<string | null>(null);
+//   const [translatedDescription, setTranslatedDescription] =
+//     useState<string>("");
+
+//   // Report modal state
+//   const [reportModalVisible, setReportModalVisible] = useState(false);
+//   const [reportReason, setReportReason] = useState("");
+//   const [reportDescription, setReportDescription] = useState("");
+//   const [reportContact, setReportContact] = useState("");
+//   const [reportPhone, setReportPhone] = useState("");
+//   const [reportLoading, setReportLoading] = useState(false);
+//   const [showReasonDropdown, setShowReasonDropdown] = useState(false);
 
 //   // Image viewer state
 //   const [imageViewerVisible, setImageViewerVisible] = useState(false);
 //   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+
+//   // Translate car data when car or language changes
+//   useEffect(() => {
+//     if (car && car.description) {
+//       translateDescription(car.description, isArabic).then(
+//         setTranslatedDescription
+//       );
+//     }
+//   }, [car, isArabic]);
+
+//   // Get translated car data
+//   const getTranslatedCarData = () => {
+//     if (!car) return null;
+
+//     return {
+//       make: translateMake(car.make, isArabic),
+//       model: translateModel(car.model, car.make, isArabic),
+//       location: translateLocation(car.location, isArabic),
+//       transmission: translateCarField(
+//         "transmission",
+//         car.transmission,
+//         isArabic
+//       ),
+//       fuelType: translateCarField("fuelType", car.fuelType, isArabic),
+//       exteriorColor: translateCarField("color", car.exteriorColor, isArabic),
+//       interiorColor: translateCarField("color", car.interiorColor, isArabic),
+//     };
+//   };
+
+//   const translatedCar = getTranslatedCarData();
+
+//   // Update the car title display with proper translation
+//   const carTitle = translatedCar
+//     ? `${car?.year} ${translatedCar.make} ${translatedCar.model}`
+//     : "";
 
 //   useEffect(() => {
 //     if (carId) {
@@ -1059,13 +1597,13 @@ const styles = StyleSheet.create({
 //   const fetchCarDetails = async () => {
 //     try {
 //       setLoading(true);
-//       console.log("Fetching car details for ID:", carId);
+//       // console.log("Fetching car details for ID:", carId);
 
 //       const response = await getCarById(carId as string);
 //       const carData = response.data?.data || response.data;
 
-//       console.log("Car data received:", carData);
-//       console.log("Car images:", carData.images);
+//       // console.log("Car data received:", carData);
+//       // console.log("Car images:", carData.images);
 
 //       setCar(carData);
 
@@ -1073,12 +1611,12 @@ const styles = StyleSheet.create({
 //       if (carData.user) {
 //         const userId =
 //           typeof carData.user === "object" ? carData.user._id : carData.user;
-//         console.log("Fetching owner for user ID:", userId);
+//         // console.log("Fetching owner for user ID:", userId);
 
 //         try {
 //           const ownerResponse = await getUserById(userId);
 //           const ownerData = ownerResponse.data?.data || ownerResponse.data;
-//           console.log("Owner data:", ownerData);
+//           // console.log("Owner data:", ownerData);
 //           setCarOwner(ownerData);
 //         } catch (ownerError) {
 //           console.error("Error fetching owner:", ownerError);
@@ -1100,7 +1638,6 @@ const styles = StyleSheet.create({
 //         backgroundColor: "#b80200",
 //         textColor: "#fff",
 //       });
-//       // Alert.alert(t("error"), error.message || t("failed_to_fetch_car"));
 //     } finally {
 //       setLoading(false);
 //     }
@@ -1141,7 +1678,6 @@ const styles = StyleSheet.create({
 //         backgroundColor: "#b80200",
 //         textColor: "#fff",
 //       });
-//       // Alert.alert(t("error"), t("please_login_to_wishlist"));
 //       router.push("/login");
 //       return;
 //     }
@@ -1154,7 +1690,6 @@ const styles = StyleSheet.create({
 //           backgroundColor: "orange",
 //           textColor: "#000",
 //         });
-//         // Alert.alert(t("info"), t("already_in_wishlist"));
 //         return;
 //       }
 //       const response = await addToWishlist(carId as string);
@@ -1168,7 +1703,6 @@ const styles = StyleSheet.create({
 //           backgroundColor: "green",
 //           textColor: "#fff",
 //         });
-//         // Alert.alert(t("success"), t("added_to_wishlist"));
 //       }
 //     } catch (error: any) {
 //       console.error("CarDetails: Error toggling wishlist:", error);
@@ -1182,7 +1716,6 @@ const styles = StyleSheet.create({
 //           backgroundColor: "#b80200",
 //           textColor: "#fff",
 //         });
-//         // Alert.alert(t("info"), t("already_in_wishlist"));
 //         checkCarWishlist();
 //       } else {
 //         Snackbar.show({
@@ -1204,7 +1737,6 @@ const styles = StyleSheet.create({
 //         backgroundColor: "#b80200",
 //         textColor: "#fff",
 //       });
-//       // Alert.alert(t("error"), t("please_login_to_chat"));
 //       router.push("/login");
 //       return;
 //     }
@@ -1216,7 +1748,6 @@ const styles = StyleSheet.create({
 //         backgroundColor: "#b80200",
 //         textColor: "#fff",
 //       });
-//       // Alert.alert(t("error"), t("car_owner_not_found"));
 //       return;
 //     }
 
@@ -1229,16 +1760,15 @@ const styles = StyleSheet.create({
 //         backgroundColor: "#b80200",
 //         textColor: "#fff",
 //       });
-//       // Alert.alert(t("error"), t("cannot_chat_with_yourself"));
 //       return;
 //     }
 
 //     setChatLoading(true);
 //     try {
-//       console.log("Starting conversation with user:", ownerId);
+//       // console.log("Starting conversation with user:", ownerId);
 //       const response = await startConversation(ownerId);
 //       const conversation = response.data?.data || response.data;
-//       console.log("Conversation created/found:", conversation);
+//       // console.log("Conversation created/found:", conversation);
 
 //       await updateUnreadCount();
 
@@ -1254,7 +1784,6 @@ const styles = StyleSheet.create({
 //         backgroundColor: "#b80200",
 //         textColor: "#fff",
 //       });
-//       // Alert.alert(t("error"), t("failed_to_start_chat"));
 //     } finally {
 //       setChatLoading(false);
 //     }
@@ -1262,36 +1791,82 @@ const styles = StyleSheet.create({
 
 //   const handleContact = (phone: string, isWhatsApp = false) => {
 //     const url = isWhatsApp ? `whatsapp://send?phone=${phone}` : `tel:${phone}`;
-//     Linking.openURL(url).catch(
-//       (err) =>
-//         Snackbar.show({
-//           text: t("failed_to_contact"),
-//           duration: 1000,
-//           backgroundColor: "#b80200",
-//           textColor: "#fff",
-//         })
-//       // Alert.alert(t("error"), t("failed_to_contact"))
+//     Linking.openURL(url).catch((err) =>
+//       Snackbar.show({
+//         text: t("failed_to_contact"),
+//         duration: 1000,
+//         backgroundColor: "#b80200",
+//         textColor: "#fff",
+//       })
 //     );
 //   };
 
 //   const handleReportAbuse = () => {
-//     Alert.alert(t("report_abuse"), t("report_abuse_message"), [
-//       { text: t("cancel"), style: "cancel" },
-//       {
-//         text: t("submit"),
-//         onPress: () =>
-//           Snackbar.show({
-//             text: t("report_submitted"),
-//             duration: 1000,
-//             backgroundColor: "#b80200",
-//             textColor: "#fff",
+//     setReportModalVisible(true);
+//   };
+
+//   const submitReport = async () => {
+//     if (!reportReason) {
+//       Snackbar.show({
+//         text: t("please_select_reason"),
+//         duration: 2000,
+//         backgroundColor: "#b80200",
+//         textColor: "#fff",
+//       });
+//       return;
+//     }
+
+//     setReportLoading(true);
+//     try {
+//       const response = await fetch(
+//         `${process.env.EXPO_PUBLIC_API_URL}/api/reports`,
+//         {
+//           method: "POST",
+//           headers: {
+//             "Content-Type": "application/json",
+//           },
+//           body: JSON.stringify({
+//             carId: carId,
+//             reason: reportReason,
+//             description: reportDescription || "No additional details provided",
+//             contact: reportContact || "Not provided",
+//             phone: "Not provided", // Made optional
+//             language: i18n.language,
 //           }),
-//       },
-//     ]);
+//         }
+//       );
+
+//       if (response.ok) {
+//         Snackbar.show({
+//           text: t("report_submitted_thanks"),
+//           duration: 2000,
+//           backgroundColor: "green",
+//           textColor: "#fff",
+//         });
+//         setReportModalVisible(false);
+//         // Reset form
+//         setReportReason("");
+//         setReportDescription("");
+//         setReportContact("");
+//         setReportPhone("");
+//       } else {
+//         throw new Error("Failed to submit report");
+//       }
+//     } catch (error: any) {
+//       // console.error("Error submitting report:", error);
+//       Snackbar.show({
+//         text: t("something_went_wrong"),
+//         duration: 2000,
+//         backgroundColor: "#b80200",
+//         textColor: "#fff",
+//       });
+//     } finally {
+//       setReportLoading(false);
+//     }
 //   };
 
 //   const handleImagePress = (imageUrl: string, index: number) => {
-//     console.log("Image pressed:", imageUrl, "at index:", index);
+//     // console.log("Image pressed:", imageUrl, "at index:", index);
 //     setSelectedImageIndex(index);
 //     setImageViewerVisible(true);
 //   };
@@ -1315,11 +1890,413 @@ const styles = StyleSheet.create({
 //     </View>
 //   );
 
+//   // Updated specifications section to match the screenshot layout
+//   const renderSpecifications = () => (
+//     <View style={styles.specsSection}>
+//       <Text style={[styles.sectionTitle, rtlStyle]}>{t("information")}</Text>
+//       <View style={styles.specsList}>
+//         <View
+//           style={[
+//             styles.specRow,
+//             { flexDirection: isRTL ? "row-reverse" : "row" },
+//           ]}
+//         >
+//           <Text style={[styles.specLabel, rtlStyle]}>{t("make")}:</Text>
+//           <Text
+//             style={[
+//               styles.specValue,
+//               rtlStyle,
+//               { textAlign: isRTL ? "left" : "right" },
+//             ]}
+//           >
+//             {translatedCar?.make || car?.make}
+//           </Text>
+//         </View>
+//         <View
+//           style={[
+//             styles.specRow,
+//             { flexDirection: isRTL ? "row-reverse" : "row" },
+//           ]}
+//         >
+//           <Text style={[styles.specLabel, rtlStyle]}>{t("model")}:</Text>
+//           <Text
+//             style={[
+//               styles.specValue,
+//               rtlStyle,
+//               { textAlign: isRTL ? "left" : "right" },
+//             ]}
+//           >
+//             {translatedCar?.model || car?.model}
+//           </Text>
+//         </View>
+//         <View
+//           style={[
+//             styles.specRow,
+//             { flexDirection: isRTL ? "row-reverse" : "row" },
+//           ]}
+//         >
+//           <Text style={[styles.specLabel, rtlStyle]}>{t("kilometer")}:</Text>
+//           <Text
+//             style={[
+//               styles.specValue,
+//               rtlStyle,
+//               { textAlign: isRTL ? "left" : "right" },
+//             ]}
+//           >
+//             {car?.kilometer
+//               ? `${car.kilometer.toLocaleString()} km`
+//               : t("notSpecified")}
+//           </Text>
+//         </View>
+//         <View
+//           style={[
+//             styles.specRow,
+//             { flexDirection: isRTL ? "row-reverse" : "row" },
+//           ]}
+//         >
+//           <Text style={[styles.specLabel, rtlStyle]}>{t("price")}:</Text>
+//           <Text
+//             style={[
+//               styles.specValue,
+//               rtlStyle,
+//               { textAlign: isRTL ? "left" : "right" },
+//             ]}
+//           >
+//             {formatPrice(car?.priceUSD)}
+//           </Text>
+//         </View>
+//         <View
+//           style={[
+//             styles.specRow,
+//             { flexDirection: isRTL ? "row-reverse" : "row" },
+//           ]}
+//         >
+//           <Text style={[styles.specLabel, rtlStyle]}>
+//             {t("interior_color")}:
+//           </Text>
+//           <Text
+//             style={[
+//               styles.specValue,
+//               rtlStyle,
+//               { textAlign: isRTL ? "left" : "right" },
+//             ]}
+//           >
+//             {translatedCar?.interiorColor || t("notSpecified")}
+//           </Text>
+//         </View>
+//         <View
+//           style={[
+//             styles.specRow,
+//             { flexDirection: isRTL ? "row-reverse" : "row" },
+//           ]}
+//         >
+//           <Text style={[styles.specLabel, rtlStyle]}>
+//             {t("exterior_color")}:
+//           </Text>
+//           <Text
+//             style={[
+//               styles.specValue,
+//               rtlStyle,
+//               { textAlign: isRTL ? "left" : "right" },
+//             ]}
+//           >
+//             {translatedCar?.exteriorColor || t("notSpecified")}
+//           </Text>
+//         </View>
+//         <View
+//           style={[
+//             styles.specRow,
+//             { flexDirection: isRTL ? "row-reverse" : "row" },
+//           ]}
+//         >
+//           <Text style={[styles.specLabel, rtlStyle]}>{t("engine_size")}:</Text>
+//           <Text
+//             style={[
+//               styles.specValue,
+//               rtlStyle,
+//               { textAlign: isRTL ? "left" : "right" },
+//             ]}
+//           >
+//             {car?.engineSize || t("notSpecified")}
+//           </Text>
+//         </View>
+//         <View
+//           style={[
+//             styles.specRow,
+//             { flexDirection: isRTL ? "row-reverse" : "row" },
+//           ]}
+//         >
+//           <Text style={[styles.specLabel, rtlStyle]}>{t("fuel_type")}:</Text>
+//           <Text
+//             style={[
+//               styles.specValue,
+//               rtlStyle,
+//               { textAlign: isRTL ? "left" : "right" },
+//             ]}
+//           >
+//             {translatedCar?.fuelType || t("notSpecified")}
+//           </Text>
+//         </View>
+//         <View
+//           style={[
+//             styles.specRow,
+//             { flexDirection: isRTL ? "row-reverse" : "row" },
+//           ]}
+//         >
+//           <Text style={[styles.specLabel, rtlStyle]}>{t("transmission")}:</Text>
+//           <Text
+//             style={[
+//               styles.specValue,
+//               rtlStyle,
+//               { textAlign: isRTL ? "left" : "right" },
+//             ]}
+//           >
+//             {translatedCar?.transmission || t("notSpecified")}
+//           </Text>
+//         </View>
+//         <View
+//           style={[
+//             styles.specRow,
+//             { flexDirection: isRTL ? "row-reverse" : "row" },
+//           ]}
+//         >
+//           <Text style={[styles.specLabel, rtlStyle]}>{t("features")}:</Text>
+//           <Text
+//             style={[
+//               styles.specValue,
+//               rtlStyle,
+//               { textAlign: isRTL ? "left" : "right" },
+//             ]}
+//           >
+//             {car?.features && car.features.length > 0
+//               ? car.features.join(" ,")
+//               : "N/A"}
+//           </Text>
+//         </View>
+//       </View>
+//     </View>
+//   );
+
+//   // Update the car title section
+//   const renderTitleSection = () => (
+//     <View style={styles.titleSection}>
+//       <Text style={[styles.carTitle, rtlStyle]}>{carTitle}</Text>
+//       <Text style={[styles.carPrice, rtlStyle]}>
+//         {formatPrice(car?.priceUSD)}
+//       </Text>
+//       <View
+//         style={[
+//           styles.locationContainer,
+//           { flexDirection: getFlexDirection() },
+//         ]}
+//       >
+//         <Ionicons name="location-outline" size={16} color="#666" />
+//         <Text
+//           style={[
+//             styles.locationText,
+//             rtlStyle,
+//             { marginLeft: isRTL ? 0 : 4, marginRight: isRTL ? 4 : 0 },
+//           ]}
+//         >
+//           {translatedCar?.location || car?.location}
+//         </Text>
+//       </View>
+//     </View>
+//   );
+
+//   // Update the quick info section
+//   const renderQuickInfo = () => (
+//     <View style={styles.quickInfoSection}>
+//       <View style={styles.quickInfoItem}>
+//         <Ionicons name="speedometer-outline" size={20} color="#b80200" />
+//         <Text style={[styles.quickInfoText, rtlStyle]}>
+//           {car?.kilometer
+//             ? `${car.kilometer.toLocaleString()} km`
+//             : t("notSpecified")}
+//         </Text>
+//       </View>
+//       <View style={styles.quickInfoItem}>
+//         <Ionicons name="car-outline" size={20} color="#b80200" />
+//         <Text style={[styles.quickInfoText, rtlStyle]}>
+//           {translatedCar?.transmission || t("notSpecified")}
+//         </Text>
+//       </View>
+//       <View style={styles.quickInfoItem}>
+//         <Ionicons name="flash-outline" size={20} color="#b80200" />
+//         <Text style={[styles.quickInfoText, rtlStyle]}>
+//           {translatedCar?.fuelType || t("notSpecified")}
+//         </Text>
+//       </View>
+//     </View>
+//   );
+
+//   // Update the description section
+//   const renderDescription = () =>
+//     car?.description && (
+//       <View style={styles.descriptionSection}>
+//         <Text style={[styles.sectionTitle, rtlStyle]}>{t("description")}</Text>
+//         <Text style={[styles.descriptionText, rtlStyle]}>
+//           {translatedDescription || car.description}
+//         </Text>
+//       </View>
+//     );
+
+//   // Report Modal Component - Mobile Friendly
+//   const renderReportModal = () => (
+//     <Modal visible={reportModalVisible} transparent animationType="slide">
+//       <View style={styles.modalOverlay}>
+//         <View style={styles.modalContainer}>
+//           {/* Header */}
+//           <View style={styles.modalHeader}>
+//             <Text style={[styles.modalTitle, rtlStyle]}>{t("report")}</Text>
+//             <TouchableOpacity onPress={() => setReportModalVisible(false)}>
+//               <Ionicons name="close" size={20} color="#666" />
+//             </TouchableOpacity>
+//           </View>
+
+//           <ScrollView
+//             style={styles.modalContent}
+//             showsVerticalScrollIndicator={false}
+//           >
+//             {/* Reason */}
+//             <Text style={[styles.fieldLabel, rtlStyle]}>
+//               {t("reason")} <Text style={styles.required}>*</Text>
+//             </Text>
+//             <TouchableOpacity
+//               style={styles.dropdownContainer}
+//               onPress={() => setShowReasonDropdown(!showReasonDropdown)}
+//             >
+//               <Text style={[styles.dropdownText, rtlStyle]}>
+//                 {reportReason ? t(reportReason) : t("select_a_reason")}
+//               </Text>
+//               <Ionicons
+//                 name={showReasonDropdown ? "chevron-up" : "chevron-down"}
+//                 size={16}
+//                 color="#666"
+//               />
+//             </TouchableOpacity>
+
+//             {/* Reason Options - Only show when dropdown is open */}
+//             {showReasonDropdown && (
+//               <View style={styles.reasonOptions}>
+//                 {[
+//                   "spam",
+//                   "inappropriate_content",
+//                   "fraud_scam",
+//                   "fake_listing",
+//                   "already_sold",
+//                   "other_reason",
+//                 ].map((reason) => (
+//                   <TouchableOpacity
+//                     key={reason}
+//                     style={[
+//                       styles.reasonOption,
+//                       reportReason === reason && styles.reasonOptionSelected,
+//                     ]}
+//                     onPress={() => {
+//                       setReportReason(reason);
+//                       setShowReasonDropdown(false);
+//                     }}
+//                   >
+//                     <Text style={[styles.reasonOptionText, rtlStyle]}>
+//                       {t(reason)}
+//                     </Text>
+//                   </TouchableOpacity>
+//                 ))}
+//               </View>
+//             )}
+
+//             {/* Description */}
+//             <Text style={[styles.fieldLabel, rtlStyle]}>
+//               {t("description")} <Text style={styles.required}>*</Text>
+//             </Text>
+//             <TextInput
+//               style={[styles.textArea, rtlStyle]}
+//               value={reportDescription}
+//               onChangeText={setReportDescription}
+//               placeholder={t("please_provide_details_about_issue")}
+//               placeholderTextColor="#999"
+//               multiline
+//               numberOfLines={3}
+//               textAlignVertical="top"
+//             />
+
+//             {/* Contact Email */}
+//             <Text style={[styles.fieldLabel, rtlStyle]}>
+//               {t("email")} <Text style={styles.required}>*</Text>
+//             </Text>
+//             <TextInput
+//               style={[styles.textInput, rtlStyle]}
+//               value={reportContact}
+//               onChangeText={setReportContact}
+//               placeholder={t("your_email_for_followup")}
+//               placeholderTextColor="#999"
+//               keyboardType="email-address"
+//               autoCapitalize="none"
+//             />
+
+//             {/* Phone Number */}
+//             <Text style={[styles.fieldLabel, rtlStyle]}>
+//               {t("phone_number")} <Text style={styles.required}>*</Text>
+//             </Text>
+//             <TextInput
+//               style={[styles.textInput, rtlStyle]}
+//               value={reportPhone}
+//               onChangeText={setReportPhone}
+//               placeholder={t("your_phone_number")}
+//               placeholderTextColor="#999"
+//               keyboardType="phone-pad"
+//             />
+//             <View style={styles.emptyBox}></View>
+//           </ScrollView>
+
+//           {/* Footer */}
+//           <View style={styles.modalFooter}>
+//             <TouchableOpacity
+//               style={styles.cancelButton}
+//               onPress={() => setReportModalVisible(false)}
+//             >
+//               <Text style={[styles.cancelButtonText, rtlStyle]}>
+//                 {t("cancel")}
+//               </Text>
+//             </TouchableOpacity>
+//             <TouchableOpacity
+//               style={[
+//                 styles.submitButton,
+//                 (!reportReason ||
+//                   !reportDescription ||
+//                   !reportContact ||
+//                   !reportPhone) &&
+//                   styles.submitButtonDisabled,
+//               ]}
+//               onPress={submitReport}
+//               disabled={
+//                 reportLoading ||
+//                 !reportReason ||
+//                 !reportDescription ||
+//                 !reportContact ||
+//                 !reportPhone
+//               }
+//             >
+//               {reportLoading ? (
+//                 <ActivityIndicator size="small" color="#fff" />
+//               ) : (
+//                 <Text style={[styles.submitButtonText, rtlStyle]}>
+//                   {t("submit_report")}
+//                 </Text>
+//               )}
+//             </TouchableOpacity>
+//           </View>
+//         </View>
+//       </View>
+//     </Modal>
+//   );
+
 //   if (loading) {
 //     return (
 //       <View style={[styles.loadingContainer, { paddingTop: insets.top }]}>
 //         <ActivityIndicator size="large" color="#b80200" />
-//         <Text style={styles.loadingText}>{t("loading")}</Text>
+//         <Text style={[styles.loadingText, rtlStyle]}>{t("loading")}</Text>
 //       </View>
 //     );
 //   }
@@ -1328,9 +2305,11 @@ const styles = StyleSheet.create({
 //     return (
 //       <View style={[styles.errorContainer, { paddingTop: insets.top }]}>
 //         <Ionicons name="alert-circle-outline" size={60} color="#b80200" />
-//         <Text style={styles.errorText}>{error || t("car_not_found")}</Text>
+//         <Text style={[styles.errorText, rtlStyle]}>
+//           {error || t("car_not_found")}
+//         </Text>
 //         <TouchableOpacity style={styles.retryButton} onPress={fetchCarDetails}>
-//           <Text style={styles.retryButtonText}>{t("retry")}</Text>
+//           <Text style={[styles.retryButtonText, rtlStyle]}>{t("retry")}</Text>
 //         </TouchableOpacity>
 //       </View>
 //     );
@@ -1338,20 +2317,21 @@ const styles = StyleSheet.create({
 
 //   return (
 //     <View style={[styles.container, { paddingTop: insets.top }]}>
-//       {/* Header */}
-//       <View style={styles.header}>
+//       {/* Header with proper Arabic translation */}
+//       <View style={[styles.header, { flexDirection: getFlexDirection() }]}>
 //         <TouchableOpacity
 //           onPress={() => router.back()}
 //           style={styles.backButton}
 //         >
-//           <Ionicons name="arrow-back" size={24} color="#ffffff" />
+//           <Ionicons
+//             name={isRTL ? "arrow-forward" : "arrow-back"}
+//             size={24}
+//             color="#ffffff"
+//           />
 //         </TouchableOpacity>
-//         <Text style={styles.headerTitle} numberOfLines={1}>
-//           {car.make} {car.model}
+//         <Text style={[styles.headerTitle, rtlStyle]} numberOfLines={1}>
+//           {translatedCar?.make || car.make} {translatedCar?.model || car.model}
 //         </Text>
-//         <TouchableOpacity style={styles.shareButton}>
-//           <Ionicons name="share-outline" size={24} color="#ffffff" />
-//         </TouchableOpacity>
 //       </View>
 
 //       <ScrollView
@@ -1370,43 +2350,18 @@ const styles = StyleSheet.create({
 //         {/* Car Details */}
 //         <View style={styles.detailsContainer}>
 //           {/* Title and Price */}
-//           <View style={styles.titleSection}>
-//             <Text style={styles.carTitle}>
-//               {car.year} {car.make} {car.model}
-//             </Text>
-//             <Text style={styles.carPrice}>{formatPrice(car.priceUSD)}</Text>
-//             <View style={styles.locationContainer}>
-//               <Ionicons name="location-outline" size={16} color="#666" />
-//               <Text style={styles.locationText}>{car.location}</Text>
-//             </View>
-//           </View>
+//           {renderTitleSection()}
 
 //           {/* Quick Info */}
-//           <View style={styles.quickInfoSection}>
-//             <View style={styles.quickInfoItem}>
-//               <Ionicons name="speedometer-outline" size={20} color="#b80200" />
-//               <Text style={styles.quickInfoText}>
-//                 {car.kilometer
-//                   ? `${car.kilometer.toLocaleString()} km`
-//                   : t("notSpecified")}
-//               </Text>
-//             </View>
-//             <View style={styles.quickInfoItem}>
-//               <Ionicons name="car-outline" size={20} color="#b80200" />
-//               <Text style={styles.quickInfoText}>
-//                 {car.transmission || t("notSpecified")}
-//               </Text>
-//             </View>
-//             <View style={styles.quickInfoItem}>
-//               <Ionicons name="flash-outline" size={20} color="#b80200" />
-//               <Text style={styles.quickInfoText}>
-//                 {car.fuelType || t("notSpecified")}
-//               </Text>
-//             </View>
-//           </View>
+//           {renderQuickInfo()}
 
 //           {/* Contact Buttons */}
-//           <View style={styles.contactSection}>
+//           <View
+//             style={[
+//               styles.contactSection,
+//               { flexDirection: getFlexDirection() },
+//             ]}
+//           >
 //             <TouchableOpacity
 //               style={styles.chatButton}
 //               onPress={handleStartChat}
@@ -1417,7 +2372,7 @@ const styles = StyleSheet.create({
 //               ) : (
 //                 <Ionicons name="chatbubble-outline" size={20} color="#ffffff" />
 //               )}
-//               <Text style={styles.chatButtonText}>
+//               <Text style={[styles.chatButtonText, rtlStyle]}>
 //                 {chatLoading ? t("connecting") : t("chat")}
 //               </Text>
 //             </TouchableOpacity>
@@ -1427,7 +2382,7 @@ const styles = StyleSheet.create({
 //               onPress={() => handleContact(carOwner?.phone || "963968888721")}
 //             >
 //               <Ionicons name="call-outline" size={20} color="#ffffff" />
-//               <Text style={styles.callButtonText}>{t("call")}</Text>
+//               <Text style={[styles.callButtonText, rtlStyle]}>{t("call")}</Text>
 //             </TouchableOpacity>
 
 //             <TouchableOpacity
@@ -1437,123 +2392,71 @@ const styles = StyleSheet.create({
 //               }
 //             >
 //               <Ionicons name="logo-whatsapp" size={20} color="#ffffff" />
-//               <Text style={styles.whatsappButtonText}>{t("whatsapp")}</Text>
+//               <Text style={[styles.whatsappButtonText, rtlStyle]}>
+//                 {t("whatsapp")}
+//               </Text>
 //             </TouchableOpacity>
 //           </View>
 
 //           {/* Seller Info */}
 //           {carOwner && (
 //             <View style={styles.sellerSection}>
-//               <Text style={styles.sectionTitle}>{t("seller")}</Text>
-//               <View style={styles.sellerInfo}>
+//               <Text style={[styles.sectionTitle, rtlStyle]}>{t("seller")}</Text>
+//               <View
+//                 style={[
+//                   styles.sellerInfo,
+//                   { flexDirection: getFlexDirection() },
+//                 ]}
+//               >
 //                 <View style={styles.sellerAvatar}>
 //                   <Ionicons name="person" size={24} color="#666" />
 //                 </View>
-//                 <View style={styles.sellerDetails}>
-//                   <Text style={styles.sellerName}>{carOwner.username}</Text>
-//                   <Text style={styles.sellerPhone}>{carOwner.phone}</Text>
+//                 <View
+//                   style={[
+//                     styles.sellerDetails,
+//                     { marginLeft: isRTL ? 0 : 12, marginRight: isRTL ? 12 : 0 },
+//                   ]}
+//                 >
+//                   <Text style={[styles.sellerName, rtlStyle]}>
+//                     {carOwner.username}
+//                   </Text>
+//                   <Text style={[styles.sellerPhone, rtlStyle]}>
+//                     {carOwner.phone}
+//                   </Text>
 //                 </View>
 //               </View>
 //             </View>
 //           )}
 
-//           {/* Specifications */}
-//           <View style={styles.specsSection}>
-//             <Text style={styles.sectionTitle}>{t("specifications")}</Text>
-//             <View style={styles.specsGrid}>
-//               <View style={styles.specItem}>
-//                 <Text style={styles.specLabel}>{t("make")}</Text>
-//                 <Text style={styles.specValue}>{car.make}</Text>
-//               </View>
-//               <View style={styles.specItem}>
-//                 <Text style={styles.specLabel}>{t("model")}</Text>
-//                 <Text style={styles.specValue}>{car.model}</Text>
-//               </View>
-//               <View style={styles.specItem}>
-//                 <Text style={styles.specLabel}>{t("year")}</Text>
-//                 <Text style={styles.specValue}>{car.year}</Text>
-//               </View>
-//               <View style={styles.specItem}>
-//                 <Text style={styles.specLabel}>{t("kilometer")}</Text>
-//                 <Text style={styles.specValue}>
-//                   {car.kilometer
-//                     ? `${car.kilometer.toLocaleString()} km`
-//                     : t("notSpecified")}
-//                 </Text>
-//               </View>
-//               <View style={styles.specItem}>
-//                 <Text style={styles.specLabel}>{t("engine_size")}</Text>
-//                 <Text style={styles.specValue}>
-//                   {car.engineSize || t("notSpecified")}
-//                 </Text>
-//               </View>
-//               <View style={styles.specItem}>
-//                 <Text style={styles.specLabel}>{t("transmission")}</Text>
-//                 <Text style={styles.specValue}>
-//                   {car.transmission || t("notSpecified")}
-//                 </Text>
-//               </View>
-//               <View style={styles.specItem}>
-//                 <Text style={styles.specLabel}>{t("fuel_type")}</Text>
-//                 <Text style={styles.specValue}>
-//                   {car.fuelType || t("notSpecified")}
-//                 </Text>
-//               </View>
-//               <View style={styles.specItem}>
-//                 <Text style={styles.specLabel}>{t("exterior_color")}</Text>
-//                 <Text style={styles.specValue}>
-//                   {car.exteriorColor || t("notSpecified")}
-//                 </Text>
-//               </View>
-//               <View style={styles.specItem}>
-//                 <Text style={styles.specLabel}>{t("interior_color")}</Text>
-//                 <Text style={styles.specValue}>
-//                   {car.interiorColor || t("notSpecified")}
-//                 </Text>
-//               </View>
-//             </View>
-//           </View>
-
-//           {/* Features */}
-//           {car.features && car.features.length > 0 && (
-//             <View style={styles.featuresSection}>
-//               <Text style={styles.sectionTitle}>{t("features")}</Text>
-//               <View style={styles.featuresGrid}>
-//                 {car.features.map((feature, index) => (
-//                   <View key={index} style={styles.featureItem}>
-//                     <Ionicons
-//                       name="checkmark-circle"
-//                       size={16}
-//                       color="#28a745"
-//                     />
-//                     <Text style={styles.featureText}>{feature}</Text>
-//                   </View>
-//                 ))}
-//               </View>
-//             </View>
-//           )}
+//           {/* Specifications - Updated to match screenshot */}
+//           {renderSpecifications()}
 
 //           {/* Description */}
-//           {car.description && (
-//             <View style={styles.descriptionSection}>
-//               <Text style={styles.sectionTitle}>{t("description")}</Text>
-//               <Text style={styles.descriptionText}>{car.description}</Text>
-//             </View>
-//           )}
+//           {renderDescription()}
 
 //           {/* Report Button */}
 //           <TouchableOpacity
-//             style={styles.reportButton}
+//             style={[styles.reportButton, { flexDirection: getFlexDirection() }]}
 //             onPress={handleReportAbuse}
 //           >
 //             <Ionicons name="flag-outline" size={16} color="#dc3545" />
-//             <Text style={styles.reportButtonText}>{t("report_abuse")}</Text>
+//             <Text
+//               style={[
+//                 styles.reportButtonText,
+//                 rtlStyle,
+//                 { marginLeft: isRTL ? 0 : 8, marginRight: isRTL ? 8 : 0 },
+//               ]}
+//             >
+//               {t("report_abuse")}
+//             </Text>
 //           </TouchableOpacity>
 
 //           {/* Related Cars */}
 //           {relatedCars.length > 0 && (
 //             <View style={styles.relatedSection}>
-//               <Text style={styles.sectionTitle}>{t("you_may_also_like")}</Text>
+//               <Text style={[styles.sectionTitle, rtlStyle]}>
+//                 {t("you_may_also_like")}
+//               </Text>
 //               <FlatList
 //                 data={relatedCars}
 //                 keyExtractor={(item) => item._id}
@@ -1567,6 +2470,10 @@ const styles = StyleSheet.create({
 //           )}
 //         </View>
 //       </ScrollView>
+
+//       {/* Report Modal */}
+//       {renderReportModal()}
+
 //       {/* Simple Image Viewer Modal */}
 //       <SimpleImageViewer
 //         visible={imageViewerVisible}
@@ -1587,7 +2494,6 @@ const styles = StyleSheet.create({
 //     backgroundColor: "#1a1a1a",
 //     paddingHorizontal: 20,
 //     paddingVertical: 15,
-//     flexDirection: "row",
 //     alignItems: "center",
 //     justifyContent: "space-between",
 //     borderBottomLeftRadius: 20,
@@ -1635,7 +2541,6 @@ const styles = StyleSheet.create({
 //     marginBottom: 8,
 //   },
 //   locationContainer: {
-//     flexDirection: "row",
 //     alignItems: "center",
 //     gap: 4,
 //   },
@@ -1667,7 +2572,6 @@ const styles = StyleSheet.create({
 //     textAlign: "center",
 //   },
 //   contactSection: {
-//     flexDirection: "row",
 //     gap: 12,
 //     marginBottom: 20,
 //   },
@@ -1733,7 +2637,6 @@ const styles = StyleSheet.create({
 //     elevation: 3,
 //   },
 //   sellerInfo: {
-//     flexDirection: "row",
 //     alignItems: "center",
 //     gap: 12,
 //   },
@@ -1764,6 +2667,7 @@ const styles = StyleSheet.create({
 //     color: "#1a1a1a",
 //     marginBottom: 12,
 //   },
+//   // Updated specifications styles to match screenshot
 //   specsSection: {
 //     backgroundColor: "#ffffff",
 //     borderRadius: 12,
@@ -1775,53 +2679,29 @@ const styles = StyleSheet.create({
 //     shadowRadius: 4,
 //     elevation: 3,
 //   },
-//   specsGrid: {
-//     flexDirection: "row",
-//     flexWrap: "wrap",
-//     gap: 16,
-//   },
-//   specItem: {
-//     width: (width - 80) / 2,
-//     marginBottom: 12,
-//   },
-//   specLabel: {
-//     fontSize: 12,
-//     color: "#666",
-//     fontWeight: "600",
-//     marginBottom: 4,
-//   },
-//   specValue: {
-//     fontSize: 14,
-//     color: "#1a1a1a",
-//     fontWeight: "600",
-//   },
-//   featuresSection: {
-//     backgroundColor: "#ffffff",
-//     borderRadius: 12,
-//     padding: 16,
-//     marginBottom: 20,
-//     shadowColor: "#000",
-//     shadowOffset: { width: 0, height: 2 },
-//     shadowOpacity: 0.1,
-//     shadowRadius: 4,
-//     elevation: 3,
-//   },
-//   featuresGrid: {
-//     flexDirection: "row",
-//     flexWrap: "wrap",
+//   specsList: {
 //     gap: 12,
 //   },
-//   featureItem: {
+//   specRow: {
 //     flexDirection: "row",
+//     justifyContent: "space-between",
 //     alignItems: "center",
-//     gap: 8,
-//     width: (width - 80) / 2,
-//     marginBottom: 8,
+//     paddingVertical: 8,
+//     borderBottomWidth: 1,
+//     borderBottomColor: "#f0f0f0",
 //   },
-//   featureText: {
-//     fontSize: 14,
-//     color: "#1a1a1a",
+//   specLabel: {
+//     fontSize: 16,
+//     color: "#666",
+//     fontWeight: "600",
 //     flex: 1,
+//   },
+//   specValue: {
+//     fontSize: 16,
+//     color: "#1a1a1a",
+//     fontWeight: "600",
+//     flex: 1,
+//     textAlign: "right",
 //   },
 //   descriptionSection: {
 //     backgroundColor: "#ffffff",
@@ -1840,7 +2720,6 @@ const styles = StyleSheet.create({
 //     lineHeight: 20,
 //   },
 //   reportButton: {
-//     flexDirection: "row",
 //     alignItems: "center",
 //     justifyContent: "center",
 //     backgroundColor: "#f8f9fa",
@@ -1899,5 +2778,147 @@ const styles = StyleSheet.create({
 //     color: "#ffffff",
 //     fontSize: 16,
 //     fontWeight: "600",
+//   },
+//   // Report Modal Styles - Mobile Friendly
+//   modalOverlay: {
+//     flex: 1,
+//     backgroundColor: "rgba(0, 0, 0, 0.5)",
+//     justifyContent: "center",
+//     alignItems: "center",
+//     padding: 16,
+//   },
+//   modalContainer: {
+//     backgroundColor: "#ffffff",
+//     borderRadius: 12,
+//     width: width - 32,
+//     maxHeight: "85%",
+//     shadowColor: "#000",
+//     shadowOffset: { width: 0, height: 4 },
+//     shadowOpacity: 0.2,
+//     shadowRadius: 8,
+//     elevation: 8,
+//   },
+//   modalHeader: {
+//     flexDirection: "row",
+//     justifyContent: "space-between",
+//     alignItems: "center",
+//     padding: 16,
+//     borderBottomWidth: 1,
+//     borderBottomColor: "#f0f0f0",
+//   },
+//   modalTitle: {
+//     fontSize: 18,
+//     fontWeight: "700",
+//     color: "#1a1a1a",
+//     flex: 1,
+//   },
+//   modalContent: {
+//     padding: 16,
+//     maxHeight: 400,
+//   },
+//   fieldLabel: {
+//     fontSize: 14,
+//     fontWeight: "600",
+//     color: "#333",
+//     marginBottom: 6,
+//     marginTop: 12,
+//   },
+//   required: {
+//     color: "#dc3545",
+//   },
+//   dropdownContainer: {
+//     flexDirection: "row",
+//     justifyContent: "space-between",
+//     alignItems: "center",
+//     borderWidth: 1,
+//     borderColor: "#ddd",
+//     borderRadius: 8,
+//     padding: 12,
+//     marginBottom: 8,
+//     backgroundColor: "#fff",
+//   },
+//   dropdownText: {
+//     fontSize: 14,
+//     color: "#666",
+//     flex: 1,
+//   },
+//   reasonOptions: {
+//     marginBottom: 12,
+//     borderWidth: 1,
+//     borderColor: "#eee",
+//     borderRadius: 8,
+//     backgroundColor: "#f9f9f9",
+//   },
+//   reasonOption: {
+//     padding: 12,
+//     borderBottomWidth: 1,
+//     borderBottomColor: "#eee",
+//   },
+//   reasonOptionSelected: {
+//     backgroundColor: "#e3f2fd",
+//   },
+//   reasonOptionText: {
+//     fontSize: 14,
+//     color: "#333",
+//   },
+//   textInput: {
+//     borderWidth: 1,
+//     borderColor: "#ddd",
+//     borderRadius: 8,
+//     padding: 12,
+//     fontSize: 14,
+//     backgroundColor: "#fff",
+//     marginBottom: 12,
+//   },
+//   textArea: {
+//     borderWidth: 1,
+//     borderColor: "#ddd",
+//     borderRadius: 8,
+//     padding: 12,
+//     fontSize: 14,
+//     backgroundColor: "#fff",
+//     height: 80,
+//     textAlignVertical: "top",
+//     marginBottom: 12,
+//   },
+//   modalFooter: {
+//     flexDirection: "row",
+//     padding: 16,
+//     borderTopWidth: 1,
+//     borderTopColor: "#f0f0f0",
+//     gap: 12,
+//   },
+//   cancelButton: {
+//     flex: 1,
+//     backgroundColor: "#f8f9fa",
+//     paddingVertical: 12,
+//     borderRadius: 8,
+//     alignItems: "center",
+//     borderWidth: 1,
+//     borderColor: "#ddd",
+//   },
+//   cancelButtonText: {
+//     color: "#666",
+//     fontSize: 14,
+//     fontWeight: "600",
+//   },
+//   submitButton: {
+//     flex: 1,
+//     backgroundColor: "#dc3545",
+//     paddingVertical: 12,
+//     borderRadius: 8,
+//     alignItems: "center",
+//     justifyContent: "center",
+//   },
+//   submitButtonDisabled: {
+//     backgroundColor: "#ccc",
+//   },
+//   submitButtonText: {
+//     color: "#ffffff",
+//     fontSize: 14,
+//     fontWeight: "700",
+//   },
+//   emptyBox: {
+//     height: 30,
 //   },
 // });

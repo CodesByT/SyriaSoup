@@ -42,6 +42,38 @@ export default function RootLayout() {
               }}
             />
             <Stack.Screen
+              name="contact-us"
+              options={{
+                title: "contact-us",
+                presentation: "modal",
+                headerShown: false,
+              }}
+            />
+            <Stack.Screen
+              name="about-us"
+              options={{
+                title: "About Us",
+                presentation: "modal",
+                headerShown: false,
+              }}
+            />
+            <Stack.Screen
+              name="privacy-policy"
+              options={{
+                title: "Privacy Policy",
+                presentation: "modal",
+                headerShown: false,
+              }}
+            />
+            <Stack.Screen
+              name="terms-of-use"
+              options={{
+                title: "Terms of Use",
+                presentation: "modal",
+                headerShown: false,
+              }}
+            />
+            <Stack.Screen
               name="car-details"
               options={{
                 title: "Car Details",

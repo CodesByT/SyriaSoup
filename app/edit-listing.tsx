@@ -4,7 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import type { JSX } from "react"; // Import JSX to fix the lint error
+import type { JSX } from "react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -20,21 +20,29 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Snackbar from "react-native-snackbar";
 import { useAuth } from "../contexts/AuthContext";
+import { useRTL } from "../hooks/useRTL";
 import type { Car } from "../types";
 import { getCarById, updateCar } from "../utils/api";
+import { arabicMakes, makes } from "../utils/constants";
 
 export default function EditListing(): JSX.Element {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { isAuthenticated } = useAuth();
+  const { isRTL, rtlStyle, getFlexDirection } = useRTL();
   const router = useRouter();
   const { carId } = useLocalSearchParams();
+  const insets = useSafeAreaInsets();
+  const isArabic = i18n.language === "ar";
 
   const [loading, setLoading] = useState<boolean>(true);
   const [updating, setUpdating] = useState<boolean>(false);
   const [modalVisible, setModalVisible] = useState<boolean>(false);
   const [currentField, setCurrentField] = useState<string>("");
   const [modalOptions, setModalOptions] = useState<string[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const [formData, setFormData] = useState({
     make: "",
@@ -48,49 +56,92 @@ export default function EditListing(): JSX.Element {
     fuel_type: "",
     exterior_color: "",
     interior_color: "",
-    selected_features: [] as string[],
+    selected_features: [] as string[], // This will store the translation keys (English keys)
     description: "",
   });
   const [images, setImages] = useState<string[]>([]);
 
-  const makeOptions = [
-    "Chrysler",
-    "Toyota",
-    "Honda",
-    "Ford",
-    "BMW",
-    "Mercedes",
-    "Other",
-  ];
-  const modelOptions = ["Sedan", "SUV", "Coupe", "Convertible", "Other"];
-  const cylinderOptions = ["4", "6", "8", "Other"];
-  const locationOptions = ["Damascus", "Aleppo", "Homs", "Latakia", "Other"];
-  const transmissionOptions = ["Automatic", "Manual"];
-  const fuelTypeOptions = ["Petrol", "Diesel", "Electric", "Hybrid"];
-  const colorOptions = ["Black", "White", "Red", "Blue", "Silver", "Other"];
-  const featureOptions = [
-    "360-degree camera",
-    "Adaptive headlights",
-    "Blind-spot warning",
-    "Cooled Seats",
-    "Heated seats",
-    "LED headlights",
-    "Performance tyres",
-    "Sound system",
+  // Feature translation keys - these are the keys used in i18n
+  const featureKeys = [
+    "ThreeSixty_degree_camera",
+    "Adaptive_headlights",
+    "Blind_spot_warning",
+    "Cooled_Seats",
+    "Heated_seats",
+    "LED_headlights",
+    "Performance_tyres",
+    "Sound_system",
     "ABS",
     "Bluetooth",
-    "Extensive tool kit",
-    "Keyless start",
-    "Memory seat",
-    "Reversing camera",
-    "Traction control",
-    "Active head restraints",
-    "Blind spot alert",
-    "Forward-collision warning",
-    "Leather seats",
-    "Navigation system",
-    "Side airbags",
-    "USB port",
+    "Extensive_tool_kit",
+    "Keyless_start",
+    "Memory_seat",
+    "Reversing_camera",
+    "Traction_control",
+    "Active_head_restraints",
+    "Blind_spot_alert",
+    "Forward_collision_warning",
+    "Leather_seats",
+    "Navigation_system",
+    "Side_airbags",
+    "USB_port",
+  ];
+
+  // Get translated feature options for display
+  const featureOptions = featureKeys.map((key) => t(key));
+
+  // Get makes based on current language
+  const makeOptions = isRTL
+    ? arabicMakes.map((make) => make.label)
+    : makes.map((make) => make.label);
+
+  // Get models based on selected make and current language
+  const getModelOptions = (selectedMake: string) => {
+    if (!selectedMake) return [];
+
+    if (isRTL) {
+      const arabicMake = arabicMakes.find(
+        (make) => make.label === selectedMake
+      );
+      return arabicMake?.models || [];
+    } else {
+      const englishMake = makes.find((make) => make.label === selectedMake);
+      return englishMake?.models || [];
+    }
+  };
+
+  const modelOptions = getModelOptions(formData.make);
+
+  const cylinderOptions = [t("1"), t("2"), t("4"), t("6"), t("8"), t("Other")];
+  const locationOptions = [
+    t("Aleppo"),
+    t("Damascus"),
+    t("Daraa"),
+    t("Deir_ez_Zor"),
+    t("Hama"),
+    t("Hasaka"),
+    t("Homs"),
+    t("Idlib"),
+    t("Latakia"),
+    t("Qamishli"),
+    t("Raqqa"),
+    t("Suweida"),
+    t("Tartus"),
+  ];
+  const transmissionOptions = [t("Automatic"), t("Manual")];
+  const fuelTypeOptions = [
+    t("Petrol"),
+    t("Diesel"),
+    t("Electric"),
+    t("Hybrid"),
+  ];
+  const colorOptions = [
+    t("Black"),
+    t("White"),
+    t("Red"),
+    t("Blue"),
+    t("Silver"),
+    t("Other"),
   ];
 
   useEffect(() => {
@@ -110,10 +161,30 @@ export default function EditListing(): JSX.Element {
       const response = await getCarById(carId as string);
       const car: Car = response.data?.data || response.data;
 
-      // Map backend fields to form fields
+      // Map backend fields to form fields with proper translation handling
+      const translatedMake = isArabic
+        ? arabicMakes.find((m) => m.value === car.make)?.label || car.make
+        : makes.find((m) => m.value === car.make)?.label || car.make;
+
+      const translatedModel = car.model; // Keep as is for now, will be handled by model options
+
+      // Convert database feature names to translation keys
+      const dbFeatures = car.features || [];
+      const selectedFeatureKeys = dbFeatures.map((dbFeature) => {
+        // Find the translation key that matches this database feature
+        const matchingKey = featureKeys.find((key) => {
+          const englishTranslation = t(key, { lng: "en" }); // Get English translation
+          return (
+            englishTranslation.toLowerCase() === dbFeature.toLowerCase() ||
+            key.toLowerCase() === dbFeature.toLowerCase()
+          );
+        });
+        return matchingKey || dbFeature;
+      });
+
       setFormData({
-        make: car.make || "",
-        model: car.model || "",
+        make: translatedMake,
+        model: translatedModel,
         price_usd: car.priceUSD?.toString() || "",
         year: car.year?.toString() || "",
         kilometer: car.kilometer?.toString() || "",
@@ -123,7 +194,7 @@ export default function EditListing(): JSX.Element {
         fuel_type: car.fuelType || "",
         exterior_color: car.exteriorColor || "",
         interior_color: car.interiorColor || "",
-        selected_features: car.features || [], // Backend returns "features"
+        selected_features: selectedFeatureKeys, // Store translation keys
         description: car.description || "",
       });
 
@@ -141,24 +212,53 @@ export default function EditListing(): JSX.Element {
     field: keyof typeof formData,
     value: string | string[]
   ) => {
-    setFormData({ ...formData, [field]: value });
+    if (field === "make") {
+      // Clear model when make changes
+      setFormData({ ...formData, [field]: value as string, model: "" });
+    } else if (field === "selected_features") {
+      setFormData({ ...formData, [field]: value as string[] });
+    } else {
+      setFormData({ ...formData, [field]: value as string });
+    }
   };
 
   const toggleFeature = (feature: string) => {
-    const newFeatures = formData.selected_features.includes(feature)
-      ? formData.selected_features.filter((f) => f !== feature)
-      : [...formData.selected_features, feature];
+    // Find the translation key for this feature
+    const featureIndex = featureOptions.indexOf(feature);
+    const featureKey = featureKeys[featureIndex];
+
+    if (!featureKey) return;
+
+    const newFeatures = formData.selected_features.includes(featureKey)
+      ? formData.selected_features.filter((f) => f !== featureKey)
+      : [...formData.selected_features, featureKey];
     handleInputChange("selected_features", newFeatures);
+  };
+
+  const isFeatureSelected = (feature: string): boolean => {
+    // Find the translation key for this feature
+    const featureIndex = featureOptions.indexOf(feature);
+    const featureKey = featureKeys[featureIndex];
+    return featureKey ? formData.selected_features.includes(featureKey) : false;
+  };
+
+  const getFilteredOptions = (options: string[], query: string) => {
+    if (!query.trim()) return options;
+    return options.filter((option) =>
+      option.toLowerCase().includes(query.toLowerCase())
+    );
   };
 
   const openPicker = (field: string, options: string[]) => {
     setCurrentField(field);
     setModalOptions(options);
+    setSearchQuery(""); // Reset search when opening picker
     setModalVisible(true);
   };
 
   const selectOption = (value: string) => {
     handleInputChange(currentField as keyof typeof formData, value);
+    setSearchQuery(""); // Clear search when selecting
     setModalVisible(false);
   };
 
@@ -195,6 +295,18 @@ export default function EditListing(): JSX.Element {
     setUpdating(true);
     try {
       const data = new FormData();
+
+      // Convert display values back to backend values
+      const makeValue = isArabic
+        ? arabicMakes.find((m) => m.label === formData.make)?.value ||
+          formData.make
+        : makes.find((m) => m.label === formData.make)?.value || formData.make;
+
+      // Convert feature keys back to English feature names for database
+      const englishFeatures = formData.selected_features.map((key) => {
+        return t(key, { lng: "en" }); // Get English translation of the key
+      });
+
       const fieldMapping: { [key: string]: string } = {
         make: "make",
         model: "model",
@@ -207,14 +319,16 @@ export default function EditListing(): JSX.Element {
         fuel_type: "fuelType",
         exterior_color: "exteriorColor",
         interior_color: "interiorColor",
-        selected_features: "features", // Backend expects "features" for updates
+        selected_features: "features",
         description: "description",
       };
 
       Object.entries(formData).forEach(([key, value]) => {
         const backendKey = fieldMapping[key] || key;
         if (backendKey === "features") {
-          data.append(backendKey, JSON.stringify(value));
+          data.append(backendKey, JSON.stringify(englishFeatures)); // Use English features for database
+        } else if (key === "make") {
+          data.append(backendKey, makeValue);
         } else {
           data.append(backendKey, value as string);
         }
@@ -233,7 +347,13 @@ export default function EditListing(): JSX.Element {
       });
 
       await updateCar(carId as string, data);
-      Alert.alert(t("success"), t("listing_updated"));
+      Snackbar.show({
+        text: "listing_updated",
+        duration: 1000,
+        backgroundColor: "green",
+        textColor: "#fff",
+      });
+      // Alert.alert(t("success"), t("listing_updated"));
       router.back();
     } catch (error: any) {
       console.error("EditListing: Error updating listing:", error);
@@ -245,209 +365,263 @@ export default function EditListing(): JSX.Element {
 
   const renderForm = () => (
     <View style={styles.form}>
-      <Text style={styles.section_title}>{t("general_info")}</Text>
+      <Text style={[styles.section_title, rtlStyle]}>{t("general_info")}</Text>
       <View style={styles.section_divider} />
 
       <View style={styles.input_container}>
-        <Text style={styles.label}>{t("make")}</Text>
+        <Text style={[styles.label, rtlStyle]}>{t("make")}</Text>
         <TouchableOpacity
-          style={styles.picker}
+          style={[styles.picker, { flexDirection: getFlexDirection() }]}
           onPress={() => openPicker("make", makeOptions)}
         >
           <Text
-            style={[styles.picker_text, !formData.make && styles.placeholder]}
+            style={[
+              styles.picker_text,
+              !formData.make && styles.placeholder,
+              rtlStyle,
+            ]}
           >
             {formData.make || t("select_make")}
           </Text>
-          <Ionicons name="chevron-down" size={20} color="#314352" />
+          <Ionicons
+            name={isRTL ? "chevron-back" : "chevron-forward"}
+            size={20}
+            color="#314352"
+          />
         </TouchableOpacity>
       </View>
 
       <View style={styles.input_container}>
-        <Text style={styles.label}>{t("model")}</Text>
+        <Text style={[styles.label, rtlStyle]}>{t("model")}</Text>
         <TouchableOpacity
-          style={styles.picker}
-          onPress={() => openPicker("model", modelOptions)}
+          style={[
+            styles.picker,
+            { flexDirection: getFlexDirection() },
+            !formData.make && styles.picker_disabled,
+          ]}
+          onPress={() => formData.make && openPicker("model", modelOptions)}
+          disabled={!formData.make}
         >
           <Text
-            style={[styles.picker_text, !formData.model && styles.placeholder]}
+            style={[
+              styles.picker_text,
+              (!formData.model || !formData.make) && styles.placeholder,
+              rtlStyle,
+            ]}
           >
-            {formData.model || t("select_model")}
+            {formData.make
+              ? formData.model || t("select_model")
+              : t("select_make_first")}
           </Text>
-          <Ionicons name="chevron-down" size={20} color="#314352" />
+          <Ionicons
+            name={isRTL ? "chevron-back" : "chevron-forward"}
+            size={20}
+            color={!formData.make ? "#999999" : "#314352"}
+          />
         </TouchableOpacity>
       </View>
 
       <View style={styles.input_container}>
-        <Text style={styles.label}>{t("price_usd")}</Text>
+        <Text style={[styles.label, rtlStyle]}>{t("price_usd")}</Text>
         <TextInput
-          style={[styles.input, styles.left_align]}
+          style={[styles.input, styles.left_align, rtlStyle]}
           value={formData.price_usd}
           onChangeText={(value) => handleInputChange("price_usd", value)}
           placeholder="$"
           placeholderTextColor="#999999"
           keyboardType="numeric"
-          textAlign="left"
+          textAlign={isRTL ? "right" : "left"}
         />
       </View>
 
       <View style={styles.input_container}>
-        <Text style={styles.label}>{t("year")}</Text>
+        <Text style={[styles.label, rtlStyle]}>{t("year")}</Text>
         <TextInput
-          style={[styles.input, styles.left_align]}
+          style={[styles.input, styles.left_align, rtlStyle]}
           value={formData.year}
           onChangeText={(value) => handleInputChange("year", value)}
           placeholder={t("year_placeholder")}
           placeholderTextColor="#999999"
           keyboardType="numeric"
-          textAlign="left"
+          textAlign={isRTL ? "right" : "left"}
         />
       </View>
 
       <View style={styles.input_container}>
-        <Text style={styles.label}>{t("kilometer")}</Text>
+        <Text style={[styles.label, rtlStyle]}>{t("kilometer")}</Text>
         <TextInput
-          style={[styles.input, styles.left_align]}
+          style={[styles.input, styles.left_align, rtlStyle]}
           value={formData.kilometer}
           onChangeText={(value) => handleInputChange("kilometer", value)}
           placeholder={t("kilometer_placeholder")}
           placeholderTextColor="#999999"
           keyboardType="numeric"
-          textAlign="left"
+          textAlign={isRTL ? "right" : "left"}
         />
       </View>
 
       <View style={styles.input_container}>
-        <Text style={styles.label}>{t("number_of_cylinders")}</Text>
+        <Text style={[styles.label, rtlStyle]}>{t("number_of_cylinders")}</Text>
         <TouchableOpacity
-          style={styles.picker}
+          style={[styles.picker, { flexDirection: getFlexDirection() }]}
           onPress={() => openPicker("number_of_cylinders", cylinderOptions)}
         >
           <Text
             style={[
               styles.picker_text,
               !formData.number_of_cylinders && styles.placeholder,
+              rtlStyle,
             ]}
           >
             {formData.number_of_cylinders || t("select_cylinders")}
           </Text>
-          <Ionicons name="chevron-down" size={20} color="#314352" />
+          <Ionicons
+            name={isRTL ? "chevron-back" : "chevron-forward"}
+            size={20}
+            color="#314352"
+          />
         </TouchableOpacity>
       </View>
 
       <View style={styles.input_container}>
-        <Text style={styles.label}>{t("location")}</Text>
+        <Text style={[styles.label, rtlStyle]}>{t("location")}</Text>
         <TouchableOpacity
-          style={styles.picker}
+          style={[styles.picker, { flexDirection: getFlexDirection() }]}
           onPress={() => openPicker("location", locationOptions)}
         >
           <Text
             style={[
               styles.picker_text,
               !formData.location && styles.placeholder,
+              rtlStyle,
             ]}
           >
             {formData.location || t("select_location")}
           </Text>
-          <Ionicons name="chevron-down" size={20} color="#314352" />
+          <Ionicons
+            name={isRTL ? "chevron-back" : "chevron-forward"}
+            size={20}
+            color="#314352"
+          />
         </TouchableOpacity>
       </View>
 
       <View style={styles.input_container}>
-        <Text style={styles.label}>{t("transmission")}</Text>
+        <Text style={[styles.label, rtlStyle]}>{t("transmission")}</Text>
         <TouchableOpacity
-          style={styles.picker}
+          style={[styles.picker, { flexDirection: getFlexDirection() }]}
           onPress={() => openPicker("transmission", transmissionOptions)}
         >
           <Text
             style={[
               styles.picker_text,
               !formData.transmission && styles.placeholder,
+              rtlStyle,
             ]}
           >
             {formData.transmission || t("select_transmission")}
           </Text>
-          <Ionicons name="chevron-down" size={20} color="#314352" />
+          <Ionicons
+            name={isRTL ? "chevron-back" : "chevron-forward"}
+            size={20}
+            color="#314352"
+          />
         </TouchableOpacity>
       </View>
 
       <View style={styles.input_container}>
-        <Text style={styles.label}>{t("fuel_type")}</Text>
+        <Text style={[styles.label, rtlStyle]}>{t("fuel_type")}</Text>
         <TouchableOpacity
-          style={styles.picker}
+          style={[styles.picker, { flexDirection: getFlexDirection() }]}
           onPress={() => openPicker("fuel_type", fuelTypeOptions)}
         >
           <Text
             style={[
               styles.picker_text,
               !formData.fuel_type && styles.placeholder,
+              rtlStyle,
             ]}
           >
             {formData.fuel_type || t("select_fuel_type")}
           </Text>
-          <Ionicons name="chevron-down" size={20} color="#314352" />
+          <Ionicons
+            name={isRTL ? "chevron-back" : "chevron-forward"}
+            size={20}
+            color="#314352"
+          />
         </TouchableOpacity>
       </View>
 
       <View style={styles.input_container}>
-        <Text style={styles.label}>{t("exterior_color")}</Text>
+        <Text style={[styles.label, rtlStyle]}>{t("exterior_color")}</Text>
         <TouchableOpacity
-          style={styles.picker}
+          style={[styles.picker, { flexDirection: getFlexDirection() }]}
           onPress={() => openPicker("exterior_color", colorOptions)}
         >
           <Text
             style={[
               styles.picker_text,
               !formData.exterior_color && styles.placeholder,
+              rtlStyle,
             ]}
           >
             {formData.exterior_color || t("select_exterior_color")}
           </Text>
-          <Ionicons name="chevron-down" size={20} color="#314352" />
+          <Ionicons
+            name={isRTL ? "chevron-back" : "chevron-forward"}
+            size={20}
+            color="#314352"
+          />
         </TouchableOpacity>
       </View>
 
       <View style={styles.input_container}>
-        <Text style={styles.label}>{t("interior_color")}</Text>
+        <Text style={[styles.label, rtlStyle]}>{t("interior_color")}</Text>
         <TouchableOpacity
-          style={styles.picker}
+          style={[styles.picker, { flexDirection: getFlexDirection() }]}
           onPress={() => openPicker("interior_color", colorOptions)}
         >
           <Text
             style={[
               styles.picker_text,
               !formData.interior_color && styles.placeholder,
+              rtlStyle,
             ]}
           >
             {formData.interior_color || t("select_interior_color")}
           </Text>
-          <Ionicons name="chevron-down" size={20} color="#314352" />
+          <Ionicons
+            name={isRTL ? "chevron-back" : "chevron-forward"}
+            size={20}
+            color="#314352"
+          />
         </TouchableOpacity>
       </View>
 
-      <Text style={styles.section_title}>{t("features")}</Text>
+      <Text style={[styles.section_title, rtlStyle]}>{t("features")}</Text>
       <View style={styles.section_divider} />
       <View style={styles.feature_container}>
-        {featureOptions.map((feature) => (
+        {featureOptions.map((feature, index) => (
           <TouchableOpacity
-            key={feature}
+            key={`${feature}-${index}`}
             style={[
               styles.feature_item,
-              formData.selected_features.includes(feature) &&
-                styles.feature_item_active,
+              { flexDirection: getFlexDirection() },
+              isFeatureSelected(feature) && styles.feature_item_active,
             ]}
             onPress={() => toggleFeature(feature)}
           >
             <View style={styles.checkbox}>
-              {formData.selected_features.includes(feature) && (
+              {isFeatureSelected(feature) && (
                 <Ionicons name="checkmark" size={14} color="#ffffff" />
               )}
             </View>
             <Text
               style={[
                 styles.feature_text,
-                formData.selected_features.includes(feature) &&
-                  styles.feature_text_active,
+                rtlStyle,
+                { marginLeft: isRTL ? 0 : 8, marginRight: isRTL ? 8 : 0 },
+                isFeatureSelected(feature) && styles.feature_text_active,
               ]}
             >
               {feature}
@@ -456,24 +630,38 @@ export default function EditListing(): JSX.Element {
         ))}
       </View>
 
-      <Text style={styles.section_title}>{t("description")}</Text>
+      <Text style={[styles.section_title, rtlStyle]}>{t("description")}</Text>
       <View style={styles.section_divider} />
       <TextInput
-        style={[styles.input, styles.text_area]}
+        style={[styles.input, styles.text_area, rtlStyle]}
         value={formData.description}
         onChangeText={(value) => handleInputChange("description", value)}
         placeholder={t("description")}
         placeholderTextColor="#999999"
         multiline
         numberOfLines={8}
-        textAlign="left"
+        textAlign={isRTL ? "right" : "left"}
       />
 
-      <Text style={styles.section_title}>{t("gallery")}</Text>
+      <Text style={[styles.section_title, rtlStyle]}>{t("gallery")}</Text>
       <View style={styles.section_divider} />
-      <TouchableOpacity style={styles.image_picker_button} onPress={pickImages}>
+      <TouchableOpacity
+        style={[
+          styles.image_picker_button,
+          { flexDirection: getFlexDirection() },
+        ]}
+        onPress={pickImages}
+      >
         <Ionicons name="image-outline" size={24} color="#B80200" />
-        <Text style={styles.image_picker_text}>{t("choose_images")}</Text>
+        <Text
+          style={[
+            styles.image_picker_text,
+            rtlStyle,
+            { marginLeft: isRTL ? 0 : 8, marginRight: isRTL ? 8 : 0 },
+          ]}
+        >
+          {t("choose_images")}
+        </Text>
       </TouchableOpacity>
 
       <View style={styles.image_preview}>
@@ -483,6 +671,7 @@ export default function EditListing(): JSX.Element {
               source={{ uri }}
               style={styles.preview_image}
               contentFit="cover"
+              cachePolicy="memory-disk"
             />
             <TouchableOpacity
               style={styles.remove_image_button}
@@ -505,7 +694,9 @@ export default function EditListing(): JSX.Element {
         {updating ? (
           <ActivityIndicator size="small" color="#ffffff" />
         ) : (
-          <Text style={styles.submit_button_text}>{t("update_listing")}</Text>
+          <Text style={[styles.submit_button_text, rtlStyle]}>
+            {t("update_listing")}
+          </Text>
         )}
       </TouchableOpacity>
     </View>
@@ -513,24 +704,28 @@ export default function EditListing(): JSX.Element {
 
   if (loading) {
     return (
-      <View style={styles.loading_container}>
+      <View style={[styles.loading_container, { paddingTop: insets.top }]}>
         <ActivityIndicator size="large" color="#B80200" />
-        <Text style={styles.loading_text}>{t("loading")}</Text>
+        <Text style={[styles.loading_text, rtlStyle]}>{t("loading")}</Text>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
+      <View style={[styles.header, { flexDirection: getFlexDirection() }]}>
         <TouchableOpacity
           style={styles.back_button}
           onPress={() => router.back()}
           activeOpacity={0.7}
         >
-          <Ionicons name="arrow-back" size={24} color="#ffffff" />
+          <Ionicons
+            name={isRTL ? "arrow-forward" : "arrow-back"}
+            size={24}
+            color="#ffffff"
+          />
         </TouchableOpacity>
-        <Text style={styles.header_text}>{t("edit_listing")}</Text>
+        <Text style={[styles.header_text, rtlStyle]}>{t("edit_listing")}</Text>
         <View style={styles.header_spacer} />
       </View>
 
@@ -550,22 +745,78 @@ export default function EditListing(): JSX.Element {
       >
         <View style={styles.modal_container}>
           <View style={styles.modal_content}>
-            <ScrollView>
-              {modalOptions.map((option) => (
-                <TouchableOpacity
-                  key={option}
-                  style={styles.modal_item}
-                  onPress={() => selectOption(option)}
+            {/* Search Input - only show for make and model */}
+            {(currentField === "make" || currentField === "model") && (
+              <View style={styles.search_container}>
+                <View
+                  style={[
+                    styles.search_input_container,
+                    { flexDirection: getFlexDirection() },
+                  ]}
                 >
-                  <Text style={styles.modal_text}>{option}</Text>
-                </TouchableOpacity>
-              ))}
+                  <Ionicons
+                    name="search"
+                    size={20}
+                    color="#B80200"
+                    style={
+                      isRTL ? styles.search_icon_rtl : styles.search_icon_ltr
+                    }
+                  />
+                  <TextInput
+                    style={[styles.search_input, rtlStyle]}
+                    value={searchQuery}
+                    onChangeText={setSearchQuery}
+                    placeholder={
+                      currentField === "make"
+                        ? t("search_make")
+                        : t("search_model")
+                    }
+                    placeholderTextColor="#999999"
+                    textAlign={isRTL ? "right" : "left"}
+                  />
+                  {searchQuery.length > 0 && (
+                    <TouchableOpacity
+                      onPress={() => setSearchQuery("")}
+                      style={styles.clear_search}
+                    >
+                      <Ionicons name="close-circle" size={20} color="#999999" />
+                    </TouchableOpacity>
+                  )}
+                </View>
+              </View>
+            )}
+
+            <ScrollView style={styles.modal_scroll}>
+              {getFilteredOptions(modalOptions, searchQuery).length > 0 ? (
+                getFilteredOptions(modalOptions, searchQuery).map(
+                  (option, index) => (
+                    <TouchableOpacity
+                      key={`${option}-${index}`}
+                      style={styles.modal_item}
+                      onPress={() => selectOption(option)}
+                    >
+                      <Text style={[styles.modal_text, rtlStyle]}>
+                        {option}
+                      </Text>
+                    </TouchableOpacity>
+                  )
+                )
+              ) : (
+                <View style={styles.no_results_container}>
+                  <Text style={[styles.no_results_text, rtlStyle]}>
+                    {t("no_results_found")}
+                  </Text>
+                </View>
+              )}
             </ScrollView>
+
             <TouchableOpacity
               style={styles.modal_close_button}
               onPress={() => setModalVisible(false)}
             >
-              <Text style={styles.modal_close_text}>{t("cancel")}</Text>
+              <Text style={[styles.modal_close_text, rtlStyle]}>
+                {t("cancel")}
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -577,7 +828,7 @@ export default function EditListing(): JSX.Element {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f5f5f5",
+    backgroundColor: "#1a1a1a",
   },
   loading_container: {
     flex: 1,
@@ -591,12 +842,18 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   header: {
-    backgroundColor: "#323232",
-    padding: 20,
-    paddingTop: 40,
-    flexDirection: "row",
+    backgroundColor: "#1a1a1a",
+    paddingHorizontal: 20,
+    paddingVertical: 15,
     alignItems: "center",
     justifyContent: "space-between",
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   back_button: {
     padding: 8,
@@ -647,7 +904,6 @@ const styles = StyleSheet.create({
     textAlign: "left",
   },
   picker: {
-    flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#f5f5f5",
     borderRadius: 8,
@@ -663,11 +919,14 @@ const styles = StyleSheet.create({
   placeholder: {
     color: "#999999",
   },
+  picker_disabled: {
+    backgroundColor: "#f0f0f0",
+    borderColor: "#d0d0d0",
+  },
   text_area: {
     height: 120,
     textAlignVertical: "top",
     marginBottom: 16,
-    textAlign: "left",
   },
   feature_container: {
     flexDirection: "row",
@@ -676,7 +935,6 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   feature_item: {
-    flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#f5f5f5",
     borderRadius: 8,
@@ -696,7 +954,6 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     borderWidth: 2,
     borderColor: "#314352",
-    marginRight: 8,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -709,7 +966,6 @@ const styles = StyleSheet.create({
     color: "#ffffff",
   },
   image_picker_button: {
-    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#ffffff",
@@ -724,7 +980,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#B80200",
     fontWeight: "600",
-    marginLeft: 8,
   },
   image_preview: {
     flexDirection: "row",
@@ -768,6 +1023,7 @@ const styles = StyleSheet.create({
   },
   list_content: {
     paddingBottom: 40,
+    backgroundColor: "#f5f5f5",
   },
   modal_container: {
     flex: 1,
@@ -801,5 +1057,48 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#B80200",
     fontWeight: "600",
+  },
+  search_container: {
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#e0e0e0",
+    marginBottom: 8,
+  },
+  search_input_container: {
+    backgroundColor: "#f8f9fa",
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderWidth: 1,
+    borderColor: "#e0e0e0",
+    alignItems: "center",
+  },
+  search_input: {
+    flex: 1,
+    fontSize: 16,
+    color: "#314352",
+    paddingVertical: 0,
+  },
+  search_icon_ltr: {
+    marginRight: 12,
+  },
+  search_icon_rtl: {
+    marginLeft: 12,
+  },
+  clear_search: {
+    padding: 4,
+  },
+  modal_scroll: {
+    maxHeight: 300,
+  },
+  no_results_container: {
+    padding: 32,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  no_results_text: {
+    fontSize: 16,
+    color: "#999999",
+    fontStyle: "italic",
   },
 });

@@ -13,7 +13,13 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useRTL } from "../hooks/useRTL";
 import type { Car } from "../types";
+import {
+  translateLocation,
+  translateMake,
+  translateModel,
+} from "../utils/translation-helpers";
 
 interface CarCardProps {
   car?: Car;
@@ -32,8 +38,10 @@ export default function CarCard({
   isWishlisted = false,
   isAuthenticated = false,
 }: CarCardProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const { isRTL } = useRTL();
   const [isLoading, setIsLoading] = useState(true);
+  const isArabic = i18n.language === "ar";
 
   if (!car) {
     return (
@@ -46,10 +54,17 @@ export default function CarCard({
   const imageUrl =
     car.images?.[0] || "https://via.placeholder.com/150?text=No+Image";
 
+  // Get translated values
+  const make = translateMake(car.make, isArabic);
+  const model = translateModel(car.model, car.make, isArabic);
+  const location = translateLocation(car.location, isArabic);
+
   const handleShare = async () => {
     try {
       const shareUrl = `https://syriasouq.com/car/${car._id}`;
-      const message = `Check out this ${car.year} ${car.make} ${car.model} for $${car.priceUSD} on Syria Souq!\n\n${shareUrl}`;
+      const message = `Check out this ${car.year} ${car.make} ${car.model} for $${car.priceUSD} on Syria Souq!
+
+${shareUrl}`;
 
       await Share.share({
         message,
@@ -64,7 +79,10 @@ export default function CarCard({
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity onPress={onPress} style={styles.card}>
+      <TouchableOpacity
+        onPress={onPress}
+        style={[styles.card, { flexDirection: isRTL ? "row-reverse" : "row" }]}
+      >
         <View style={styles.imageContainer}>
           {isLoading && (
             <ActivityIndicator
@@ -74,9 +92,26 @@ export default function CarCard({
             />
           )}
           <Image
+            key={imageUrl}
             source={{ uri: imageUrl }}
-            style={[styles.image, isLoading && { opacity: 0 }]}
-            cachePolicy="none"
+            style={[
+              styles.image,
+              isLoading && { opacity: 0 },
+              isRTL
+                ? {
+                    borderTopRightRadius: 12,
+                    borderBottomRightRadius: 12,
+                    borderTopLeftRadius: 0,
+                    borderBottomLeftRadius: 0,
+                  }
+                : {
+                    borderTopLeftRadius: 12,
+                    borderBottomLeftRadius: 12,
+                    borderTopRightRadius: 0,
+                    borderBottomRightRadius: 0,
+                  },
+            ]}
+            cachePolicy="memory-disk"
             onError={(e) => {
               console.log("CarCard: Image load error:", {
                 carId: car._id,
@@ -92,31 +127,77 @@ export default function CarCard({
           />
         </View>
         <View style={styles.info}>
-          <Text style={styles.price}>${car.priceUSD}</Text>
-          <Text style={styles.title} numberOfLines={1} ellipsizeMode="tail">
-            {`${car.make} ${car.model} ${car.year}`}
+          <Text style={[styles.price, { textAlign: isRTL ? "right" : "left" }]}>
+            ${car.priceUSD}
           </Text>
-          <View style={styles.detailsRow}>
-            <View style={styles.detailItem}>
+          <Text
+            style={[styles.title, { textAlign: isRTL ? "right" : "left" }]}
+            numberOfLines={1}
+            ellipsizeMode="tail"
+          >
+            {`${make} ${model} ${car.year}`}
+          </Text>
+          <View
+            style={[
+              styles.detailsRow,
+              { flexDirection: isRTL ? "row-reverse" : "row" },
+            ]}
+          >
+            <View
+              style={[
+                styles.detailItem,
+                { flexDirection: isRTL ? "row-reverse" : "row" },
+              ]}
+            >
               <Ionicons
                 name="location-sharp"
                 size={16}
                 color="#b80200"
-                style={styles.detailIcon}
+                style={{
+                  marginRight: isRTL ? 0 : 4,
+                  marginLeft: isRTL ? 4 : 0,
+                }}
               />
-              <Text style={styles.detailText}>{car.location}</Text>
+              <Text
+                style={[
+                  styles.detailText,
+                  { textAlign: isRTL ? "right" : "left" },
+                ]}
+              >
+                {location}
+              </Text>
             </View>
-            <View style={styles.detailItem}>
+            <View
+              style={[
+                styles.detailItem,
+                { flexDirection: isRTL ? "row-reverse" : "row" },
+              ]}
+            >
               <Ionicons
                 name="speedometer"
                 size={16}
                 color="#b80200"
-                style={styles.detailIcon}
+                style={{
+                  marginRight: isRTL ? 0 : 4,
+                  marginLeft: isRTL ? 4 : 0,
+                }}
               />
-              <Text style={styles.detailText}>{car.kilometer}</Text>
+              <Text
+                style={[
+                  styles.detailText,
+                  { textAlign: isRTL ? "right" : "left" },
+                ]}
+              >
+                {car.kilometer}
+              </Text>
             </View>
           </View>
-          <View style={styles.buttonRow}>
+          <View
+            style={[
+              styles.buttonRow,
+              { flexDirection: isRTL ? "row-reverse" : "row" },
+            ]}
+          >
             <TouchableOpacity
               onPress={onPress}
               style={styles.viewDetailsButton}
@@ -134,6 +215,9 @@ export default function CarCard({
             style={[
               styles.wishlistIcon,
               isWishlisted && isAuthenticated && styles.wishlistIconActive,
+              isRTL
+                ? { left: 8, right: undefined }
+                : { right: 8, left: undefined },
             ]}
           >
             <Ionicons
@@ -271,24 +355,36 @@ const styles = StyleSheet.create({
   },
 });
 
+// "use client";
+
 // import { Ionicons } from "@expo/vector-icons";
 // import { Image } from "expo-image";
-// import React, { useState } from "react";
+// import { useState } from "react";
 // import { useTranslation } from "react-i18next";
 // import {
 //   ActivityIndicator,
+//   Alert,
+//   Share,
 //   StyleSheet,
 //   Text,
 //   TouchableOpacity,
 //   View,
 // } from "react-native";
-// import { Car } from "../types";
+// import { useRTL } from "../hooks/useRTL";
+// import type { Car } from "../types";
+// import {
+//   translateLocation,
+//   translateMake,
+//   translateModel,
+// } from "../utils/translation-helpers";
 
 // interface CarCardProps {
-//   car?: Car; // Allow undefined car
+//   car?: Car;
 //   onWishlist: () => void;
 //   onPress: () => void;
 //   hideWishlistIcon?: boolean;
+//   isWishlisted?: boolean;
+//   isAuthenticated?: boolean;
 // }
 
 // export default function CarCard({
@@ -296,12 +392,15 @@ const styles = StyleSheet.create({
 //   onWishlist,
 //   onPress,
 //   hideWishlistIcon,
+//   isWishlisted = false,
+//   isAuthenticated = false,
 // }: CarCardProps) {
-//   const { t } = useTranslation();
+//   const { t, i18n } = useTranslation();
+//   const { isRTL } = useRTL();
 //   const [isLoading, setIsLoading] = useState(true);
+//   const isArabic = i18n.language === "ar";
 
 //   if (!car) {
-//     console.log("CarCard: Car is undefined");
 //     return (
 //       <View style={styles.container}>
 //         <Text style={styles.text}>{t("invalidCar")}</Text>
@@ -311,11 +410,36 @@ const styles = StyleSheet.create({
 
 //   const imageUrl =
 //     car.images?.[0] || "https://via.placeholder.com/150?text=No+Image";
-//   console.log("CarCard: Image URL:", car._id, imageUrl);
+
+//   // Get translated values
+//   const make = translateMake(car.make, isArabic);
+//   const model = translateModel(car.model, car.make, isArabic);
+//   const location = translateLocation(car.location, isArabic);
+
+//   const handleShare = async () => {
+//     try {
+//       const shareUrl = `https://syriasouq.com/car/${car._id}`;
+//       const message = `Check out this ${car.year} ${car.make} ${car.model} for $${car.priceUSD} on Syria Souq!
+
+// ${shareUrl}`;
+
+//       await Share.share({
+//         message,
+//         url: shareUrl,
+//         title: `${car.year} ${car.make} ${car.model}`,
+//       });
+//     } catch (error) {
+//       console.error("Error sharing:", error);
+//       Alert.alert(t("error"), t("failed_to_share"));
+//     }
+//   };
 
 //   return (
 //     <View style={styles.container}>
-//       <TouchableOpacity onPress={onPress} style={styles.card}>
+//       <TouchableOpacity
+//         onPress={onPress}
+//         style={[styles.card, { flexDirection: isRTL ? "row-reverse" : "row" }]}
+//       >
 //         <View style={styles.imageContainer}>
 //           {isLoading && (
 //             <ActivityIndicator
@@ -326,7 +450,23 @@ const styles = StyleSheet.create({
 //           )}
 //           <Image
 //             source={{ uri: imageUrl }}
-//             style={[styles.image, isLoading && { opacity: 0 }]}
+//             style={[
+//               styles.image,
+//               isLoading && { opacity: 0 },
+//               isRTL
+//                 ? {
+//                     borderTopRightRadius: 12,
+//                     borderBottomRightRadius: 12,
+//                     borderTopLeftRadius: 0,
+//                     borderBottomLeftRadius: 0,
+//                   }
+//                 : {
+//                     borderTopLeftRadius: 12,
+//                     borderBottomLeftRadius: 12,
+//                     borderTopRightRadius: 0,
+//                     borderBottomRightRadius: 0,
+//                   },
+//             ]}
 //             cachePolicy="none"
 //             onError={(e) => {
 //               console.log("CarCard: Image load error:", {
@@ -337,44 +477,110 @@ const styles = StyleSheet.create({
 //               setIsLoading(false);
 //             }}
 //             onLoad={() => {
-//               console.log("CarCard: Image loaded:", car._id, imageUrl);
 //               setIsLoading(false);
 //             }}
 //             contentFit="cover"
 //           />
 //         </View>
 //         <View style={styles.info}>
-//           <Text style={styles.price}>${car.priceUSD}</Text>
-//           <Text style={styles.title} numberOfLines={1} ellipsizeMode="tail">
-//             {`${car.make} ${car.model} ${car.year}`}
+//           <Text style={[styles.price, { textAlign: isRTL ? "right" : "left" }]}>
+//             ${car.priceUSD}
 //           </Text>
-//           <View style={styles.detailsRow}>
-//             <View style={styles.detailItem}>
+//           <Text
+//             style={[styles.title, { textAlign: isRTL ? "right" : "left" }]}
+//             numberOfLines={1}
+//             ellipsizeMode="tail"
+//           >
+//             {`${make} ${model} ${car.year}`}
+//           </Text>
+//           <View
+//             style={[
+//               styles.detailsRow,
+//               { flexDirection: isRTL ? "row-reverse" : "row" },
+//             ]}
+//           >
+//             <View
+//               style={[
+//                 styles.detailItem,
+//                 { flexDirection: isRTL ? "row-reverse" : "row" },
+//               ]}
+//             >
 //               <Ionicons
 //                 name="location-sharp"
 //                 size={16}
 //                 color="#b80200"
-//                 style={styles.detailIcon}
+//                 style={{
+//                   marginRight: isRTL ? 0 : 4,
+//                   marginLeft: isRTL ? 4 : 0,
+//                 }}
 //               />
-//               <Text style={styles.detailText}>{car.location}</Text>
+//               <Text
+//                 style={[
+//                   styles.detailText,
+//                   { textAlign: isRTL ? "right" : "left" },
+//                 ]}
+//               >
+//                 {location}
+//               </Text>
 //             </View>
-//             <View style={styles.detailItem}>
+//             <View
+//               style={[
+//                 styles.detailItem,
+//                 { flexDirection: isRTL ? "row-reverse" : "row" },
+//               ]}
+//             >
 //               <Ionicons
 //                 name="speedometer"
 //                 size={16}
 //                 color="#b80200"
-//                 style={styles.detailIcon}
+//                 style={{
+//                   marginRight: isRTL ? 0 : 4,
+//                   marginLeft: isRTL ? 4 : 0,
+//                 }}
 //               />
-//               <Text style={styles.detailText}>{car.kilometer}</Text>
+//               <Text
+//                 style={[
+//                   styles.detailText,
+//                   { textAlign: isRTL ? "right" : "left" },
+//                 ]}
+//               >
+//                 {car.kilometer}
+//               </Text>
 //             </View>
 //           </View>
-//           <TouchableOpacity onPress={onPress} style={styles.viewDetailsButton}>
-//             <Text style={styles.viewDetailsText}>{t("viewDetails")}</Text>
-//           </TouchableOpacity>
+//           <View
+//             style={[
+//               styles.buttonRow,
+//               { flexDirection: isRTL ? "row-reverse" : "row" },
+//             ]}
+//           >
+//             <TouchableOpacity
+//               onPress={onPress}
+//               style={styles.viewDetailsButton}
+//             >
+//               <Text style={styles.viewDetailsText}>{t("viewDetails")}</Text>
+//             </TouchableOpacity>
+//             <TouchableOpacity onPress={handleShare} style={styles.shareButton}>
+//               <Ionicons name="share-outline" size={16} color="#b80200" />
+//             </TouchableOpacity>
+//           </View>
 //         </View>
 //         {!hideWishlistIcon && (
-//           <TouchableOpacity onPress={onWishlist} style={styles.wishlistIcon}>
-//             <Ionicons name="heart-outline" size={24} color="#b80200" />
+//           <TouchableOpacity
+//             onPress={onWishlist}
+//             style={[
+//               styles.wishlistIcon,
+//               isWishlisted && isAuthenticated && styles.wishlistIconActive,
+//               isRTL
+//                 ? { left: 8, right: undefined }
+//                 : { right: 8, left: undefined },
+//             ]}
+//           >
+//             <Ionicons
+//               name={isWishlisted && isAuthenticated ? "heart" : "heart-outline"}
+//               size={24}
+//               color={isWishlisted && isAuthenticated ? "#ffffff" : "#b80200"}
+//             />
 //           </TouchableOpacity>
 //         )}
 //       </TouchableOpacity>
@@ -457,12 +663,17 @@ const styles = StyleSheet.create({
 //     fontSize: 14,
 //     color: "#313332",
 //   },
+//   buttonRow: {
+//     flexDirection: "row",
+//     alignItems: "center",
+//     gap: 8,
+//   },
 //   viewDetailsButton: {
 //     backgroundColor: "#b80200",
 //     paddingVertical: 6,
 //     paddingHorizontal: 16,
 //     borderRadius: 8,
-//     width: "100%",
+//     flex: 1,
 //     height: 35,
 //     justifyContent: "center",
 //     alignItems: "center",
@@ -472,11 +683,30 @@ const styles = StyleSheet.create({
 //     fontSize: 12,
 //     fontWeight: "600",
 //   },
+//   shareButton: {
+//     backgroundColor: "rgba(184, 2, 0, 0.1)",
+//     borderWidth: 1,
+//     borderColor: "#b80200",
+//     borderRadius: 8,
+//     padding: 8,
+//     justifyContent: "center",
+//     alignItems: "center",
+//   },
 //   wishlistIcon: {
 //     position: "absolute",
 //     top: 8,
 //     right: 8,
-//     padding: 4,
+//     backgroundColor: "rgba(255, 255, 255, 0.9)",
+//     borderRadius: 20,
+//     padding: 6,
 //     zIndex: 10,
+//     shadowColor: "#000",
+//     shadowOffset: { width: 0, height: 1 },
+//     shadowOpacity: 0.2,
+//     shadowRadius: 2,
+//     elevation: 2,
+//   },
+//   wishlistIconActive: {
+//     backgroundColor: "#b80200",
 //   },
 // });
