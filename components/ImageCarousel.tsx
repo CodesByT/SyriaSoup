@@ -182,10 +182,10 @@ export default function ImageCarousel({
         </View>
       )}
 
-      {/* Tap to view hint */}
-      <View style={styles.tapHint}>
-        <Text style={styles.tapHintText}>Tap to view full screen</Text>
-      </View>
+      {/* Tap to view hint 
+    <View style={styles.tapHint}>
+      <Text style={styles.tapHintText}>Tap to view full screen</Text>
+      </View>*/}
     </View>
   );
 }

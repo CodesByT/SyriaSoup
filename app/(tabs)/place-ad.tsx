@@ -1,8 +1,10 @@
+"use client";
+
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
@@ -17,13 +19,17 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "../../contexts/AuthContext";
+import { useRTL } from "../../hooks/useRTL";
 import { addCar } from "../../utils/api";
 
 export default function PlaceAd() {
   const { t } = useTranslation();
   const { isAuthenticated } = useAuth();
+  const { isRTL, rtlStyle, getFlexDirection } = useRTL();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [formData, setFormData] = useState({
     make: "",
     model: "",
@@ -207,175 +213,233 @@ export default function PlaceAd() {
 
   const renderForm = () => (
     <View style={styles.form}>
-      <Text style={styles.section_title}>{t("general_info")}</Text>
+      <Text style={[styles.section_title, rtlStyle]}>{t("general_info")}</Text>
       <View style={styles.section_divider} />
+
       <View style={styles.input_container}>
-        <Text style={styles.label}>{t("make")}</Text>
+        <Text style={[styles.label, rtlStyle]}>{t("make")}</Text>
         <TouchableOpacity
-          style={styles.picker}
+          style={[styles.picker, { flexDirection: getFlexDirection() }]}
           onPress={() => openPicker("make", makeOptions)}
         >
           <Text
-            style={[styles.picker_text, !formData.make && styles.placeholder]}
+            style={[
+              styles.picker_text,
+              !formData.make && styles.placeholder,
+              rtlStyle,
+            ]}
           >
             {formData.make || t("select_make")}
           </Text>
-          <Ionicons name="chevron-down" size={20} color="#314352" />
+          <Ionicons
+            name={isRTL ? "chevron-back" : "chevron-forward"}
+            size={20}
+            color="#314352"
+          />
         </TouchableOpacity>
       </View>
+
       <View style={styles.input_container}>
-        <Text style={styles.label}>{t("model")}</Text>
+        <Text style={[styles.label, rtlStyle]}>{t("model")}</Text>
         <TouchableOpacity
-          style={styles.picker}
+          style={[styles.picker, { flexDirection: getFlexDirection() }]}
           onPress={() => openPicker("model", modelOptions)}
         >
           <Text
-            style={[styles.picker_text, !formData.model && styles.placeholder]}
+            style={[
+              styles.picker_text,
+              !formData.model && styles.placeholder,
+              rtlStyle,
+            ]}
           >
             {formData.model || t("select_model")}
           </Text>
-          <Ionicons name="chevron-down" size={20} color="#314352" />
+          <Ionicons
+            name={isRTL ? "chevron-back" : "chevron-forward"}
+            size={20}
+            color="#314352"
+          />
         </TouchableOpacity>
       </View>
+
       <View style={styles.input_container}>
-        <Text style={styles.label}>{t("price_usd")}</Text>
+        <Text style={[styles.label, rtlStyle]}>{t("price_usd")}</Text>
         <TextInput
-          style={[styles.input, styles.left_align]}
+          style={[styles.input, styles.left_align, rtlStyle]}
           value={formData.price_usd}
           onChangeText={(value) => handleInputChange("price_usd", value)}
           placeholder="$"
           placeholderTextColor="#999999"
           keyboardType="numeric"
-          textAlign="left"
+          textAlign={isRTL ? "right" : "left"}
         />
       </View>
+
       <View style={styles.input_container}>
-        <Text style={styles.label}>{t("year")}</Text>
+        <Text style={[styles.label, rtlStyle]}>{t("year")}</Text>
         <TextInput
-          style={[styles.input, styles.left_align]}
+          style={[styles.input, styles.left_align, rtlStyle]}
           value={formData.year}
           onChangeText={(value) => handleInputChange("year", value)}
           placeholder={t("year_placeholder")}
           placeholderTextColor="#999999"
           keyboardType="numeric"
-          textAlign="left"
+          textAlign={isRTL ? "right" : "left"}
         />
       </View>
+
       <View style={styles.input_container}>
-        <Text style={styles.label}>{t("kilometer")}</Text>
+        <Text style={[styles.label, rtlStyle]}>{t("kilometer")}</Text>
         <TextInput
-          style={[styles.input, styles.left_align]}
+          style={[styles.input, styles.left_align, rtlStyle]}
           value={formData.kilometer}
           onChangeText={(value) => handleInputChange("kilometer", value)}
           placeholder={t("kilometer_placeholder")}
           placeholderTextColor="#999999"
           keyboardType="numeric"
-          textAlign="left"
+          textAlign={isRTL ? "right" : "left"}
         />
       </View>
+
       <View style={styles.input_container}>
-        <Text style={styles.label}>{t("number_of_cylinders")}</Text>
+        <Text style={[styles.label, rtlStyle]}>{t("number_of_cylinders")}</Text>
         <TouchableOpacity
-          style={styles.picker}
+          style={[styles.picker, { flexDirection: getFlexDirection() }]}
           onPress={() => openPicker("number_of_cylinders", cylinderOptions)}
         >
           <Text
             style={[
               styles.picker_text,
               !formData.number_of_cylinders && styles.placeholder,
+              rtlStyle,
             ]}
           >
             {formData.number_of_cylinders || t("select_cylinders")}
           </Text>
-          <Ionicons name="chevron-down" size={20} color="#314352" />
+          <Ionicons
+            name={isRTL ? "chevron-back" : "chevron-forward"}
+            size={20}
+            color="#314352"
+          />
         </TouchableOpacity>
       </View>
+
       <View style={styles.input_container}>
-        <Text style={styles.label}>{t("location")}</Text>
+        <Text style={[styles.label, rtlStyle]}>{t("location")}</Text>
         <TouchableOpacity
-          style={styles.picker}
+          style={[styles.picker, { flexDirection: getFlexDirection() }]}
           onPress={() => openPicker("location", locationOptions)}
         >
           <Text
             style={[
               styles.picker_text,
               !formData.location && styles.placeholder,
+              rtlStyle,
             ]}
           >
             {formData.location || t("select_location")}
           </Text>
-          <Ionicons name="chevron-down" size={20} color="#314352" />
+          <Ionicons
+            name={isRTL ? "chevron-back" : "chevron-forward"}
+            size={20}
+            color="#314352"
+          />
         </TouchableOpacity>
       </View>
+
       <View style={styles.input_container}>
-        <Text style={styles.label}>{t("transmission")}</Text>
+        <Text style={[styles.label, rtlStyle]}>{t("transmission")}</Text>
         <TouchableOpacity
-          style={styles.picker}
+          style={[styles.picker, { flexDirection: getFlexDirection() }]}
           onPress={() => openPicker("transmission", transmissionOptions)}
         >
           <Text
             style={[
               styles.picker_text,
               !formData.transmission && styles.placeholder,
+              rtlStyle,
             ]}
           >
             {formData.transmission || t("select_transmission")}
           </Text>
-          <Ionicons name="chevron-down" size={20} color="#314352" />
+          <Ionicons
+            name={isRTL ? "chevron-back" : "chevron-forward"}
+            size={20}
+            color="#314352"
+          />
         </TouchableOpacity>
       </View>
+
       <View style={styles.input_container}>
-        <Text style={styles.label}>{t("fuel_type")}</Text>
+        <Text style={[styles.label, rtlStyle]}>{t("fuel_type")}</Text>
         <TouchableOpacity
-          style={styles.picker}
+          style={[styles.picker, { flexDirection: getFlexDirection() }]}
           onPress={() => openPicker("fuel_type", fuelTypeOptions)}
         >
           <Text
             style={[
               styles.picker_text,
               !formData.fuel_type && styles.placeholder,
+              rtlStyle,
             ]}
           >
             {formData.fuel_type || t("select_fuel_type")}
           </Text>
-          <Ionicons name="chevron-down" size={20} color="#314352" />
+          <Ionicons
+            name={isRTL ? "chevron-back" : "chevron-forward"}
+            size={20}
+            color="#314352"
+          />
         </TouchableOpacity>
       </View>
+
       <View style={styles.input_container}>
-        <Text style={styles.label}>{t("exterior_color")}</Text>
+        <Text style={[styles.label, rtlStyle]}>{t("exterior_color")}</Text>
         <TouchableOpacity
-          style={styles.picker}
+          style={[styles.picker, { flexDirection: getFlexDirection() }]}
           onPress={() => openPicker("exterior_color", colorOptions)}
         >
           <Text
             style={[
               styles.picker_text,
               !formData.exterior_color && styles.placeholder,
+              rtlStyle,
             ]}
           >
             {formData.exterior_color || t("select_exterior_color")}
           </Text>
-          <Ionicons name="chevron-down" size={20} color="#314352" />
+          <Ionicons
+            name={isRTL ? "chevron-back" : "chevron-forward"}
+            size={20}
+            color="#314352"
+          />
         </TouchableOpacity>
       </View>
+
       <View style={styles.input_container}>
-        <Text style={styles.label}>{t("interior_color")}</Text>
+        <Text style={[styles.label, rtlStyle]}>{t("interior_color")}</Text>
         <TouchableOpacity
-          style={styles.picker}
+          style={[styles.picker, { flexDirection: getFlexDirection() }]}
           onPress={() => openPicker("interior_color", colorOptions)}
         >
           <Text
             style={[
               styles.picker_text,
               !formData.interior_color && styles.placeholder,
+              rtlStyle,
             ]}
           >
             {formData.interior_color || t("select_interior_color")}
           </Text>
-          <Ionicons name="chevron-down" size={20} color="#314352" />
+          <Ionicons
+            name={isRTL ? "chevron-back" : "chevron-forward"}
+            size={20}
+            color="#314352"
+          />
         </TouchableOpacity>
       </View>
-      <Text style={styles.section_title}>{t("features")}</Text>
+
+      <Text style={[styles.section_title, rtlStyle]}>{t("features")}</Text>
       <View style={styles.section_divider} />
       <View style={styles.feature_container}>
         {featureOptions.map((feature) => (
@@ -383,6 +447,7 @@ export default function PlaceAd() {
             key={feature}
             style={[
               styles.feature_item,
+              { flexDirection: getFlexDirection() },
               formData.selected_features.includes(feature) &&
                 styles.feature_item_active,
             ]}
@@ -396,6 +461,8 @@ export default function PlaceAd() {
             <Text
               style={[
                 styles.feature_text,
+                rtlStyle,
+                { marginLeft: isRTL ? 0 : 8, marginRight: isRTL ? 8 : 0 },
                 formData.selected_features.includes(feature) &&
                   styles.feature_text_active,
               ]}
@@ -405,24 +472,41 @@ export default function PlaceAd() {
           </TouchableOpacity>
         ))}
       </View>
-      <Text style={styles.section_title}>{t("description")}</Text>
+
+      <Text style={[styles.section_title, rtlStyle]}>{t("description")}</Text>
       <View style={styles.section_divider} />
       <TextInput
-        style={[styles.input, styles.text_area]}
+        style={[styles.input, styles.text_area, rtlStyle]}
         value={formData.description}
         onChangeText={(value) => handleInputChange("description", value)}
         placeholder={t("description")}
         placeholderTextColor="#999999"
         multiline
         numberOfLines={8}
-        textAlign="left"
+        textAlign={isRTL ? "right" : "left"}
       />
-      <Text style={styles.section_title}>{t("gallery")}</Text>
+
+      <Text style={[styles.section_title, rtlStyle]}>{t("gallery")}</Text>
       <View style={styles.section_divider} />
-      <TouchableOpacity style={styles.image_picker_button} onPress={pickImages}>
+      <TouchableOpacity
+        style={[
+          styles.image_picker_button,
+          { flexDirection: getFlexDirection() },
+        ]}
+        onPress={pickImages}
+      >
         <Ionicons name="image-outline" size={24} color="#B80200" />
-        <Text style={styles.image_picker_text}>{t("choose_images")}</Text>
+        <Text
+          style={[
+            styles.image_picker_text,
+            rtlStyle,
+            { marginLeft: isRTL ? 0 : 8, marginRight: isRTL ? 8 : 0 },
+          ]}
+        >
+          {t("choose_images")}
+        </Text>
       </TouchableOpacity>
+
       <View style={styles.image_preview}>
         {images.map((uri, index) => (
           <View key={index} style={styles.image_item}>
@@ -440,6 +524,7 @@ export default function PlaceAd() {
           </View>
         ))}
       </View>
+
       <TouchableOpacity
         style={[styles.submit_button, loading && styles.submit_button_disabled]}
         onPress={handleSubmit}
@@ -448,24 +533,32 @@ export default function PlaceAd() {
         {loading ? (
           <ActivityIndicator size="small" color="#ffffff" />
         ) : (
-          <Text style={styles.submit_button_text}>{t("add_listing")}</Text>
+          <Text style={[styles.submit_button_text, rtlStyle]}>
+            {t("add_listing")}
+          </Text>
         )}
       </TouchableOpacity>
     </View>
   );
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.header_text}>{t("add_listing")}</Text>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
+      {/* Header */}
+      <View style={[styles.header, { flexDirection: getFlexDirection() }]}>
+        <Text style={[styles.headerTitle, rtlStyle]}>{t("add_listing")}</Text>
       </View>
-      <FlatList
-        data={[0]}
-        renderItem={renderForm}
-        keyExtractor={() => "form"}
-        contentContainerStyle={styles.list_content}
-        showsVerticalScrollIndicator={false}
-      />
+
+      {/* Content */}
+      <View style={styles.content}>
+        <FlatList
+          data={[0]}
+          renderItem={renderForm}
+          keyExtractor={() => "form"}
+          contentContainerStyle={styles.list_content}
+          showsVerticalScrollIndicator={false}
+        />
+      </View>
+
       <Modal
         visible={modalVisible}
         transparent
@@ -481,7 +574,7 @@ export default function PlaceAd() {
                   style={styles.modal_item}
                   onPress={() => selectOption(option)}
                 >
-                  <Text style={styles.modal_text}>{option}</Text>
+                  <Text style={[styles.modal_text, rtlStyle]}>{option}</Text>
                 </TouchableOpacity>
               ))}
             </ScrollView>
@@ -489,7 +582,9 @@ export default function PlaceAd() {
               style={styles.modal_close_button}
               onPress={() => setModalVisible(false)}
             >
-              <Text style={styles.modal_close_text}>{t("cancel")}</Text>
+              <Text style={[styles.modal_close_text, rtlStyle]}>
+                {t("cancel")}
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -501,18 +596,29 @@ export default function PlaceAd() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f5f5f5",
+    backgroundColor: "#1a1a1a",
   },
   header: {
-    backgroundColor: "#323232",
-    padding: 20,
-    paddingTop: 40,
+    backgroundColor: "#1a1a1a",
+    paddingHorizontal: 20,
+    paddingVertical: 15,
     alignItems: "center",
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  header_text: {
+  headerTitle: {
     fontSize: 24,
-    fontWeight: "bold",
+    fontWeight: "700",
     color: "#ffffff",
+  },
+  content: {
+    flex: 1,
+    backgroundColor: "#f5f5f5",
   },
   form: {
     padding: 16,
@@ -552,7 +658,6 @@ const styles = StyleSheet.create({
     textAlign: "left",
   },
   picker: {
-    flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#f5f5f5",
     borderRadius: 8,
@@ -572,7 +677,6 @@ const styles = StyleSheet.create({
     height: 120,
     textAlignVertical: "top",
     marginBottom: 16,
-    textAlign: "left",
   },
   feature_container: {
     flexDirection: "row",
@@ -581,7 +685,6 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   feature_item: {
-    flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#f5f5f5",
     borderRadius: 8,
@@ -601,7 +704,6 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     borderWidth: 2,
     borderColor: "#314352",
-    marginRight: 8,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -614,7 +716,6 @@ const styles = StyleSheet.create({
     color: "#ffffff",
   },
   image_picker_button: {
-    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#ffffff",
@@ -629,7 +730,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#B80200",
     fontWeight: "600",
-    marginLeft: 8,
   },
   image_preview: {
     flexDirection: "row",

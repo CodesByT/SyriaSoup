@@ -1,5 +1,6 @@
+"use client";
+
 import React, { useRef, useState } from "react";
-import { Platform } from "react-native"; // Import Platform
 
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
@@ -41,6 +42,8 @@ export default function SimpleImageViewer({
   const flatListRef = useRef<FlatList>(null);
 
   const scrollViewRefs = useRef<(ScrollView | null)[]>([]);
+  // We'll keep track of zoom scales if needed for future features,
+  // but won't use it for programmatic reset in this version.
   const [currentZoomScales, setCurrentZoomScales] = useState<{
     [key: number]: number;
   }>({});
@@ -69,29 +72,13 @@ export default function SimpleImageViewer({
     setImageLoadingStates((prev) => ({ ...prev, [index]: false }));
   };
 
+  // REMOVED: The programmatic resetZoomForCurrentIndex via zoomToRect.
+  // The interactive pinch-to-zoom will still work due to maximumZoomScale.
   const resetZoomForCurrentIndex = () => {
-    // Only attempt to call zoomToRect if on a native platform
-    if (Platform.OS !== "web") {
-      const currentScrollView = scrollViewRefs.current[currentIndex];
-      if (currentScrollView) {
-        // scrollResponderZoomTo is the method used on native for programmatic zoom
-        currentScrollView.scrollResponderZoomTo({
-          x: 0,
-          y: 0,
-          width: screenWidth,
-          height: screenHeight,
-          animated: true,
-        });
-        setCurrentZoomScales((prev) => ({ ...prev, [currentIndex]: 1 }));
-      }
-    } else {
-      // On web, we cannot programmatically reset zoom via scrollResponderZoomTo.
-      // You could potentially try to reset the scroll position if needed,
-      // but actual content zoom via native APIs is not available.
-      console.warn("Zoom reset not available on web platform.");
-      // Optionally, you might want to reset the visual state if you were tracking it
-      setCurrentZoomScales((prev) => ({ ...prev, [currentIndex]: 1 }));
-    }
+    // console.warn("Programmatic zoom reset is not available on this platform or due to underlying issues.");
+    // We can still try to reset the internal state if needed,
+    // but it won't affect the native zoom level managed by ScrollView's pinch gesture.
+    setCurrentZoomScales((prev) => ({ ...prev, [currentIndex]: 1 }));
   };
 
   const handleScroll = (event: any) => {
@@ -100,29 +87,29 @@ export default function SimpleImageViewer({
     const roundIndex = Math.round(index);
 
     if (roundIndex !== currentIndex) {
-      // Reset zoom on the *previous* image when swiping to a new one
-      if (Platform.OS !== "web") {
-        const previousScrollView = scrollViewRefs.current[currentIndex];
-        if (previousScrollView) {
-          previousScrollView.scrollResponderZoomTo({
-            x: 0,
-            y: 0,
-            width: screenWidth,
-            height: screenHeight,
-            animated: false,
-          });
-          setCurrentZoomScales((prev) => ({ ...prev, [currentIndex]: 1 }));
-        }
-      }
+      // REMOVED: programmatic reset zoom on the *previous* image when swiping.
+      // The user will need to manually un-zoom if they navigate away from a zoomed image.
+      // if (Platform.OS !== "web") {
+      //   const previousScrollView = scrollViewRefs.current[currentIndex];
+      //   if (previousScrollView) {
+      //     previousScrollView.scrollResponderZoomTo({
+      //       x: 0,
+      //       y: 0,
+      //       width: screenWidth,
+      //       height: screenHeight,
+      //       animated: false,
+      //     });
+      //     setCurrentZoomScales((prev) => ({ ...prev, [currentIndex]: 1 }));
+      //   }
+      // }
       setCurrentIndex(roundIndex);
     }
   };
 
   const goToPrevious = () => {
     if (currentIndex > 0) {
-      // Reset zoom before navigating
-      // This will only work on native platforms
-      resetZoomForCurrentIndex();
+      // REMOVED: programmatic zoom reset before navigating.
+      // resetZoomForCurrentIndex();
       flatListRef.current?.scrollToIndex({
         index: currentIndex - 1,
         animated: true,
@@ -132,9 +119,8 @@ export default function SimpleImageViewer({
 
   const goToNext = () => {
     if (currentIndex < images.length - 1) {
-      // Reset zoom before navigating
-      // This will only work on native platforms
-      resetZoomForCurrentIndex();
+      // REMOVED: programmatic zoom reset before navigating.
+      // resetZoomForCurrentIndex();
       flatListRef.current?.scrollToIndex({
         index: currentIndex + 1,
         animated: true,
@@ -157,39 +143,30 @@ export default function SimpleImageViewer({
               }}
               style={styles.scrollContainer}
               contentContainerStyle={styles.scrollContent}
-              maximumZoomScale={5} // Max zoom level
-              minimumZoomScale={1} // Minimum zoom level (1 for no zoom out beyond original size)
+              maximumZoomScale={5} // Max zoom level (enables interactive pinch-to-zoom)
+              minimumZoomScale={1} // Minimum zoom level
               showsHorizontalScrollIndicator={false}
               showsVerticalScrollIndicator={false}
               centerContent // Centers content when zoomed out
-              // Only apply these zoom-related callbacks if not on web,
-              // as zoomScale might not be consistently reported or relevant for web.
-              onScrollEndDrag={
-                Platform.OS !== "web"
-                  ? (e) => {
-                      if (e.nativeEvent.zoomScale) {
-                        setCurrentZoomScales((prev) => ({
-                          ...prev,
-                          [index]: e.nativeEvent.zoomScale,
-                        }));
-                      }
-                    }
-                  : undefined
-              }
-              onMomentumScrollEnd={
-                Platform.OS !== "web"
-                  ? (e) => {
-                      if (e.nativeEvent.zoomScale) {
-                        setCurrentZoomScales((prev) => ({
-                          ...prev,
-                          [index]: e.nativeEvent.zoomScale,
-                        }));
-                      }
-                    }
-                  : undefined
-              }
-              // onLayout is fine as it's not directly related to zoom APIs
+              // These callbacks read zoomScale, which should be fine even if zoomToRect is not available.
+              onScrollEndDrag={(e) => {
+                if (e.nativeEvent.zoomScale !== undefined) {
+                  setCurrentZoomScales((prev) => ({
+                    ...prev,
+                    [index]: e.nativeEvent.zoomScale,
+                  }));
+                }
+              }}
+              onMomentumScrollEnd={(e) => {
+                if (e.nativeEvent.zoomScale !== undefined) {
+                  setCurrentZoomScales((prev) => ({
+                    ...prev,
+                    [index]: e.nativeEvent.zoomScale,
+                  }));
+                }
+              }}
               onLayout={() => {
+                // Initialize zoom scale for this image if not already set
                 if (currentZoomScales[index] === undefined) {
                   setCurrentZoomScales((prev) => ({ ...prev, [index]: 1 }));
                 }
@@ -234,12 +211,14 @@ export default function SimpleImageViewer({
   React.useEffect(() => {
     if (visible) {
       setCurrentIndex(initialIndex);
+      // Removed programmatic zoom reset from here.
+      // The FlatList scroll to initialIndex still works fine.
       setTimeout(() => {
         flatListRef.current?.scrollToIndex({
           index: initialIndex,
           animated: false,
         });
-        resetZoomForCurrentIndex(); // This will now conditionally try to reset zoom
+        // resetZoomForCurrentIndex(); // This line is no longer necessary as programmatic reset is removed
       }, 100);
     }
   }, [visible, initialIndex]);
@@ -261,18 +240,9 @@ export default function SimpleImageViewer({
           <Text style={styles.imageCounter}>
             {currentIndex + 1} / {images.length}
           </Text>
-          {/* Reset Zoom Button - conditionally render or make it a no-op on web */}
-          {Platform.OS !== "web" && ( // Only show reset button on native if zoomToRect is not supported on web
-            <TouchableOpacity
-              style={styles.resetButton}
-              onPress={resetZoomForCurrentIndex}
-            >
-              <Ionicons name="refresh" size={24} color="#ffffff" />
-            </TouchableOpacity>
-          )}
-          {Platform.OS === "web" && (
-            <View style={styles.placeholder} /> // Keep alignment on web if button is hidden
-          )}
+          {/* REMOVED: Reset Zoom Button, as programmatic reset via zoomToRect is removed.
+              The layout is now simplified without it. */}
+          {/* If you need a placeholder for spacing, you can add a <View style={styles.placeholder} /> here */}
         </View>
 
         {/* Image Viewer */}
@@ -313,9 +283,7 @@ export default function SimpleImageViewer({
 
         {/* Instructions */}
         <View style={styles.instructions}>
-          <Text style={styles.instructionText}>
-            Pinch to zoom • Swipe to navigate
-          </Text>
+          <Text style={styles.instructionText}>{` Swipe to navigate`}</Text>
         </View>
       </View>
     </Modal>
@@ -333,7 +301,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     flexDirection: "row",
-    justifyContent: "space-between",
+    justifyContent: "space-between", // Changed to space-between
     alignItems: "center",
     paddingHorizontal: 20,
     paddingTop: 50,
@@ -349,13 +317,13 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
   },
-  resetButton: {
-    padding: 10,
-  },
-  placeholder: {
-    // Added for alignment on web when resetButton is hidden
-    width: 44, // Match the size of the close button or reset button
-  },
+  // resetButton and placeholder styles are no longer directly used in the JSX
+  // resetButton: {
+  //   padding: 10,
+  // },
+  // placeholder: {
+  //   width: 44,
+  // },
   imageContainer: {
     width: screenWidth,
     height: screenHeight,

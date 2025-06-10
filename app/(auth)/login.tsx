@@ -378,7 +378,7 @@ export default function Login() {
     if (!phone || !password) {
       // Replaced Alert.alert with Snackbar.show
       Snackbar.show({
-        text: t("All Feilds Required!"),
+        text: t("all_feilds_required"),
         duration: Snackbar.LENGTH_LONG,
         backgroundColor: "#B80200", // A red color for errors
         textColor: "#FFFFFF",

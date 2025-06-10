@@ -1,6 +1,9 @@
+"use client";
+
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import React, { createContext, useContext, useEffect, useState } from "react";
-import { User } from "../types";
+import type React from "react";
+import { createContext, useContext, useEffect, useState } from "react";
+import type { User } from "../types";
 import { login, register } from "../utils/api";
 
 interface AuthContextType {
@@ -21,9 +24,7 @@ interface AuthContextType {
   logout: () => Promise<void>;
 }
 
-export const AuthContext = createContext<AuthContextType | undefined>(
-  undefined
-);
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
@@ -79,7 +80,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const forgotPassword = async (phone: string) => {
     try {
-      await forgotPassword(phone);
+      // Call your forgot password API here
+      console.log("Forgot password for:", phone);
     } catch (error: any) {
       throw new Error(error.response?.data?.message || "Failed to send OTP");
     }
@@ -91,7 +93,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     newPassword: string
   ) => {
     try {
-      await resetPassword(phone, otp, newPassword);
+      // Call your reset password API here
+      console.log("Reset password for:", phone, otp, newPassword);
     } catch (error: any) {
       throw new Error(error.response?.data?.message || "Password reset failed");
     }
@@ -132,10 +135,11 @@ export const useAuth = () => {
   }
   return context;
 };
-// import React, { createContext, useContext, useState, useEffect } from "react";
+
 // import AsyncStorage from "@react-native-async-storage/async-storage";
-// import { login, register, forgotPassword, resetPassword } from "../utils/api";
+// import React, { createContext, useContext, useEffect, useState } from "react";
 // import { User } from "../types";
+// import { login, register } from "../utils/api";
 
 // interface AuthContextType {
 //   user: User | null;
@@ -155,7 +159,9 @@ export const useAuth = () => {
 //   logout: () => Promise<void>;
 // }
 
-// const AuthContext = createContext<AuthContextType | undefined>(undefined);
+// export const AuthContext = createContext<AuthContextType | undefined>(
+//   undefined
+// );
 
 // export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 //   children,

@@ -16,9 +16,10 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import type { JSX } from "react/jsx-runtime"; // Import JSX to fix the undeclared variable error
+import type { JSX } from "react/jsx-runtime";
 import { useAuth } from "../../contexts/AuthContext";
 import { useChatContext } from "../../contexts/ChatContext";
+import { useRTL } from "../../hooks/useRTL";
 import type { Conversation } from "../../utils/chat-api";
 import {
   getConversations,
@@ -29,6 +30,7 @@ const Chat = (): JSX.Element => {
   const { t } = useTranslation();
   const router = useRouter();
   const { user, isAuthenticated } = useAuth();
+  const { isRTL, rtlStyle, getFlexDirection } = useRTL();
   const insets = useSafeAreaInsets();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -52,18 +54,15 @@ const Chat = (): JSX.Element => {
 
       console.log("Chat: Received conversations:", conversationsData);
 
-      // Enhanced validation and unread count calculation
       const validatedConversations = await Promise.all(
         conversationsData.map(async (conv: any) => {
           console.log("Chat: Validating conversation:", conv._id);
           console.log("Chat: Participants:", conv.participants);
 
-          // Ensure participants is an array of objects with proper structure
           const participants = Array.isArray(conv.participants)
             ? conv.participants.filter((p: any) => p && p._id && p.username)
             : [];
 
-          // Get accurate unread count for this conversation
           let unreadCount = 0;
           if (user?._id) {
             unreadCount = await getConversationUnreadCount(conv._id, user._id);
@@ -114,7 +113,6 @@ const Chat = (): JSX.Element => {
         minute: "2-digit",
       });
     } else if (diffInHours < 168) {
-      // 7 days
       return date.toLocaleDateString([], { weekday: "short" });
     } else {
       return date.toLocaleDateString([], { month: "short", day: "numeric" });
@@ -161,18 +159,17 @@ const Chat = (): JSX.Element => {
 
   const getAvatarBackgroundColor = (name: string): string => {
     console.log("Getting avatar color for name:", name);
-    // Generate a consistent color based on the name
     const colors = [
-      "#FF6B6B", // Red
-      "#4ECDC4", // Teal
-      "#45B7D1", // Blue
-      "#96CEB4", // Green
-      "#FFEAA7", // Yellow
-      "#DDA0DD", // Plum
-      "#98D8C8", // Mint
-      "#F7DC6F", // Light Yellow
-      "#BB8FCE", // Light Purple
-      "#85C1E9", // Light Blue
+      "#FF6B6B",
+      "#4ECDC4",
+      "#45B7D1",
+      "#96CEB4",
+      "#FFEAA7",
+      "#DDA0DD",
+      "#98D8C8",
+      "#F7DC6F",
+      "#BB8FCE",
+      "#85C1E9",
     ];
 
     if (!name || name.trim().length === 0) {
@@ -205,12 +202,10 @@ const Chat = (): JSX.Element => {
     const otherParticipant = getOtherParticipant(item);
     const hasUnread = Boolean(item.unreadCount && item.unreadCount > 0);
 
-    // Better fallback display name
     const displayName = otherParticipant?.username || "Unknown User";
     const firstLetter = getFirstLetter(displayName);
     const avatarColor = getAvatarBackgroundColor(displayName);
 
-    // Special debugging for tayyabkhalid
     if (displayName.toLowerCase().includes("tayyab")) {
       console.log("=== DEBUGGING TAYYABKHALID ===");
       console.log(
@@ -243,7 +238,12 @@ const Chat = (): JSX.Element => {
         onPress={() => handleConversationPress(item)}
         activeOpacity={0.7}
       >
-        <View style={styles.avatarContainer}>
+        <View
+          style={[
+            styles.avatarContainer,
+            { marginRight: isRTL ? 0 : 12, marginLeft: isRTL ? 12 : 0 },
+          ]}
+        >
           {otherParticipant?.profileImage ? (
             <Image
               source={{ uri: otherParticipant.profileImage }}
@@ -263,16 +263,34 @@ const Chat = (): JSX.Element => {
         </View>
 
         <View style={styles.conversationContent}>
-          <View style={styles.conversationHeader}>
+          <View
+            style={[
+              styles.conversationHeader,
+              { flexDirection: getFlexDirection() },
+            ]}
+          >
             <Text
-              style={[styles.participantName, hasUnread && styles.unreadText]}
+              style={[
+                styles.participantName,
+                hasUnread && styles.unreadText,
+                rtlStyle,
+              ]}
               numberOfLines={1}
             >
               {displayName}
             </Text>
-            <View style={styles.timestampContainer}>
+            <View
+              style={[
+                styles.timestampContainer,
+                { flexDirection: getFlexDirection() },
+              ]}
+            >
               <Text
-                style={[styles.timestamp, hasUnread && styles.unreadTimestamp]}
+                style={[
+                  styles.timestamp,
+                  hasUnread && styles.unreadTimestamp,
+                  rtlStyle,
+                ]}
               >
                 {formatTime(item.lastMessageAt)}
               </Text>
@@ -288,15 +306,29 @@ const Chat = (): JSX.Element => {
             </View>
           </View>
 
-          <View style={styles.messagePreview}>
+          <View
+            style={[
+              styles.messagePreview,
+              { flexDirection: getFlexDirection() },
+            ]}
+          >
             <Text
-              style={[styles.lastMessage, hasUnread && styles.unreadText]}
+              style={[
+                styles.lastMessage,
+                hasUnread && styles.unreadText,
+                rtlStyle,
+              ]}
               numberOfLines={1}
             >
               {item.lastMessage || t("noMessages") || "No messages"}
             </Text>
             {hasUnread && (
-              <View style={styles.newMessageIndicator}>
+              <View
+                style={[
+                  styles.newMessageIndicator,
+                  { marginLeft: isRTL ? 0 : 8, marginRight: isRTL ? 8 : 0 },
+                ]}
+              >
                 <Ionicons name="ellipse" size={8} color="#B80200" />
               </View>
             )}
@@ -309,10 +341,10 @@ const Chat = (): JSX.Element => {
   const renderEmptyState = () => (
     <View style={styles.emptyState}>
       <Ionicons name="chatbubbles-outline" size={80} color="#ccc" />
-      <Text style={styles.emptyStateTitle}>
+      <Text style={[styles.emptyStateTitle, rtlStyle]}>
         {t("noConversations") || "No Conversations"}
       </Text>
-      <Text style={styles.emptyStateDescription}>
+      <Text style={[styles.emptyStateDescription, rtlStyle]}>
         {t("startChattingDescription") || "Start chatting with other users"}
       </Text>
     </View>
@@ -322,10 +354,10 @@ const Chat = (): JSX.Element => {
     return (
       <View style={styles.authContainer}>
         <Ionicons name="chatbubbles-outline" size={80} color="#B80200" />
-        <Text style={styles.authTitle}>
+        <Text style={[styles.authTitle, rtlStyle]}>
           {t("loginRequired") || "Login Required"}
         </Text>
-        <Text style={styles.authDescription}>
+        <Text style={[styles.authDescription, rtlStyle]}>
           {t("loginToAccessChat") || "Please login to access chat features"}
         </Text>
         <TouchableOpacity
@@ -333,7 +365,9 @@ const Chat = (): JSX.Element => {
           onPress={() => router.push("/login")}
           activeOpacity={0.8}
         >
-          <Text style={styles.authButtonText}>{t("login") || "Login"}</Text>
+          <Text style={[styles.authButtonText, rtlStyle]}>
+            {t("login") || "Login"}
+          </Text>
         </TouchableOpacity>
       </View>
     );
@@ -342,8 +376,10 @@ const Chat = (): JSX.Element => {
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>{t("messages") || "Messages"}</Text>
+      <View style={[styles.header, { flexDirection: getFlexDirection() }]}>
+        <Text style={[styles.headerTitle, rtlStyle]}>
+          {t("messages") || "Messages"}
+        </Text>
         <TouchableOpacity style={styles.headerButton} activeOpacity={0.7}>
           <Ionicons name="create-outline" size={24} color="#ffffff" />
         </TouchableOpacity>
@@ -354,7 +390,7 @@ const Chat = (): JSX.Element => {
         {loading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color="#B80200" />
-            <Text style={styles.loadingText}>
+            <Text style={[styles.loadingText, rtlStyle]}>
               {t("loading") || "Loading..."}
             </Text>
           </View>
@@ -389,7 +425,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#1a1a1a",
     paddingHorizontal: 20,
     paddingVertical: 15,
-    flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     borderBottomLeftRadius: 20,
@@ -444,7 +479,6 @@ const styles = StyleSheet.create({
   },
   avatarContainer: {
     position: "relative",
-    marginRight: 12,
   },
   avatar: {
     width: 50,
@@ -490,7 +524,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   conversationHeader: {
-    flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 4,
@@ -502,7 +535,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   timestampContainer: {
-    flexDirection: "row",
     alignItems: "center",
     gap: 8,
   },
@@ -515,7 +547,6 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   messagePreview: {
-    flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
   },
@@ -542,9 +573,7 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: "700",
   },
-  newMessageIndicator: {
-    marginLeft: 8,
-  },
+  newMessageIndicator: {},
   emptyState: {
     alignItems: "center",
     paddingVertical: 60,

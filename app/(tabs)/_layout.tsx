@@ -4,25 +4,33 @@ import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { StyleSheet, Text, View } from "react-native";
+import { I18nManager, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import LoginPromptModal from "../../components/LoginPromptModal";
 import { useAuth } from "../../contexts/AuthContext";
 import { useChatContext } from "../../contexts/ChatContext";
 
 export default function TabsLayout() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { isAuthenticated } = useAuth();
-  const { unreadCount, hasUnread } = useChatContext(); // Moved useChatContext hook to top level
+  const { unreadCount, hasUnread } = useChatContext();
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [pendingTab, setPendingTab] = useState<string | null>(null);
+
+  // FORCE LTR FOR ENTIRE APP TO PREVENT TAB REVERSAL
+  useEffect(() => {
+    I18nManager.allowRTL(false);
+    I18nManager.forceRTL(false);
+  }, []);
 
   // Debug logging
   useEffect(() => {
     console.log("TabsLayout - Unread count:", unreadCount);
     console.log("TabsLayout - Has unread:", hasUnread);
     console.log("TabsLayout - Is authenticated:", isAuthenticated);
-  }, [unreadCount, hasUnread, isAuthenticated]);
+    console.log("Current language:", i18n.language);
+    console.log("RTL Status:", I18nManager.isRTL);
+  }, [unreadCount, hasUnread, isAuthenticated, i18n.language]);
 
   const handleTabPress = (tabName: string) => (e: any) => {
     if (tabName === "index") return; // Allow Home tab without auth check
@@ -64,15 +72,21 @@ export default function TabsLayout() {
             height: 60,
             paddingTop: 8,
             paddingBottom: 16,
+            // FORCE LTR DIRECTION FOR TABS
+            flexDirection: "row",
           },
           tabBarLabelStyle: {
             fontSize: 12,
             fontWeight: "600",
             marginBottom: 4,
+            // Force LTR text alignment for tab labels
+            textAlign: "center",
+            writingDirection: "ltr",
           },
           headerShown: false,
         }}
       >
+        {/* Home Tab - ALWAYS FIRST */}
         <Tabs.Screen
           name="index"
           options={{
@@ -83,6 +97,8 @@ export default function TabsLayout() {
             headerShown: false,
           }}
         />
+
+        {/* Favorites Tab - ALWAYS SECOND */}
         <Tabs.Screen
           name="favorites"
           options={{
@@ -94,6 +110,8 @@ export default function TabsLayout() {
           }}
           listeners={{ tabPress: handleTabPress("favorites") }}
         />
+
+        {/* Place Ad Tab - ALWAYS THIRD */}
         <Tabs.Screen
           name="place-ad"
           options={{
@@ -105,6 +123,8 @@ export default function TabsLayout() {
           }}
           listeners={{ tabPress: handleTabPress("place-ad") }}
         />
+
+        {/* Chat Tab - ALWAYS FOURTH */}
         <Tabs.Screen
           name="chat"
           options={{
@@ -114,6 +134,8 @@ export default function TabsLayout() {
           }}
           listeners={{ tabPress: handleTabPress("chat") }}
         />
+
+        {/* Profile Tab - ALWAYS FIFTH */}
         <Tabs.Screen
           name="profile"
           options={{
@@ -160,20 +182,31 @@ const styles = StyleSheet.create({
   },
 });
 
+// "use client";
+
 // import { Ionicons } from "@expo/vector-icons";
 // import { Tabs } from "expo-router";
-// import React, { useState } from "react";
+// import { useEffect, useState } from "react";
 // import { useTranslation } from "react-i18next";
-// import { StyleSheet } from "react-native";
+// import { StyleSheet, Text, View } from "react-native";
 // import { SafeAreaView } from "react-native-safe-area-context";
 // import LoginPromptModal from "../../components/LoginPromptModal";
 // import { useAuth } from "../../contexts/AuthContext";
+// import { useChatContext } from "../../contexts/ChatContext";
 
 // export default function TabsLayout() {
 //   const { t } = useTranslation();
 //   const { isAuthenticated } = useAuth();
+//   const { unreadCount, hasUnread } = useChatContext(); // Moved useChatContext hook to top level
 //   const [showLoginModal, setShowLoginModal] = useState(false);
 //   const [pendingTab, setPendingTab] = useState<string | null>(null);
+
+//   // Debug logging
+//   useEffect(() => {
+//     console.log("TabsLayout - Unread count:", unreadCount);
+//     console.log("TabsLayout - Has unread:", hasUnread);
+//     console.log("TabsLayout - Is authenticated:", isAuthenticated);
+//   }, [unreadCount, hasUnread, isAuthenticated]);
 
 //   const handleTabPress = (tabName: string) => (e: any) => {
 //     if (tabName === "index") return; // Allow Home tab without auth check
@@ -188,6 +221,19 @@ const styles = StyleSheet.create({
 //     setShowLoginModal(false);
 //     setPendingTab(null);
 //   };
+
+//   const ChatIcon = ({ color, size }: { color: string; size: number }) => (
+//     <View style={styles.chatIconContainer}>
+//       <Ionicons name="chatbubbles-outline" size={size} color={color} />
+//       {isAuthenticated && unreadCount > 0 && (
+//         <View style={styles.badge}>
+//           <Text style={styles.badgeText}>
+//             {unreadCount > 99 ? "99+" : unreadCount.toString()}
+//           </Text>
+//         </View>
+//       )}
+//     </View>
+//   );
 
 //   return (
 //     <SafeAreaView style={styles.container} edges={["bottom"]}>
@@ -214,7 +260,8 @@ const styles = StyleSheet.create({
 //         <Tabs.Screen
 //           name="index"
 //           options={{
-//             tabBarLabel: t("home"),
+//             // tabBarLabel: t("home"),
+//             tabBarShowLabel: false, // Add this line
 //             tabBarIcon: ({ color, size }) => (
 //               <Ionicons name="home-outline" size={size} color={color} />
 //             ),
@@ -224,7 +271,8 @@ const styles = StyleSheet.create({
 //         <Tabs.Screen
 //           name="favorites"
 //           options={{
-//             tabBarLabel: t("favorites"),
+//             // tabBarLabel: t("favorites"),
+//             tabBarShowLabel: false, // Add this line
 //             tabBarIcon: ({ color, size }) => (
 //               <Ionicons name="heart-outline" size={size} color={color} />
 //             ),
@@ -235,7 +283,8 @@ const styles = StyleSheet.create({
 //         <Tabs.Screen
 //           name="place-ad"
 //           options={{
-//             tabBarLabel: t("placeAd"),
+//             // tabBarLabel: t("placeAd"),
+//             tabBarShowLabel: false, // Add this line
 //             tabBarIcon: ({ color, size }) => (
 //               <Ionicons name="add-circle-outline" size={size} color={color} />
 //             ),
@@ -246,10 +295,9 @@ const styles = StyleSheet.create({
 //         <Tabs.Screen
 //           name="chat"
 //           options={{
-//             tabBarLabel: t("chat"),
-//             tabBarIcon: ({ color, size }) => (
-//               <Ionicons name="chatbubbles-outline" size={size} color={color} />
-//             ),
+//             // tabBarLabel: t("chat"),
+//             tabBarShowLabel: false, // Add this line
+//             tabBarIcon: ChatIcon,
 //             headerShown: false,
 //           }}
 //           listeners={{ tabPress: handleTabPress("chat") }}
@@ -257,7 +305,8 @@ const styles = StyleSheet.create({
 //         <Tabs.Screen
 //           name="profile"
 //           options={{
-//             tabBarLabel: t("profile"),
+//             // tabBarLabel: t("profile"),
+//             tabBarShowLabel: false, // Add this line
 //             tabBarIcon: ({ color, size }) => (
 //               <Ionicons name="person-outline" size={size} color={color} />
 //             ),
@@ -275,5 +324,27 @@ const styles = StyleSheet.create({
 //   container: {
 //     flex: 1,
 //     backgroundColor: "#ffffff",
+//   },
+//   chatIconContainer: {
+//     position: "relative",
+//   },
+//   badge: {
+//     position: "absolute",
+//     top: -8,
+//     right: -8,
+//     backgroundColor: "#b80200",
+//     borderRadius: 10,
+//     minWidth: 20,
+//     height: 20,
+//     justifyContent: "center",
+//     alignItems: "center",
+//     borderWidth: 2,
+//     borderColor: "#ffffff",
+//   },
+//   badgeText: {
+//     color: "#ffffff",
+//     fontSize: 10,
+//     fontWeight: "700",
+//     textAlign: "center",
 //   },
 // });
