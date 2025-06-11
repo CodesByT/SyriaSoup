@@ -1,4 +1,3 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
 
@@ -41,7 +40,6 @@ const en = {
   language: "Language",
   aboutUs: "About Us",
   termsOfUse: "Terms of Use",
-  privacyPolicy: "Privacy Policy",
   contactUs: "Contact Us",
   logoutButton: "Logout",
   noListings: "No Listings Yet",
@@ -243,19 +241,368 @@ const en = {
   4: "4",
   6: "5",
   8: "8",
+  please_login_to_wishlist: "Please Login First",
+  loginPrompt: "Login Please",
+  continueWithPhone: "Continue With Number",
+  createAccount: "Create Account",
+  Register: "Register",
+  Username: "Username",
+  joinCommunity: "Join the community",
+  signIn: "Sign in",
+  enterPhoneToReset: "Enter phone to reset",
+  signUp: "Sign up",
+  Password: "Password",
+  welcomeBack: "Welcome back",
+  Login: "Login",
+  requestOTP: "Request OTP",
+  backToLogin: "Back to Login",
+  rememberedYourPassword: "Remember your password?",
+
+  whyChooseUs: "Why Choose US",
+  //PRIVACY-POLICY
+  privacyPolicy: "Privacy Policy",
+  privacySubtitle:
+    "Your privacy is important to us. Please read our policy carefully.",
+  introduction_privacy_policy: "Introduction",
+  privacyIntroduction:
+    "Your privacy is extremely important to SyriaSouq. We are committed to protecting your Personal Data and ensuring transparency about how we collect and use it.",
+  aggregatedData: "Aggregated Data",
+  aggregatedDataContent:
+    "We collect, use, and share aggregated data, such as statistical or demographic data. While this data may be derived from your Personal Data, it does not reveal your identity.",
+  refusePersonalData:
+    "What Happens If You Refuse to Provide Necessary Personal Data?",
+  refusePersonalDataContent:
+    "You do not have to provide any Personal Data. However, in cases where we need to process it to grant you access to our platform or comply with legal requirements, failure to provide it may limit your access.",
+  legalBasisProcessing: "Legal Basis for Processing Your Personal Data",
+  contractualNecessity: "Contractual Necessity: ",
+  contractualNecessityDesc: "To provide platform services.",
+  complianceWithLaw: "Compliance with Law:",
+  complianceWithLawDesc: " To meet legal obligations.",
+  consent: "Consent:",
+  consentDesc: " For specific use cases (e.g., marketing).",
+  dataSecure: "How We Keep Your Personal Data Secure",
+  dataSecureContent:
+    "We implement security measures to prevent unauthorized access, alteration, or loss of your data. Employees with access to your Personal Data are under confidentiality agreements.",
+  dataRetention: "Data Retention",
+  dataRetentionContent:
+    "We retain your Personal Data only as long as necessary, unless required otherwise by law. Anonymized data may be stored indefinitely.",
+  yourRights: "Your Rights Over Your Data",
+  yourRightsContent:
+    "Access: Request a copy of your data. Correction: Update incomplete or inaccurate data. Deletion: Request data removal. Objection: Restrict processing of your data. Transfer: Request data portability.",
+  contactInformation: "Changes to This Privacy Policy",
+  contactInformationContent:
+    "We reserve the right to update this Privacy Policy at any time. Changes will be posted on this page, and we may notify you via email in certain cases.",
+  thirdpartylinks: "Third-Party Links",
+  thirdpartylinksContent:
+    "Our platform may include links to third-party websites. Clicking on them may allow third parties to collect data. We are not responsible for their privacy practices.",
+  getInTouch: "Get in Touch",
+
+  //CONTACT-US
+  //ABOUT-US
+  syrianSalesWebsite: "The #1 Syrian Sales Application",
+  aboutUsDescription:
+    "The best and simplest website for buying and selling cars online in Syria. Explore a wide range of cars, compare prices, and contact sellers directly with ease. A reliable, fast, and completely free experience with no middlemen or complications.",
+  ourMission: "Our Mission",
+  missionDescription:
+    "Sell your car online in Syria, Second-hand cars in Syria, Buy Affordable used cars, Sell used cars in Damascus, best used cars Syria, Sell car fast Syria, Pre-owned vehicles Syria.",
+  safeAndSecure: "Safe and Secure",
+  safeAndSecureDesc:
+    "Our platform prioritizes your safety with trusted user verification and secure communication tools.",
+  communityDriven: "Community Driven",
+  communityDrivenDesc:
+    "Built for Syrians our platform connects local buyers and sellers fostering trust and collaboration.",
+  fastAndEasy: "Fast and Easy",
+  fastAndEasyDesc:
+    "List or find cars quickly with a simple intuitive interface designed for speed and convenience.",
+  mobileOptimized: "Mobile Optimized",
+  mobileOptimizedDesc:
+    "Access SyriaSouq anytime anywhere with a seamless experience tailored for mobile devices.",
+
+  // TERMS-OF-USE
+  termsAndConditions: "Terms and Conditions",
+  termsSubtitle: "Please read these terms carefully before using our platform.",
+  introduction: "Introduction",
+  termsIntroduction:
+    "SyriaSouq.com acts solely as a platform for vehicle advertisements and does not assume responsibility for any transactions or outcomes arising from the buying or selling of vehicles. We advise buyers to conduct direct communication with the seller, prior to any purchase.",
+  acceptanceOfTerms: "Your Acceptance of These Terms",
+  acceptanceOfTermsContent:
+    "By accessing and using the Platform, you agree to these Terms of Use, which form a legally binding agreement between you and SyriaSouq. If you do not agree, you must stop using the Platform immediately.",
+  changesToPlatform: "Changes to the Platform",
+  changesToPlatformContent:
+    "SyriaSouq may modify the Platform and its Content at any time without notice to reflect changes in features, legal regulations, technology, or market practices.",
+  syriasouqResponsibility: "SyriaSouq’s Responsibility for Listings",
+  syriasouqResponsibilityContent:
+    "SyriaSouq does not monitor or moderate user listings. Any purchases or transactions on the Platform are solely between users, without SyriaSouq’s involvement.",
+  listingResponsibility: "Uploading Content to the Platform",
+  listingResponsibilityContent:
+    "Any content you upload is considered non-confidential. You grant SyriaSouq and its users a license to use, distribute, and display your content to enhance the platform experience.",
+  breachOfTerms: "Breach of These Terms",
+  breachOfTermsContent:
+    "If you violate these Terms, SyriaSouq reserves the right to suspend your account, restrict access, or take legal action as necessary.",
+  limitationOfLiability: "SyriaSouq’s Liability to You",
+  limitationOfLiabilityContent:
+    "The Platform and its Content are provided 'as is' without warranties. SyriaSouq is not liable for business losses, data loss, or indirect damages resulting from your use of the Platform.",
+  exploreListings: "Explore Listings",
+  example_phone_number: "e.g (11223344)",
+  register_new_account: "Register New Account",
+  enter_username: "Enter Username",
+  enter_password: "Enter Password",
+  forgot_password: "Forgot Password",
+  nameRequired: "Name Required",
+  emailRequired: "Email Required",
+  invalidEmail: "Invalid Email",
+  subjectRequired: "Subject Required",
+  messageRequired: "Message Required",
+  messageSentSuccess: "Message Sent Successfully",
+  messageSendError: "Error Sending Message",
+  cannotMakeCall: "Cannot Make Call",
+  cannotOpenEmail: "Cannot Open Email",
+  whatsappNotInstalled: "WhatsApp Not Installed",
+  contactDescription:
+    "We'd love to hear from you! Reach out with any questions or feedback.",
+  address: "Address",
+  companyAddress: "Damascus, Syria",
+  sendMessage: "Send Message",
+  formDescription:
+    "Fill out the form below, and we'll get back to you as soon as possible.",
+  fullName: "Full Name",
+  enterFullName: "Enter Full Name",
+  enterEmail: "Enter Email",
+  subject: "Subject",
+  enterSubject: "Enter Subject",
+  enterMessage: "Enter Message",
+  phoneDigitsOnly: "Phone Digits Only",
+  otpSent: "OTP Sent",
+  failedToSendOTP: "Failed to Send OTP",
+  allFieldsRequired: "All Fields Required",
+  invalidOTP: "Invalid OTP",
+  passwordTooShort: "Password Too Short",
+  passwordResetSuccess: "Password Reset Success",
+  failedToResetPassword: "Failed to Reset Password",
+  otp: "OTP",
+  enterOTP: "Enter OTP",
+  all_feilds_required: "Fill all the inputs !",
+  signingIn: "Signing In",
+  phone_number_must_be_digits_only: "Phone number must be digits only",
+  login_successful: "Login Successful",
+  something_went_wrong: " Something went wrong",
+  failedToFetchConversations: "Failed to Fetch Conversations",
+  noMessages: "No Messages",
+  noConversations: "No Conversations",
+  startChattingDescription: "Start Chatting with Other Users",
+  loginRequired: "Login Required",
+  loginToAccessChat: "Please Login to Access Chat Features",
+  failed_to_fetch_cars: "Failed to Fetch Cars",
+  failed_to_refresh: "Failed to Refresh",
+
+  failed_to_add_wishlist: "Failed to Add to Wishlist",
+  failedToFetchWishlist: "Failed to Fetch Wishlist",
+  pleaseLogin: "Please Login to View Favorites",
+  confirmRemoveTitle: "Confirm Removal",
+  confirmRemoveMessage:
+    "Are you sure you want to remove this item from your wishlist?",
+  removedFromWishlist: "Removed from Wishlist",
+  failedToRemoveWishlist: "Failed to Remove from Wishlist",
+
+  noWishlists: "No Items in Wishlist",
+  retry: "Retry",
+  remove: "Remove",
+
+  failedToFetchCars: "Failed to Fetch Cars",
+  failedToAddWishlist: "Failed to Add to Wishlist",
+  noCars: "No Cars Available",
+  failed_to_fetch_car: "Failed to Fetch Car",
+  priceOnRequest: "Price on Request",
+  notSpecified: "Not Specified",
+  connecting: "Connecting",
+  please_login_to_chat: "Please Login to Chat",
+  car_owner_not_found: "Car Owner Not Found",
+  cannot_chat_with_yourself: "You Cannot Chat with Yourself",
+  failed_to_start_chat: "Failed to Start Chat",
+  failed_to_contact: "Failed to Contact",
+  please_select_reason: "Please Select a Reason",
+  report_submitted_thanks: "Report Submitted, Thank You!",
+  car_not_found: "Car Not Found",
+  failedToFetchMessages: "Failed to Fetch Messages",
+  failedToSendMessage: "Failed to Send Message",
+  typeMessage: "Type a Message",
+  // test: "test",
+  // test: "test",
+  // test: "test",
+  // test: "test",
   // test: "test",
   // test: "test",
   // test: "test",
 };
 
 const ar = {
+  something_went_wrong: "حدث خطأ ما",
+  login_successful: "تسجيل الدخول ناجح!",
+  phone_number_must_be_digits_only: "رقم الهاتف يجب أن يحتوي على أرقام فقط",
+  all_feilds_required: "املأ جميع المدخلات !!",
+  phoneDigitsOnly: "أرقام الهاتف فقط",
+  otpSent: "تم إرسال رمز التحقق",
+  failedToSendOTP: "فشل في إرسال رمز التحقق",
+  allFieldsRequired: "جميع الحقول مطلوبة",
+  invalidOTP: "رمز التحقق غير صالح",
+  passwordTooShort: "كلمة المرور قصيرة جداً",
+  passwordResetSuccess: "تم إعادة تعيين كلمة المرور بنجاح",
+  failedToResetPassword: "فشل في إعادة تعيين كلمة المرور",
+  forgot_password: "نسيت كلمة المرور",
+  enterPhoneToReset: "أدخل رقم الهاتف لإعادة التعيين",
+  enterOtpAndNewPass: "أدخل رمز التحقق وكلمة المرور الجديدة",
+  phoneNumber: "رقم الهاتف",
+  example_phone_number: "أدخل رقم الهاتف",
+  otp: "رمز التحقق",
+  enterOTP: "أدخل رمز التحقق",
+  newPassword: "كلمة المرور الجديدة",
+  enterNewPassword: "أدخل كلمة المرور الجديدة",
+  loading: "جارٍ التحميل",
+  requestOTP: "طلب رمز التحقق",
+  resetPassword: "إعادة تعيين كلمة المرور",
+  rememberedYourPassword: "هل تذكرت كلمة المرور؟",
+  backToLogin: "العودة إلى تسجيل الدخول",
+  error: "خطأ",
+  media_library_permission_required: "إذن مكتبة الوسائط مطلوب",
+  please_login: "يرجى تسجيل الدخول",
+  success: "نجاح",
+  car_listing_created: "تم إنشاء إعلان السيارة",
+  failed_to_create_car: "فشل في إنشاء إعلان السيارة",
+  whyChooseUs: "لماذا تختارنا",
+  nameRequired: "الاسم مطلوب",
+  emailRequired: "البريد الإلكتروني مطلوب",
+  invalidEmail: "بريد إلكتروني غير صالح",
+  subjectRequired: "الموضوع مطلوب",
+  messageRequired: "الرسالة مطلوبة",
+  messageSentSuccess: "تم إرسال الرسالة بنجاح",
+  messageSendError: "خطأ في إرسال الرسالة",
+  cannotMakeCall: "لا يمكن إجراء المكالمة",
+  cannotOpenEmail: "لا يمكن فتح البريد الإلكتروني",
+  whatsappNotInstalled: "تطبيق واتساب غير مثبت",
+  getInTouch: "تواصلوا معنا",
+  contactDescription:
+    "يسعدنا سماع آرائكم! تواصلوا معنا لأي استفسارات أو ملاحظات.",
+  phone: "الهاتف",
+  email: "البريد الإلكتروني",
+  whatsapp: "واتساب",
+  address: "العنوان",
+  companyAddress: "دمشق، سوريا",
+  sendMessage: "إرسال الرسالة",
+  formDescription: "املأ النموذج أدناه، وسنتواصل معك في أقرب وقت ممكن.",
+  fullName: "الاسم الكامل",
+  enterFullName: "أدخل الاسم الكامل",
+  enterEmail: "أدخل البريد الإلكتروني",
+  enterPhoneNumber: "أدخل رقم الهاتف",
+  subject: "الموضوع",
+  enterSubject: "أدخل الموضوع",
+  message: "الرسالة",
+  enterMessage: "أدخل الرسالة",
+  contactUs: "اتصل بنا",
+  exploreListings: "استكشاف القوائم",
+  //PRIVACY POLICY
+  privacyPolicy: "سياسة الخصوصية",
+  privacySubtitle: "خصوصيتك مهمة بالنسبة لنا. يرجى قراءة سياستنا بعناية.",
+  introduction_privacy_policy: "مقدمة",
+  privacyIntroduction:
+    "خصوصيتك مهمة للغاية بالنسبة لسوريا سوق. نحن ملتزمون بحماية بياناتك الشخصية وضمان الشفافية بشأن كيفية جمعها واستخدامها.",
+  aggregatedData: "البيانات المجمعة",
+  aggregatedDataContent:
+    "نقوم بجمع واستخدام ومشاركة بيانات مجمعة، مثل البيانات الإحصائية أو الديموغرافية. هذه البيانات قد تُستخلص من بياناتك الشخصية، لكنها لا تكشف عن هويتك.",
+  refusePersonalData: "ماذا يحدث إذا رفضت تقديم البيانات الشخصية الضرورية؟",
+  refusePersonalDataContent:
+    "ليس عليك تقديم أي بيانات شخصية. ومع ذلك، في الحالات التي نحتاج فيها إلى معالجتها لمنحك الوصول إلى منصتنا أو الامتثال للمتطلبات القانونية، قد يؤدي عدم تقديمها إلى تقييد وصولك.",
+  legalBasisProcessing: "الأساس القانوني لمعالجة بياناتك الشخصية",
+  contractualNecessity: "الضرورة التعاقدية:",
+  contractualNecessityDesc: "لتقديم خدمات المنصة.",
+  complianceWithLaw: "الامتثال للقانون:",
+  complianceWithLawDesc: "للوفاء بالالتزامات القانونية.",
+  consent: "الموافقة:",
+  consentDesc: "لحالات استخدام محددة (مثل التسويق).",
+  dataSecure: "كيف نحافظ على أمان بياناتك الشخصية",
+  dataSecureContent:
+    "ننفذ تدابير أمنية لمنع الوصول غير المصرح به أو التعديل أو فقدان بياناتك. الموظفون الذين يمكنهم الوصول إلى بياناتك الشخصية ملتزمون باتفاقيات السرية.",
+  dataRetention: "الاحتفاظ بالبيانات",
+  dataRetentionContent:
+    "نحتفظ ببياناتك الشخصية فقط للمدة الضرورية، ما لم يقتض القانون خلاف ذلك. يمكن تخزين البيانات المجهولة الهوية إلى أجل غير مسمى.",
+  yourRights: "حقوقك بشأن بياناتك",
+  yourRightsContent:
+    "الوصول: طلب نسخة من بياناتك. التصحيح: تحديث البيانات غير المكتملة أو غير الدقيقة. الحذف: طلب إزالة البيانات. الاعتراض: تقييد معالجة بياناتك. النقل: طلب قابلية نقل البيانات.",
+  contactInformation: "التغييرات على سياسة الخصوصية هذه",
+  contactInformationContent:
+    "نحتفظ بالحق في تحديث سياسة الخصوصية هذه في أي وقت. سيتم نشر التغييرات على هذه الصفحة، وقد نُخطرك عبر البريد الإلكتروني في بعض الحالات.",
+  thirdpartylinks: "روابط الطرف الثالث",
+  thirdpartylinksContent:
+    "قد تتضمن منصتنا روابط لمواقع طرف ثالث. النقر عليها قد يسمح لأطراف ثالثة بجمع بيانات. نحن لسنا مسؤولين عن ممارسات الخصوصية الخاصة بهم.",
+
+  // ABOUT US
+  syrianSalesWebsite: "تطبيق المبيعات السوري الأول",
+  aboutUsDescription:
+    "أفضل وأبسط موقع لشراء وبيع السيارات عبر الإنترنت في سوريا. استكشف مجموعة واسعة من السيارات، قارن الأسعار، وتواصل مع البائعين مباشرة بسهولة. تجربة موثوقة وسريعة ومجانية تمامًا بدون وسطاء أو تعقيدات.",
+  ourMission: "مهمتنا",
+  missionDescription:
+    "بيع سيارتك عبر الإنترنت في سوريا، السيارات المستعملة في سوريا، شراء سيارات مستعملة بأسعار معقولة، بيع السيارات المستعملة في دمشق، أفضل السيارات المستعملة في سوريا، بيع السيارة بسرعة في سوريا، المركبات المستعملة في سوريا.",
+  safeAndSecure: "آمن ومحمي",
+  safeAndSecureDesc:
+    "منصتنا تعطي الأولوية لسلامتك من خلال التحقق من المستخدمين الموثوقين وأدوات التواصل الآمنة.",
+  communityDriven: "مدفوع بالمجتمع",
+  communityDrivenDesc:
+    "صُممت للسوريين، منصتنا تربط بين البائعين والمشترين المحليين لتعزيز الثقة والتعاون.",
+  fastAndEasy: "سريع وسهل",
+  fastAndEasyDesc:
+    "قم بإدراج السيارات أو العثور عليها بسرعة من خلال واجهة بسيطة وسهلة مصممة للسرعة والراحة.",
+  mobileOptimized: "مُحسّن للجوال",
+  mobileOptimizedDesc:
+    "يمكنك الوصول إلى سوريا سوق في أي وقت وفي أي مكان مع تجربة سلسة مصممة للأجهزة المحمولة.",
+
+  //TERMS -OF- USE
+  termsAndConditions: "الشروط والأحكام",
+  termsSubtitle: "يرجى قراءة هذه الشروط بعناية قبل استخدام منصتنا.",
+  introduction: "مقدمة",
+  termsIntroduction:
+    "سوريا سوق يعمل فقط كمنصة لإعلانات المركبات ولا يتحمل مسؤولية أي معاملات أو نتائج تنشأ عن شراء أو بيع المركبات. ننصح المشترين بإجراء تواصل مباشر مع البائع قبل أي عملية شراء.",
+  acceptanceOfTerms: "قبولك لهذه الشروط",
+  acceptanceOfTermsContent:
+    "من خلال الوصول إلى المنصة واستخدامها، فإنك توافق على شروط الاستخدام هذه، والتي تشكل اتفاقية ملزمة قانونًا بينك وبين سوريا سوق. إذا لم توافق، يجب عليك التوقف عن استخدام المنصة على الفور.",
+  changesToPlatform: "التغييرات على المنصة",
+  changesToPlatformContent:
+    "يجوز لسوريا سوق تعديل المنصة ومحتواها في أي وقت دون إشعار لتعكس التغييرات في الميزات أو اللوائح القانونية أو التكنولوجيا أو الممارسات السوقية.",
+  syriasouqResponsibility: "مسؤولية سوريا سوق عن الإعلانات",
+  syriasouqResponsibilityContent:
+    "سوريا سوق لا يراقب أو يدير إعلانات المستخدمين. أي مشتريات أو معاملات على المنصة تكون بين المستخدمين فقط، دون تدخل سوريا سوق.",
+  listingResponsibility: "رفع المحتوى إلى المنصة",
+  listingResponsibilityContent:
+    "أي محتوى تقوم برفعه يعتبر غير سري. أنت تمنح سوريا سوق ومستخدميها ترخيصًا لاستخدام وتوزيع وعرض محتواك لتحسين تجربة المنصة.",
+  breachOfTerms: "خرق هذه الشروط",
+  breachOfTermsContent:
+    "إذا انتهكت هذه الشروط، يحتفظ سوريا سوق بالحق في تعليق حسابك، تقييد الوصول، أو اتخاذ إجراء قانوني حسب الضرورة.",
+  limitationOfLiability: "مسؤولية سوريا سوق تجاهك",
+  limitationOfLiabilityContent:
+    "يتم توفير المنصة ومحتواها 'كما هي' دون ضمانات. سوريا سوق غير مسؤولة عن الخسائر التجارية أو فقدان البيانات أو الأضرار غير المباشرة الناتجة عن استخدامك للمنصة.",
+
+  register_new_account: "تسجيل حساب جديد",
+  phone_number: "رقم الهاتف",
+  enter_username: "أدخل اسم المستخدم",
+  enter_password: "أدخل كلمة المرور",
+
+  Login: "تسجيل الدخول",
+
+  loginPrompt: "تحتاج إلى تسجيل الدخول أولاً",
+  continueWithPhone: "استمر برقم الهاتف",
+  createAccount: "إنشاء حساب",
+  Register: "تسجيل",
+  Username: "اسم المستخدم",
+  joinCommunity: "انضم إلى المجتمع",
+  signIn: "تسجيل الدخول",
+  signUp: "التسجيل   ",
+  Password: "كلمة السر",
+  welcomeBack: "أهلاً بعودتك",
+  verifyOTP: "التحقق من رمز التحقق",
+
+  please_login_to_wishlist: "يرجى تسجيل الدخول أولاً !",
+  please_login_to_chat: "يرجى تسجيل الدخول أولاً !",
   listing_updated: "تم تحديث القائمة",
   update_listing: "قائمة التحديث",
   edit_listing: "تحرير القائمة",
-  failed_to_create_car: "فشل في إنشاء القائمة",
-  car_listing_created: "تم إدراج السيارة بنجاح",
-  please_login: "يرجى تسجيل الدخول",
-  media_library_permission_required: "مطلوب إذن مكتبة الوسائط",
   all: "الجميع",
   search_make: "جعل البحث",
   searchMake: "جعل البحث",
@@ -367,7 +714,6 @@ const ar = {
   other_reason: "سبب آخر",
   fuel_type: "نوع الوقود",
   engine_size: "حجم المحرك",
-  whatsapp: "واتس اب",
   call: "يتصل",
   information: "معلومة",
   make: "يصنع",
@@ -377,7 +723,6 @@ const ar = {
   exterior_color: "اللون الخارجي",
   submit_report: "تقديم التقرير",
   reason: "سبب",
-  phone_number: "رقم التليفون",
   select_a_reason: "حدد سببا",
   please_provide_details_about_issue: "يرجى تقديم تفاصيل حول المشكلة",
   your_phone_number: "رقم هاتفك",
@@ -398,11 +743,9 @@ const ar = {
   register: "إنشاء حساب",
   forgotPassword: "نسيت كلمة المرور",
   username: "اسم المستخدم",
-  phoneNumber: "رقم الهاتف",
   password: "كلمة المرور",
   confirmPassword: "تأكيد كلمة المرور",
   enterUsername: "أدخل اسم المستخدم",
-  enterPhoneNumber: "أدخل رقم الهاتف",
   enterPassword: "أدخل كلمة المرور",
   enterConfirmPassword: "أكد كلمة المرور",
   loginButton: "تسجيل الدخول",
@@ -410,11 +753,7 @@ const ar = {
   forgotPasswordButton: "نسيت كلمة المرور؟",
   dontHaveAccount: "ليس لديك حساب؟",
   alreadyHaveAccount: "لديك حساب بالفعل؟",
-  resetPassword: "إعادة تعيين كلمة المرور",
   sendOTP: "إرسال رمز التحقق",
-  verifyOTP: "التحقق من الرمز",
-  newPassword: "كلمة المرور الجديدة",
-  enterNewPassword: "أدخل كلمة المرور الجديدة",
   resetPasswordButton: "إعادة تعيين كلمة المرور",
   profileTab: "الملف الشخصي",
   myListingsTab: "إعلاناتي",
@@ -426,8 +765,6 @@ const ar = {
   language: "اللغة",
   aboutUs: "من نحن",
   termsOfUse: "شروط الاستخدام",
-  privacyPolicy: "سياسة الخصوصية",
-  contactUs: "اتصل بنا",
   logoutButton: "تسجيل الخروج",
   noListings: "لا توجد إعلانات بعد",
   noListingsDescription: "لم تقم بنشر أي إعلانات بعد. أضف إعلانك الأول الآن!",
@@ -435,8 +772,6 @@ const ar = {
   accountRequired: "مطلوب حساب",
   loginToAccessProfile:
     "الرجاء تسجيل الدخول للوصول إلى ملفك الشخصي وإدارة إعلاناتك.",
-  error: "خطأ",
-  success: "نجاح",
   failedToFetchProfile: "فشل في جلب تفاصيل الملف الشخصي",
   failedToFetchListings: "فشل في جلب إعلاناتك",
   photoPermissionRequired: "الإذن للوصول إلى الصور مطلوب",
@@ -465,10 +800,7 @@ const ar = {
     "نحن نقدر خصوصيتك. اقرأ سياسة الخصوصية الخاصة بنا لفهم كيفية جمع واستخدام بياناتك.",
   contactUsContent:
     "لأي استفسارات، يرجى الاتصال بنا على support@syriasouq.com أو الاتصال على +963 11 1234567.",
-  phone: "رقم الهاتف",
-  email: "البريد الإلكتروني",
   welcome: "مرحباً",
-  loading: "جاري التحميل...",
   save: "حفظ",
   edit: "تعديل",
   search: "بحث",
@@ -482,7 +814,6 @@ const ar = {
   contact: "اتصال",
   seller: "البائع",
   buyer: "المشتري",
-  message: "رسالة",
   send: "إرسال",
   received: "مستلم",
   online: "متصل",
@@ -495,6 +826,46 @@ const ar = {
   help: "مساعدة",
   support: "الدعم",
   version: "الإصدار",
+  signingIn: "جارٍ تسجيل الدخول",
+  failedToFetchConversations: "فشل في جلب المحادثات",
+  noMessages: "لا توجد رسائل",
+  noConversations: "لا توجد محادثات",
+  startChattingDescription: "ابدأ الدردشة مع مستخدمين آخرين",
+  loginRequired: "تسجيل الدخول مطلوب",
+  loginToAccessChat: "يرجى تسجيل الدخول للوصول إلى ميزات الدردشة",
+  failed_to_fetch_cars: "فشل في جلب السيارات",
+  failed_to_refresh: "فشل في التحديث",
+  failed_to_add_wishlist: "فشل في الإضافة إلى قائمة الأمنيات",
+  failedToFetchWishlist: "فشل في جلب قائمة الأمنيات",
+  pleaseLogin: "يرجى تسجيل الدخول لعرض المفضلة",
+  confirmRemoveTitle: "تأكيد الإزالة",
+  confirmRemoveMessage: "هل أنت متأكد من إزالة هذا العنصر من قائمة الأمنيات؟",
+  removedFromWishlist: "تمت الإزالة من قائمة الأمنيات",
+  failedToRemoveWishlist: "فشل في الإزالة من قائمة الأمنيات",
+  noWishlists: "لا توجد عناصر في قائمة الأمنيات",
+  retry: "إعادة المحاولة",
+  remove: "إزالة",
+
+  failedToFetchCars: "فشل في جلب السيارات",
+  addedToWishlist: "تمت الإضافة إلى قائمة الأمنيات",
+  failedToAddWishlist: "فشل في الإضافة إلى قائمة الأمنيات",
+  noCars: "لا توجد سيارات متاحة",
+  failed_to_fetch_car: "فشل في جلب السيارة",
+  priceOnRequest: "السعر عند الطلب",
+  notSpecified: "غير محدد",
+  connecting: "جارٍ الاتصال",
+  car_owner_not_found: "لم يتم العثور على مالك السيارة",
+  failed_to_start_chat: "فشل في بدء الدردشة",
+  failed_to_contact: "فشل في التواصل",
+  please_select_reason: "يرجى اختيار سبب",
+  report_submitted_thanks: "تم إرسال الإبلاغ، شكرًا لك!",
+  car_not_found: "لم يتم العثور على السيارة",
+  failedToFetchMessages: "فشل في جلب الرسائل",
+  failedToSendMessage: "فشل في إرسال الرسالة",
+  typeMessage: "اكتب رسالة",
+  // test: "test",
+  // test: "test",
+  // test: "test",
 };
 
 // Initialize i18n synchronously WITHOUT RTL FORCING
@@ -515,11 +886,11 @@ i18n.use(initReactI18next).init({
 });
 
 // Load saved language preference
-AsyncStorage.getItem("user-language").then((savedLang) => {
-  if (savedLang && (savedLang === "en" || savedLang === "ar")) {
-    i18n.changeLanguage(savedLang);
-  }
-});
+// AsyncStorage.getItem("user-language").then((savedLang) => {
+//   if (savedLang && (savedLang === "en" || savedLang === "ar")) {
+//     i18n.changeLanguage(savedLang);
+//   }
+// });
 
 // DO NOT FORCE RTL GLOBALLY - Let individual components handle text direction
 export default i18n;

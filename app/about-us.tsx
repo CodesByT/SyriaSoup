@@ -14,8 +14,8 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import hand from "../assets/hand.jpg";
 import { useRTL } from "../hooks/useRTL";
-
 const { width } = Dimensions.get("window");
 
 export default function AboutUs() {
@@ -81,9 +81,10 @@ export default function AboutUs() {
           </View>
 
           <Image
-            source={{
-              uri: "https://sjc.microlink.io/s6vs0TxR_wfdphUoxXYCuZVKKBClYczgQsF4_dOMPcA3x-9tV3TxQzNlTd-bpNDeP-zOIW6hrOLM-rsmLpvdsQ.jpeg",
-            }}
+            // source={{
+            //   uri: "https://sjc.microlink.io/s6vs0TxR_wfdphUoxXYCuZVKKBClYczgQsF4_dOMPcA3x-9tV3TxQzNlTd-bpNDeP-zOIW6hrOLM-rsmLpvdsQ.jpeg",
+            // }}
+            source={hand}
             style={styles.heroImage}
             resizeMode="cover"
           />
@@ -154,9 +155,6 @@ export default function AboutUs() {
         {/* Contact Section */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, rtlStyle]}>{t("getInTouch")}</Text>
-          <Text style={[styles.sectionText, rtlStyle]}>
-            {t("contactDescription")}
-          </Text>
 
           <TouchableOpacity
             style={styles.contactButton}
@@ -257,7 +255,7 @@ const styles = StyleSheet.create({
   },
   heroImage: {
     width: "100%",
-    height: 200,
+    height: 250,
     borderRadius: 12,
     marginTop: 20,
   },

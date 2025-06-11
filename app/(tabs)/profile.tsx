@@ -262,14 +262,6 @@ export default function Profile() {
     }
   };
 
-  const handleFocus = (field: keyof FocusState): void => {
-    setFocused((prev) => ({ ...prev, [field]: true }));
-  };
-
-  const handleBlur = (field: keyof FocusState): void => {
-    setFocused((prev) => ({ ...prev, [field]: false }));
-  };
-
   const handleEditListing = (carId: string): void => {
     router.push(`/edit-listing?carId=${carId}`);
   };
@@ -357,24 +349,22 @@ export default function Profile() {
         <View style={styles.inputGroup}>
           <Text style={[styles.label, rtlStyle]}>{t("username")}</Text>
           <View
-            style={[
-              styles.inputContainer,
-              { flexDirection: getFlexDirection() },
-              focused.username && styles.inputFocused,
-              !editing && styles.inputDisabled,
-            ]}
+            style={[styles.inputContainer, !editing && styles.inputDisabled]}
           >
-            <Ionicons
-              name="person-outline"
-              size={20}
-              color={focused.username ? "#B80200" : "#666"}
+            <View
               style={[
-                styles.inputIcon,
-                isRTL && { marginRight: 0, marginLeft: 12 },
+                styles.iconContainer,
+                isRTL ? styles.iconContainerRTL : null,
               ]}
-            />
+            >
+              <Ionicons name="person-outline" size={20} color="#B80200" />
+            </View>
             <TextInput
-              style={[styles.textInput, rtlStyle]}
+              style={[
+                styles.input,
+                isRTL ? styles.inputRTL : null,
+                { textAlign: isRTL ? "right" : "left" },
+              ]}
               value={userDetails.username}
               onChangeText={(text) =>
                 setUserDetails({ ...userDetails, username: text })
@@ -382,8 +372,6 @@ export default function Profile() {
               editable={editing}
               placeholder={t("enterUsername")}
               placeholderTextColor="#999"
-              onFocus={() => handleFocus("username")}
-              onBlur={() => handleBlur("username")}
             />
           </View>
         </View>
@@ -391,24 +379,22 @@ export default function Profile() {
         <View style={styles.inputGroup}>
           <Text style={[styles.label, rtlStyle]}>{t("phoneNumber")}</Text>
           <View
-            style={[
-              styles.inputContainer,
-              { flexDirection: getFlexDirection() },
-              focused.phone && styles.inputFocused,
-              !editing && styles.inputDisabled,
-            ]}
+            style={[styles.inputContainer, !editing && styles.inputDisabled]}
           >
-            <Ionicons
-              name="call-outline"
-              size={20}
-              color={focused.phone ? "#B80200" : "#666"}
+            <View
               style={[
-                styles.inputIcon,
-                isRTL && { marginRight: 0, marginLeft: 12 },
+                styles.iconContainer,
+                isRTL ? styles.iconContainerRTL : null,
               ]}
-            />
+            >
+              <Ionicons name="call-outline" size={20} color="#B80200" />
+            </View>
             <TextInput
-              style={[styles.textInput, rtlStyle]}
+              style={[
+                styles.input,
+                isRTL ? styles.inputRTL : null,
+                { textAlign: isRTL ? "right" : "left" },
+              ]}
               value={userDetails.phone}
               onChangeText={(text) =>
                 setUserDetails({ ...userDetails, phone: text })
@@ -417,8 +403,6 @@ export default function Profile() {
               keyboardType="phone-pad"
               placeholder={t("enterPhoneNumber")}
               placeholderTextColor="#999"
-              onFocus={() => handleFocus("phone")}
-              onBlur={() => handleBlur("phone")}
             />
           </View>
         </View>
@@ -599,7 +583,7 @@ export default function Profile() {
           </Text>
           <TouchableOpacity
             style={styles.addListingButton}
-            onPress={() => router.push("./add-listing")}
+            onPress={() => router.push("./place-ad")}
             activeOpacity={0.8}
           >
             <Ionicons name="add" size={20} color="#FFFFFF" />
@@ -926,34 +910,44 @@ const styles = StyleSheet.create({
     marginLeft: 2,
   },
   inputContainer: {
+    flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#f8f9fa",
     borderRadius: 12,
-    paddingHorizontal: 16,
-    height: 50,
     borderWidth: 1.5,
     borderColor: "#e9ecef",
+    height: 50,
+    overflow: "hidden",
   },
-  inputFocused: {
-    borderColor: "#B80200",
-    backgroundColor: "#ffffff",
-    shadowColor: "#B80200",
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 4,
+  iconContainer: {
+    width: 50,
+    height: 50,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#f0f0f0",
+    borderTopLeftRadius: 10,
+    borderBottomLeftRadius: 10,
+  },
+  iconContainerRTL: {
+    borderTopLeftRadius: 0,
+    borderBottomLeftRadius: 0,
+    borderTopRightRadius: 10,
+    borderBottomRightRadius: 10,
+  },
+  input: {
+    flex: 1,
+    height: 50,
+    fontSize: Math.max(15, 1),
+    color: "#1a1a1a",
+    fontWeight: "500",
+    paddingHorizontal: 15,
+  },
+  inputRTL: {
+    textAlign: "right",
   },
   inputDisabled: {
     backgroundColor: "#f5f5f5",
     borderColor: "#e0e0e0",
-  },
-  inputIcon: {
-    marginRight: 12,
-  },
-  textInput: {
-    flex: 1,
-    fontSize: 15,
-    color: "#1a1a1a",
-    fontWeight: "500",
   },
   actionButton: {
     backgroundColor: "#B80200",
@@ -1207,9 +1201,10 @@ const styles = StyleSheet.create({
 
 // import { Ionicons } from "@expo/vector-icons";
 // import AsyncStorage from "@react-native-async-storage/async-storage";
+// import { useFocusEffect } from "@react-navigation/native";
 // import * as ImagePicker from "expo-image-picker";
 // import { useRouter } from "expo-router";
-// import { useEffect, useState } from "react";
+// import { useCallback, useEffect, useState } from "react";
 // import { useTranslation } from "react-i18next";
 // import {
 //   ActivityIndicator,
@@ -1288,6 +1283,15 @@ const styles = StyleSheet.create({
 //       fetchUserListings();
 //     }
 //   }, [isAuthenticated, user?._id]);
+
+//   // Refresh listings when user comes back to profile (e.g., after posting an ad)
+//   useFocusEffect(
+//     useCallback(() => {
+//       if (isAuthenticated && user?._id && activeTab === "listings") {
+//         fetchUserListings();
+//       }
+//     }, [isAuthenticated, user?._id, activeTab])
+//   );
 
 //   const fetchUserDetails = async (): Promise<void> => {
 //     setLoading(true);
@@ -1711,22 +1715,10 @@ const styles = StyleSheet.create({
 
 //         {/* Other Options */}
 //         {[
-//           {
-//             key: "aboutUs",
-//             icon: "information-circle-outline" as const,
-//           },
-//           {
-//             key: "termsOfUse",
-//             icon: "document-text-outline" as const,
-//           },
-//           {
-//             key: "privacyPolicy",
-//             icon: "shield-checkmark-outline" as const,
-//           },
-//           {
-//             key: "contactUs",
-//             icon: "mail-outline" as const,
-//           },
+//           { key: "aboutUs", icon: "information-circle-outline" as const },
+//           { key: "termsOfUse", icon: "document-text-outline" as const },
+//           { key: "privacyPolicy", icon: "shield-checkmark-outline" as const },
+//           { key: "contactUs", icon: "mail-outline" as const },
 //         ].map((option) => (
 //           <TouchableOpacity
 //             key={option.key}
@@ -1749,7 +1741,7 @@ const styles = StyleSheet.create({
 //             <View
 //               style={[styles.optionLeft, { flexDirection: getFlexDirection() }]}
 //             >
-//               <Ionicons name={option.icon} size={22} color="#B80200" />
+//               <Ionicons name={option.icon as any} size={22} color="#B80200" />
 //               <Text
 //                 style={[
 //                   styles.optionText,
@@ -1790,7 +1782,13 @@ const styles = StyleSheet.create({
 //   const renderListingsContent = () => (
 //     <View style={styles.listingsContainer}>
 //       {listings.length === 0 ? (
-//         <View style={styles.emptyState}>
+//         <ScrollView
+//           contentContainerStyle={styles.emptyState}
+//           refreshControl={
+//             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+//           }
+//           showsVerticalScrollIndicator={false}
+//         >
 //           <Ionicons name="car-outline" size={60} color="#ccc" />
 //           <Text style={[styles.emptyStateTitle, rtlStyle]}>
 //             {t("noListings")}
@@ -1806,7 +1804,7 @@ const styles = StyleSheet.create({
 //             <Ionicons name="add" size={20} color="#FFFFFF" />
 //             <Text style={styles.addListingButtonText}>{t("addListing")}</Text>
 //           </TouchableOpacity>
-//         </View>
+//         </ScrollView>
 //       ) : (
 //         <FlatList
 //           data={listings}
@@ -2270,6 +2268,8 @@ const styles = StyleSheet.create({
 //     fontWeight: "700",
 //   },
 //   emptyState: {
+//     flexGrow: 1,
+//     justifyContent: "center",
 //     alignItems: "center",
 //     paddingVertical: 40,
 //   },
