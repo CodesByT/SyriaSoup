@@ -1121,7 +1121,7 @@ const styles = StyleSheet.create({
   },
   chatButton: {
     flex: 1,
-    backgroundColor: "#b80200",
+    backgroundColor: "#A00709",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
@@ -1141,7 +1141,7 @@ const styles = StyleSheet.create({
   },
   callButton: {
     flex: 1,
-    backgroundColor: "#007bff",
+    backgroundColor: "#A00709",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",

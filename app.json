@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "SyriaSouqApp",
+    "name": "SyriaSouq",
     "slug": "SyriaSouqApp",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
-    "scheme": "syriasouqapp",
+    "icon": "./assets/s-logo.png",
+    "scheme": "syriasouq",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
@@ -17,7 +17,7 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.ballpool.SyriaSouqApp"
+      "package": "com.ballpool.SyriaSouq"
     },
     "web": {
       "bundler": "metro",
@@ -29,7 +29,7 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-icon.png",
+          "image": "./assets/s-logo.png",
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
@@ -38,6 +38,12 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "e585b8b2-4540-4dd3-954d-ea6ffb2faaa1"
+      }
     }
   }
 }

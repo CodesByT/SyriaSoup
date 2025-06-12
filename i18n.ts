@@ -426,6 +426,12 @@ const en = {
   failedToFetchMessages: "Failed to Fetch Messages",
   failedToSendMessage: "Failed to Send Message",
   typeMessage: "Type a Message",
+  filters: "Filters",
+  all: "All",
+  searchMake: "Enter Make",
+  searchModal: "Enter Modal",
+  noResultsFound: "No Results",
+  reset_password: "Reset Password",
   // test: "test",
   // test: "test",
   // test: "test",
@@ -436,6 +442,9 @@ const en = {
 };
 
 const ar = {
+  reset_password: "إعادة تعيين كلمة المرور",
+  noResultsFound: "لم يتم العثور على نتائج",
+  filters: "المرشحات",
   something_went_wrong: "حدث خطأ ما",
   login_successful: "تسجيل الدخول ناجح!",
   phone_number_must_be_digits_only: "رقم الهاتف يجب أن يحتوي على أرقام فقط",

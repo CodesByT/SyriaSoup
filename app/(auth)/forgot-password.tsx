@@ -86,11 +86,12 @@ export default function ForgotPassword() {
     const fullPhone = `+${callingCode}${phone}`;
     setLoading(true);
     try {
+      console.log(fullPhone);
       await forgotPassword(fullPhone);
       showSnackbar(t("otpSent"), false);
       setStep(2);
     } catch (error: any) {
-      console.error("ForgotPassword: Error requesting OTP:", error);
+      // console.error("ForgotPassword: Error requesting OTP:", error);
       showSnackbar(error.message || t("failedToSendOTP"));
     } finally {
       setLoading(false);
@@ -117,7 +118,7 @@ export default function ForgotPassword() {
       showSnackbar(t("passwordResetSuccess"), false);
       router.replace("/login");
     } catch (error: any) {
-      console.error("ForgotPassword: Error resetting password:", error);
+      // console.error("ForgotPassword: Error resetting password:", error);
       showSnackbar(error.message || t("failedToResetPassword"));
     } finally {
       setLoading(false);

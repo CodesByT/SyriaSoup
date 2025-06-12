@@ -37,7 +37,7 @@ const extractUserId = (participant: any): string => {
       ? participant._id
       : participant._id.toString();
   }
-  console.error("Invalid participant format:", participant);
+  // console.error("Invalid participant format:", participant);
   return "";
 };
 
@@ -47,44 +47,44 @@ export const getConversations = async () => {
     const response = await api.get("/api/conversations");
     const conversations = response.data?.data || response.data || [];
 
-    console.log("Raw conversations from API:", conversations);
+    // console.log("Raw conversations from API:", conversations);
 
     // Process each conversation to fetch participant details and calculate unread counts
     const processedConversations = await Promise.all(
       conversations.map(async (conv: any) => {
-        console.log("Processing conversation:", conv._id);
-        console.log("Raw participants:", conv.participants);
+        // console.log("Processing conversation:", conv._id);
+        // console.log("Raw participants:", conv.participants);
 
         // Extract participant IDs properly
         const participantIds = conv.participants
           .map((participant: any) => {
             const userId = extractUserId(participant);
-            console.log("Extracted user ID:", userId, "from:", participant);
+            // console.log("Extracted user ID:", userId, "from:", participant);
             return userId;
           })
           .filter(Boolean); // Remove empty strings
 
-        console.log("Final participant IDs:", participantIds);
+        // console.log("Final participant IDs:", participantIds);
 
         // Fetch user details for each participant
         const participantDetails = await Promise.all(
           participantIds.map(async (participantId: string) => {
             try {
-              console.log("Fetching user details for ID:", participantId);
+              // console.log("Fetching user details for ID:", participantId);
               const userResponse = await api.get(`/api/users/${participantId}`);
               const userData = userResponse.data?.data || userResponse.data;
-              console.log("Fetched user data:", userData);
+              // console.log("Fetched user data:", userData);
               return {
                 _id: userData._id || participantId,
                 username: userData.username || "Unknown User",
                 profileImage: userData.profileImage || null,
               };
             } catch (error) {
-              console.error(
-                "Error fetching user details for ID:",
-                participantId,
-                error
-              );
+              // console.error(
+              //   "Error fetching user details for ID:",
+              //   participantId,
+              //   error
+              // );
               return {
                 _id: participantId,
                 username: "Unknown User",
@@ -94,7 +94,7 @@ export const getConversations = async () => {
           })
         );
 
-        console.log("Processed participants:", participantDetails);
+        // console.log("Processed participants:", participantDetails);
 
         // Get unread count for this conversation
         let unreadCount = 0;
@@ -121,7 +121,7 @@ export const getConversations = async () => {
             }).length;
           }
         } catch (error) {
-          console.error("Error fetching messages for unread count:", error);
+          // console.error("Error fetching messages for unread count:", error);
         }
 
         return {
@@ -133,7 +133,7 @@ export const getConversations = async () => {
       })
     );
 
-    console.log("Final processed conversations:", processedConversations);
+    // console.log("Final processed conversations:", processedConversations);
 
     return {
       ...response,
@@ -143,7 +143,7 @@ export const getConversations = async () => {
       },
     };
   } catch (error) {
-    console.error("Error in getConversations:", error);
+    // console.error("Error in getConversations:", error);
     throw error;
   }
 };
@@ -165,13 +165,13 @@ export const getConversationUnreadCount = async (
       return senderId !== currentUserId && !msg.read;
     }).length;
 
-    console.log(
-      `Unread count for conversation ${conversationId}:`,
-      unreadCount
-    );
+    // console.log(
+    //   `Unread count for conversation ${conversationId}:`,
+    //   unreadCount
+    // );
     return unreadCount;
   } catch (error) {
-    console.error("Error getting conversation unread count:", error);
+    // console.error("Error getting conversation unread count:", error);
     return 0;
   }
 };
@@ -190,25 +190,25 @@ export const getMessages = async (conversationId: string) => {
     const response = await api.get(`/api/messages/${conversationId}`);
     const messages = response.data?.data || response.data || [];
 
-    console.log("Raw messages from API:", messages);
+    // console.log("Raw messages from API:", messages);
 
     // Process each message to ensure sender details are populated
     const processedMessages = await Promise.all(
       messages.map(async (message: any) => {
-        console.log("Processing message:", message._id);
-        console.log("Raw sender:", message.sender);
+        // console.log("Processing message:", message._id);
+        // console.log("Raw sender:", message.sender);
 
         // Extract sender ID properly
         const senderId = extractUserId(message.sender);
-        console.log("Extracted sender ID:", senderId);
+        // console.log("Extracted sender ID:", senderId);
 
         // If sender is just an ID string, fetch the user details
         if (senderId && typeof message.sender === "string") {
           try {
-            console.log("Fetching sender details for ID:", senderId);
+            // console.log("Fetching sender details for ID:", senderId);
             const userResponse = await api.get(`/api/users/${senderId}`);
             const userData = userResponse.data?.data || userResponse.data;
-            console.log("Fetched sender data:", userData);
+            // console.log("Fetched sender data:", userData);
 
             return {
               ...message,
@@ -219,11 +219,11 @@ export const getMessages = async (conversationId: string) => {
               },
             };
           } catch (error) {
-            console.error(
-              "Error fetching sender details for ID:",
-              senderId,
-              error
-            );
+            // console.error(
+            //   "Error fetching sender details for ID:",
+            //   senderId,
+            //   error
+            // );
             return {
               ...message,
               sender: {
@@ -243,10 +243,10 @@ export const getMessages = async (conversationId: string) => {
         // If sender is an object but missing username, fetch details
         if (typeof message.sender === "object" && senderId) {
           try {
-            console.log("Fetching sender details for object ID:", senderId);
+            // console.log("Fetching sender details for object ID:", senderId);
             const userResponse = await api.get(`/api/users/${senderId}`);
             const userData = userResponse.data?.data || userResponse.data;
-            console.log("Fetched sender data:", userData);
+            // console.log("Fetched sender data:", userData);
 
             return {
               ...message,
@@ -257,11 +257,11 @@ export const getMessages = async (conversationId: string) => {
               },
             };
           } catch (error) {
-            console.error(
-              "Error fetching sender details for object ID:",
-              senderId,
-              error
-            );
+            // console.error(
+            //   "Error fetching sender details for object ID:",
+            //   senderId,
+            //   error
+            // );
             return {
               ...message,
               sender: {
@@ -285,7 +285,7 @@ export const getMessages = async (conversationId: string) => {
       })
     );
 
-    console.log("Final processed messages:", processedMessages);
+    // console.log("Final processed messages:", processedMessages);
 
     return {
       ...response,
@@ -295,7 +295,7 @@ export const getMessages = async (conversationId: string) => {
       },
     };
   } catch (error) {
-    console.error("Error in getMessages:", error);
+    // console.error("Error in getMessages:", error);
     throw error;
   }
 };
@@ -339,10 +339,10 @@ export const getUnreadCount = async (): Promise<number> => {
       },
       0
     );
-    console.log("Calculated total unread count:", totalUnread);
+    // console.log("Calculated total unread count:", totalUnread);
     return totalUnread;
   } catch (error) {
-    console.error("Error getting unread count:", error);
+    // console.error("Error getting unread count:", error);
     return 0;
   }
 };

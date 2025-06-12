@@ -83,7 +83,7 @@ export default function Favorites() {
     try {
       await fetchWishlist();
     } catch (error: any) {
-      console.error("Favorites: Error during refresh:", error);
+      // console.error("Favorites: Error during refresh:", error);
       Snackbar.show({
         text: t("failed_to_refresh"),
         duration: 1000,
@@ -127,7 +127,7 @@ export default function Favorites() {
             fetchWishlist();
           }
         } catch (error: any) {
-          console.error("Favorites: Error removing from wishlist:", error);
+          // console.error("Favorites: Error removing from wishlist:", error);
           // Changed from Alert.alert to Snackbar for error for consistency,
           // but you could also show a different modal for errors.
           Snackbar.show({

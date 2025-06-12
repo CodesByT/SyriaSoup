@@ -10,15 +10,15 @@ export const api = axios.create({
 
 api.interceptors.request.use(async (config) => {
   const token = await AsyncStorage.getItem("token");
-  console.log("API: Token retrieved:", !!token);
+  // console.log("API: Token retrieved:", !!token);
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
-  console.log(
-    "API Request:",
-    config.method?.toUpperCase(),
-    `${API_BASE_URL}${config.url}`
-  );
+  // console.log(
+  //   "API Request:",
+  //   config.method?.toUpperCase(),
+  //   `${API_BASE_URL}${config.url}`
+  // );
   return config;
 });
 
@@ -50,12 +50,12 @@ api.interceptors.response.use(
       (!error.config?.url?.includes("/api/wishlist/uid/") &&
         !error.config?.url?.includes("/api/cars/user/"))
     ) {
-      console.error("API Error:", {
-        url: `${API_BASE_URL}${error.config?.url}`,
-        status: error.response?.status,
-        message: error.message,
-        responseData: error.response?.data,
-      });
+      // console.error("API Error:", {
+      //   url: `${API_BASE_URL}${error.config?.url}`,
+      //   status: error.response?.status,
+      //   message: error.message,
+      //   responseData: error.response?.data,
+      // });
     }
     return Promise.reject(error);
   }
@@ -99,7 +99,7 @@ export const getWishlistByUserId = async (userId: string) => {
     return response;
   } catch (error: any) {
     if (error.response?.status === 404) {
-      console.log("API: No wishlist found for user:", userId);
+      // console.log("API: No wishlist found for user:", userId);
       return { data: { success: true, data: [] } };
     }
     throw error;
@@ -111,7 +111,7 @@ export const getUserListings = async (userId: string) => {
     return response;
   } catch (error: any) {
     if (error.response?.status === 404) {
-      console.log("API: No listings found for user:", userId);
+      // console.log("API: No listings found for user:", userId);
       return { data: { success: true, data: [] } };
     }
     throw error;
@@ -137,25 +137,25 @@ export const checkWishlist = async (
   try {
     const response = await getWishlistByUserId(userId);
     const wishlistData = response.data?.data || response.data;
-    console.log("API: checkWishlist response:", wishlistData);
+    // console.log("API: checkWishlist response:", wishlistData);
     const item = Array.isArray(wishlistData)
       ? wishlistData.find((item: any) => item.car?._id === carId)
       : null;
     const exists = !!item;
     const wishlistId = item?._id;
-    console.log(
-      "API: checkWishlist for carId:",
-      carId,
-      "userId:",
-      userId,
-      "exists:",
-      exists,
-      "wishlistId:",
-      wishlistId
-    );
+    // console.log(
+    //   "API: checkWishlist for carId:",
+    //   carId,
+    //   "userId:",
+    //   userId,
+    //   "exists:",
+    //   exists,
+    //   "wishlistId:",
+    //   wishlistId
+    // );
     return { exists, wishlistId };
   } catch (error: any) {
-    console.error("API: Error checking wishlist:", error);
+    // console.error("API: Error checking wishlist:", error);
     return { exists: false };
   }
 };

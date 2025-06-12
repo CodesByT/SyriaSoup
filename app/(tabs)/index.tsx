@@ -529,8 +529,6 @@ const styles = StyleSheet.create({
   },
 });
 
-// "use client";
-
 // import AsyncStorage from "@react-native-async-storage/async-storage";
 // import { useRouter } from "expo-router";
 // import { useEffect, useState } from "react";

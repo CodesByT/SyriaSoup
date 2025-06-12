@@ -1,8 +1,10 @@
 "use client";
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import axios from "axios";
 import type React from "react";
 import { createContext, useContext, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { User } from "../types";
 import { login, register } from "../utils/api";
 
@@ -29,6 +31,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
+  const { t } = useTranslation();
   const [user, setUser] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
@@ -42,7 +45,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           setIsAuthenticated(true);
         }
       } catch (error) {
-        console.error("AuthProvider: Error loading user:", error);
+        // console.error("AuthProvider: Error loading user:", error);
       }
     };
     loadUser();
@@ -57,7 +60,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       setUser(userData);
       setIsAuthenticated(true);
     } catch (error: any) {
-      throw new Error(error.response?.data?.message || "Login failed");
+      throw new Error(error.response?.data?.message || t("loginFailed"));
     }
   };
 
@@ -74,16 +77,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       setUser(userData);
       setIsAuthenticated(true);
     } catch (error: any) {
-      throw new Error(error.response?.data?.message || "Registration failed");
+      throw new Error(error.response?.data?.message || t("registrationFailed"));
     }
   };
 
   const forgotPassword = async (phone: string) => {
     try {
-      // Call your forgot password API here
-      console.log("Forgot password for:", phone);
+      await axios.post("/api/auth/forgotPassword", { phone });
     } catch (error: any) {
-      throw new Error(error.response?.data?.message || "Failed to send OTP");
+      throw new Error(error.response?.data?.message || t("failedToSendOTP"));
     }
   };
 
@@ -93,10 +95,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     newPassword: string
   ) => {
     try {
-      // Call your reset password API here
-      console.log("Reset password for:", phone, otp, newPassword);
+      await axios.post("/api/auth/resetPassword", { phone, otp, newPassword });
     } catch (error: any) {
-      throw new Error(error.response?.data?.message || "Password reset failed");
+      throw new Error(
+        error.response?.data?.message || t("failedToResetPassword")
+      );
     }
   };
 
@@ -107,7 +110,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       setUser(null);
       setIsAuthenticated(false);
     } catch (error) {
-      console.error("AuthProvider: Error logging out:", error);
+      // console.error("AuthProvider: Error logging out:", error);
     }
   };
 

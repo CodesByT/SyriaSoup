@@ -46,17 +46,17 @@ const Chat = () => {
   const fetchConversations = async () => {
     try {
       setLoading(true);
-      console.log("Chat: Fetching conversations for user:", user?._id);
+      // console.log("Chat: Fetching conversations for user:", user?._id);
 
       const response = await getConversations();
       const conversationsData = response.data?.data || response.data || [];
 
-      console.log("Chat: Received conversations:", conversationsData);
+      // console.log("Chat: Received conversations:", conversationsData);
 
       const validatedConversations = await Promise.all(
         conversationsData.map(async (conv: any) => {
-          console.log("Chat: Validating conversation:", conv._id);
-          console.log("Chat: Participants:", conv.participants);
+          // console.log("Chat: Validating conversation:", conv._id);
+          // console.log("Chat: Participants:", conv.participants);
 
           const participants = Array.isArray(conv.participants)
             ? conv.participants.filter((p: any) => p && p._id && p.username)
@@ -67,8 +67,8 @@ const Chat = () => {
             unreadCount = await getConversationUnreadCount(conv._id, user._id);
           }
 
-          console.log("Chat: Validated participants:", participants);
-          console.log("Chat: Unread count:", unreadCount);
+          // console.log("Chat: Validated participants:", participants);
+          // console.log("Chat: Unread count:", unreadCount);
 
           return {
             ...conv,
@@ -78,14 +78,14 @@ const Chat = () => {
         })
       );
 
-      console.log(
-        "Chat: Final validated conversations:",
-        validatedConversations
-      );
+      // console.log(
+      //   "Chat: Final validated conversations:",
+      //   validatedConversations
+      // );
       setConversations(validatedConversations);
       await updateUnreadCount();
     } catch (error: any) {
-      console.error("Chat: Error fetching conversations:", error);
+      // console.error("Chat: Error fetching conversations:", error);
       Alert.alert(
         t("error"),
         t("failedToFetchConversations") || "Failed to fetch conversations"
@@ -119,36 +119,36 @@ const Chat = () => {
   };
 
   const getOtherParticipant = (conversation: Conversation) => {
-    console.log(
-      "Chat: Getting other participant for conversation:",
-      conversation._id
-    );
-    console.log("Chat: All participants:", conversation.participants);
-    console.log("Chat: Current user ID:", user?._id);
+    // console.log(
+    //   "Chat: Getting other participant for conversation:",
+    //   conversation._id
+    // );
+    // console.log("Chat: All participants:", conversation.participants);
+    // console.log("Chat: Current user ID:", user?._id);
 
     if (!conversation.participants || conversation.participants.length === 0) {
-      console.log("Chat: No participants found");
+      // console.log("Chat: No participants found");
       return null;
     }
 
     const otherParticipant = conversation.participants.find((p) => {
-      console.log(
-        "Chat: Checking participant:",
-        p._id,
-        "vs current user:",
-        user?._id
-      );
+      // console.log(
+      //   "Chat: Checking participant:",
+      //   p._id,
+      //   "vs current user:",
+      //   user?._id
+      // );
       return p._id !== user?._id;
     });
 
-    console.log("Chat: Found other participant:", otherParticipant);
+    // console.log("Chat: Found other participant:", otherParticipant);
     return otherParticipant;
   };
 
   const getFirstLetter = (name: string): string => {
-    console.log("Getting first letter for name:", name, "Type:", typeof name);
+    // console.log("Getting first letter for name:", name, "Type:", typeof name);
     if (!name || name.trim().length === 0) {
-      console.log("Name is empty or invalid, returning '?'");
+      // console.log("Name is empty or invalid, returning '?'");
       return "?";
     }
     const firstLetter = name.trim().charAt(0).toUpperCase();
@@ -157,7 +157,7 @@ const Chat = () => {
   };
 
   const getAvatarBackgroundColor = (name: string): string => {
-    console.log("Getting avatar color for name:", name);
+    // console.log("Getting avatar color for name:", name);
     const colors = [
       "#FF6B6B",
       "#4ECDC4",
@@ -172,7 +172,7 @@ const Chat = () => {
     ];
 
     if (!name || name.trim().length === 0) {
-      console.log("Name is empty, using default color");
+      // console.log("Name is empty, using default color");
       return colors[0];
     }
 
@@ -182,14 +182,14 @@ const Chat = () => {
     }
 
     const selectedColor = colors[Math.abs(hash) % colors.length];
-    console.log(`Color for ${name}: ${selectedColor} (hash: ${hash})`);
+    // console.log(`Color for ${name}: ${selectedColor} (hash: ${hash})`);
     return selectedColor;
   };
 
   const handleConversationPress = (conversation: Conversation) => {
     const otherParticipant = getOtherParticipant(conversation);
     const recipientName = otherParticipant?.username || "User";
-    console.log("Chat: Navigating to conversation with:", recipientName);
+    // console.log("Chat: Navigating to conversation with:", recipientName);
     router.push(
       `/conversation?conversationId=${
         conversation._id
@@ -206,27 +206,27 @@ const Chat = () => {
     const avatarColor = getAvatarBackgroundColor(displayName);
 
     if (displayName.toLowerCase().includes("tayyab")) {
-      console.log("=== DEBUGGING TAYYABKHALID ===");
-      console.log(
-        "Full otherParticipant object:",
-        JSON.stringify(otherParticipant, null, 2)
-      );
-      console.log("Display name:", displayName);
-      console.log("Has profile image:", !!otherParticipant?.profileImage);
-      console.log("Profile image URL:", otherParticipant?.profileImage);
-      console.log("First letter:", firstLetter);
-      console.log("Avatar color:", avatarColor);
-      console.log("Should show placeholder:", !otherParticipant?.profileImage);
-      console.log("=== END DEBUG ===");
+      // console.log("=== DEBUGGING TAYYABKHALID ===");
+      // console.log(
+      //   "Full otherParticipant object:",
+      //   JSON.stringify(otherParticipant, null, 2)
+      // );
+      // console.log("Display name:", displayName);
+      // console.log("Has profile image:", !!otherParticipant?.profileImage);
+      // console.log("Profile image URL:", otherParticipant?.profileImage);
+      // console.log("First letter:", firstLetter);
+      // console.log("Avatar color:", avatarColor);
+      // console.log("Should show placeholder:", !otherParticipant?.profileImage);
+      // console.log("=== END DEBUG ===");
     }
 
-    console.log("Chat: Rendering conversation item:", {
-      conversationId: item._id,
-      otherParticipant,
-      displayName,
-      hasUnread,
-      unreadCount: item.unreadCount,
-    });
+    // console.log("Chat: Rendering conversation item:", {
+    //   conversationId: item._id,
+    //   otherParticipant,
+    //   displayName,
+    //   hasUnread,
+    //   unreadCount: item.unreadCount,
+    // });
 
     return (
       <TouchableOpacity

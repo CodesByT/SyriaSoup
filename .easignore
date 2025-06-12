@@ -1,0 +1,10 @@
+node_modules/ 
+.git/ 
+.gitignore 
+build/ 
+dist/ 
+*.log 
+*.cache 
+*.DS_Store 
+android/ 
+ios/
