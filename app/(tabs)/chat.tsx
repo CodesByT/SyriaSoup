@@ -206,27 +206,7 @@ const Chat = () => {
     const avatarColor = getAvatarBackgroundColor(displayName);
 
     if (displayName.toLowerCase().includes("tayyab")) {
-      // console.log("=== DEBUGGING TAYYABKHALID ===");
-      // console.log(
-      //   "Full otherParticipant object:",
-      //   JSON.stringify(otherParticipant, null, 2)
-      // );
-      // console.log("Display name:", displayName);
-      // console.log("Has profile image:", !!otherParticipant?.profileImage);
-      // console.log("Profile image URL:", otherParticipant?.profileImage);
-      // console.log("First letter:", firstLetter);
-      // console.log("Avatar color:", avatarColor);
-      // console.log("Should show placeholder:", !otherParticipant?.profileImage);
-      // console.log("=== END DEBUG ===");
     }
-
-    // console.log("Chat: Rendering conversation item:", {
-    //   conversationId: item._id,
-    //   otherParticipant,
-    //   displayName,
-    //   hasUnread,
-    //   unreadCount: item.unreadCount,
-    // });
 
     return (
       <TouchableOpacity

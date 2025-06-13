@@ -14,7 +14,7 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import Snackbar from "react-native-snackbar";
+import { showToastable } from "react-native-toastable";
 import CarCard from "../components/CarCard";
 import InlineSearchBar from "../components/InlineSearchBar";
 import { useAuth } from "../contexts/AuthContext";
@@ -33,7 +33,22 @@ export default function AllCars() {
   const { isAuthenticated, user } = useAuth();
   const { isRTL, rtlStyle, getFlexDirection } = useRTL();
   const [cars, setCars] = useState<Car[]>([]);
-  const [search, setSearch] = useState({ make: "", model: "", location: "" });
+  const [search, setSearch] = useState({
+    make: "",
+    model: "",
+    location: "",
+    cylinder: "",
+    transmission: "",
+    fuelType: "",
+    exteriorColor: "",
+    interiorColor: "",
+    priceMin: "",
+    priceMax: "",
+    yearMin: "",
+    yearMax: "",
+    kilometerMin: "",
+    kilometerMax: "",
+  });
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -45,7 +60,22 @@ export default function AllCars() {
   const isArabic = i18n.language === "ar";
 
   useEffect(() => {
-    setSearch({ make: "", model: "", location: "" });
+    setSearch({
+      make: "",
+      model: "",
+      location: "",
+      cylinder: "",
+      transmission: "",
+      fuelType: "",
+      exteriorColor: "",
+      interiorColor: "",
+      priceMin: "",
+      priceMax: "",
+      yearMin: "",
+      yearMax: "",
+      kilometerMin: "",
+      kilometerMax: "",
+    });
     fetchAllCars();
     if (isAuthenticated && user?._id) {
       fetchWishlist();
@@ -64,11 +94,11 @@ export default function AllCars() {
       console.error("AllCars: Error fetching cars:", error);
       setCars([]);
       setError(error.message || t("failedToFetchCars"));
-      Snackbar.show({
-        text: error.message || t("failedToFetchCars"),
-        duration: 1000,
-        backgroundColor: "#b80200",
-        textColor: "#FFFFFF",
+
+      showToastable({
+        message: t("failedToFetchCars"),
+        status: "warning",
+        duration: 2000,
       });
     } finally {
       setLoading(false);
@@ -108,11 +138,10 @@ export default function AllCars() {
 
   const handleAddToWishlist = async (carId: string) => {
     if (!isAuthenticated || !user?._id) {
-      Snackbar.show({
-        text: t("please_login_to_wishlist"),
-        duration: 1000,
-        backgroundColor: "#FFA500",
-        textColor: "#000000",
+      showToastable({
+        message: t("please_login_to_wishlist"),
+        status: "warning",
+        duration: 2000,
       });
       router.push("/login");
       return;
@@ -121,22 +150,20 @@ export default function AllCars() {
     try {
       const wishlistItem = wishlist.find((item) => item.carId === carId);
       if (wishlistItem) {
-        Snackbar.show({
-          text: t("already_in_wishlist"),
-          duration: 1000,
-          backgroundColor: "#FFA500",
-          textColor: "#000000",
+        showToastable({
+          message: t("already_in_wishlist"),
+          status: "success",
+          duration: 2000,
         });
         return;
       }
 
       const { exists } = await checkWishlist(carId, user._id);
       if (exists) {
-        Snackbar.show({
-          text: t("already_in_wishlist"),
-          duration: 1000,
-          backgroundColor: "#FFA500",
-          textColor: "#000000",
+        showToastable({
+          message: t("already_in_wishlist"),
+          status: "success",
+          duration: 2000,
         });
         await fetchWishlist();
         return;
@@ -146,11 +173,11 @@ export default function AllCars() {
       const newWishlistItem = response.data?.data;
       if (newWishlistItem?._id) {
         setWishlist([...wishlist, { carId, wishlistId: newWishlistItem._id }]);
-        Snackbar.show({
-          text: t("addedToWishlist"),
-          duration: 1000,
-          backgroundColor: "#4CAF50",
-          textColor: "#FFFFFF",
+
+        showToastable({
+          message: t("addedToWishlist"),
+          status: "success",
+          duration: 2000,
         });
       }
     } catch (error: any) {
@@ -159,19 +186,17 @@ export default function AllCars() {
         error.response?.status === 400 &&
         error.response?.data?.message === "Car already in wishlist"
       ) {
-        Snackbar.show({
-          text: t("already_in_wishlist"),
-          duration: 1000,
-          backgroundColor: "#FFA500",
-          textColor: "#000000",
+        showToastable({
+          message: t("already_in_wishlist"),
+          status: "success",
+          duration: 2000,
         });
         await fetchWishlist();
       } else {
-        Snackbar.show({
-          text: t("failedToAddWishlist"),
-          duration: 1000,
-          backgroundColor: "#b80200",
-          textColor: "#FFFFFF",
+        showToastable({
+          message: t("failedToAddWishlist"),
+          status: "warning",
+          duration: 2000,
         });
       }
     }
@@ -253,11 +278,64 @@ export default function AllCars() {
         const carMake = car.make?.toLowerCase() || "";
         const carModel = car.model?.toLowerCase() || "";
         const carLocation = car.location?.toLowerCase() || "";
+        const carCylinder = car.engineSize?.toLowerCase() || "";
+        const carTransmission = car.transmission?.toLowerCase() || "";
+        const carFuelType = car.fuelType?.toLowerCase() || "";
+        const carExteriorColor = car.exteriorColor?.toLowerCase() || "";
+        const carInteriorColor = car.interiorColor?.toLowerCase() || "";
+        const carYear = Number.parseInt(car.year || "0");
+        const carKilometer = Number.parseInt(
+          car.kilometer?.replace(/,/g, "") || "0"
+        );
+
+        // Basic filters
+        const makeMatch = !searchMake || carMake.includes(searchMake);
+        const modelMatch = !searchModel || carModel.includes(searchModel);
+        const locationMatch =
+          !searchLocation || carLocation.includes(searchLocation);
+
+        // Additional filters
+        const cylinderMatch =
+          !search.cylinder ||
+          carCylinder.includes(search.cylinder.toLowerCase());
+        const transmissionMatch =
+          !search.transmission ||
+          carTransmission.includes(search.transmission.toLowerCase());
+        const fuelTypeMatch =
+          !search.fuelType ||
+          carFuelType.includes(search.fuelType.toLowerCase());
+        const exteriorColorMatch =
+          !search.exteriorColor ||
+          carExteriorColor.includes(search.exteriorColor.toLowerCase());
+        const interiorColorMatch =
+          !search.interiorColor ||
+          carInteriorColor.includes(search.interiorColor.toLowerCase());
+
+        // Range filters
+        const yearMinMatch =
+          !search.yearMin || carYear >= Number.parseInt(search.yearMin);
+        const yearMaxMatch =
+          !search.yearMax || carYear <= Number.parseInt(search.yearMax);
+        const kilometerMinMatch =
+          !search.kilometerMin ||
+          carKilometer >= Number.parseInt(search.kilometerMin);
+        const kilometerMaxMatch =
+          !search.kilometerMax ||
+          carKilometer <= Number.parseInt(search.kilometerMax);
 
         return (
-          (!searchMake || carMake.includes(searchMake)) &&
-          (!searchModel || carModel.includes(searchModel)) &&
-          (!searchLocation || carLocation.includes(searchLocation))
+          makeMatch &&
+          modelMatch &&
+          locationMatch &&
+          cylinderMatch &&
+          transmissionMatch &&
+          fuelTypeMatch &&
+          exteriorColorMatch &&
+          interiorColorMatch &&
+          yearMinMatch &&
+          yearMaxMatch &&
+          kilometerMinMatch &&
+          kilometerMaxMatch
         );
       })
     : [];
@@ -434,7 +512,7 @@ const styles = StyleSheet.create({
 //   View,
 // } from "react-native";
 // import { useSafeAreaInsets } from "react-native-safe-area-context";
-// import Snackbar from "react-native-snackbar";
+// import { showToastable } from "react-native-toastable";
 // import CarCard from "../components/CarCard";
 // import InlineSearchBar from "../components/InlineSearchBar";
 // import { useAuth } from "../contexts/AuthContext";
@@ -446,9 +524,10 @@ const styles = StyleSheet.create({
 //   getCars,
 //   getWishlistByUserId,
 // } from "../utils/api";
+// import { arabicMakes, locations, makes } from "../utils/constants";
 
 // export default function AllCars() {
-//   const { t } = useTranslation();
+//   const { t, i18n } = useTranslation();
 //   const { isAuthenticated, user } = useAuth();
 //   const { isRTL, rtlStyle, getFlexDirection } = useRTL();
 //   const [cars, setCars] = useState<Car[]>([]);
@@ -461,6 +540,7 @@ const styles = StyleSheet.create({
 //   >([]);
 //   const router = useRouter();
 //   const insets = useSafeAreaInsets();
+//   const isArabic = i18n.language === "ar";
 
 //   useEffect(() => {
 //     setSearch({ make: "", model: "", location: "" });
@@ -482,11 +562,11 @@ const styles = StyleSheet.create({
 //       console.error("AllCars: Error fetching cars:", error);
 //       setCars([]);
 //       setError(error.message || t("failedToFetchCars"));
-//       Snackbar.show({
-//         text: error.message || t("failedToFetchCars"),
-//         duration: 1000,
-//         backgroundColor: "#b80200",
-//         textColor: "#FFFFFF",
+
+//       showToastable({
+//         message: t("failedToFetchCars"),
+//         status: "warning",
+//         duration: 2000,
 //       });
 //     } finally {
 //       setLoading(false);
@@ -526,11 +606,10 @@ const styles = StyleSheet.create({
 
 //   const handleAddToWishlist = async (carId: string) => {
 //     if (!isAuthenticated || !user?._id) {
-//       Snackbar.show({
-//         text: t("please_login_to_wishlist"),
-//         duration: 1000,
-//         backgroundColor: "#FFA500",
-//         textColor: "#000000",
+//       showToastable({
+//         message: t("please_login_to_wishlist"),
+//         status: "warning",
+//         duration: 2000,
 //       });
 //       router.push("/login");
 //       return;
@@ -539,22 +618,20 @@ const styles = StyleSheet.create({
 //     try {
 //       const wishlistItem = wishlist.find((item) => item.carId === carId);
 //       if (wishlistItem) {
-//         Snackbar.show({
-//           text: t("already_in_wishlist"),
-//           duration: 1000,
-//           backgroundColor: "#FFA500",
-//           textColor: "#000000",
+//         showToastable({
+//           message: t("already_in_wishlist"),
+//           status: "success",
+//           duration: 2000,
 //         });
 //         return;
 //       }
 
 //       const { exists } = await checkWishlist(carId, user._id);
 //       if (exists) {
-//         Snackbar.show({
-//           text: t("already_in_wishlist"),
-//           duration: 1000,
-//           backgroundColor: "#FFA500",
-//           textColor: "#000000",
+//         showToastable({
+//           message: t("already_in_wishlist"),
+//           status: "success",
+//           duration: 2000,
 //         });
 //         await fetchWishlist();
 //         return;
@@ -564,11 +641,11 @@ const styles = StyleSheet.create({
 //       const newWishlistItem = response.data?.data;
 //       if (newWishlistItem?._id) {
 //         setWishlist([...wishlist, { carId, wishlistId: newWishlistItem._id }]);
-//         Snackbar.show({
-//           text: t("addedToWishlist"),
-//           duration: 1000,
-//           backgroundColor: "#4CAF50",
-//           textColor: "#FFFFFF",
+
+//         showToastable({
+//           message: t("addedToWishlist"),
+//           status: "success",
+//           duration: 2000,
 //         });
 //       }
 //     } catch (error: any) {
@@ -577,36 +654,103 @@ const styles = StyleSheet.create({
 //         error.response?.status === 400 &&
 //         error.response?.data?.message === "Car already in wishlist"
 //       ) {
-//         Snackbar.show({
-//           text: t("already_in_wishlist"),
-//           duration: 1000,
-//           backgroundColor: "#FFA500",
-//           textColor: "#000000",
+//         showToastable({
+//           message: t("already_in_wishlist"),
+//           status: "success",
+//           duration: 2000,
 //         });
 //         await fetchWishlist();
 //       } else {
-//         Snackbar.show({
-//           text: t("failedToAddWishlist"),
-//           duration: 1000,
-//           backgroundColor: "#b80200",
-//           textColor: "#FFFFFF",
+//         showToastable({
+//           message: t("failedToAddWishlist"),
+//           status: "warning",
+//           duration: 2000,
 //         });
 //       }
 //     }
 //   };
 
+//   // Helper function to find English equivalent of Arabic make
+//   const findEnglishMake = (arabicMake: string): string => {
+//     const found = arabicMakes.find(
+//       (m) =>
+//         m.label.toLowerCase() === arabicMake.toLowerCase() ||
+//         m.value.toLowerCase() === arabicMake.toLowerCase()
+//     );
+//     return found?.enValue || arabicMake;
+//   };
+
+//   // Helper function to find English equivalent of Arabic model
+//   const findEnglishModel = (
+//     arabicModel: string,
+//     arabicMake: string
+//   ): string => {
+//     const foundMake = arabicMakes.find(
+//       (m) =>
+//         m.label.toLowerCase() === arabicMake.toLowerCase() ||
+//         m.value.toLowerCase() === arabicMake.toLowerCase()
+//     );
+
+//     if (foundMake && foundMake.models) {
+//       const modelIndex = foundMake.models.findIndex(
+//         (m) => m.toLowerCase() === arabicModel.toLowerCase()
+//       );
+
+//       if (modelIndex >= 0) {
+//         const englishMake = makes.find(
+//           (m) => m.value.toLowerCase() === foundMake.enValue.toLowerCase()
+//         );
+
+//         if (
+//           englishMake &&
+//           englishMake.models &&
+//           englishMake.models[modelIndex]
+//         ) {
+//           return englishMake.models[modelIndex];
+//         }
+//       }
+//     }
+
+//     return arabicModel;
+//   };
+
 //   const filteredCars = Array.isArray(cars)
 //     ? cars.filter((car) => {
-//         const makeLower = search.make.toLowerCase();
-//         const modelLower = search.model.toLowerCase();
-//         const locationLower = search.location.toLowerCase();
+//         // Get search terms, accounting for language
+//         let searchMake = search.make.toLowerCase();
+//         let searchModel = search.model.toLowerCase();
+//         let searchLocation = search.location.toLowerCase();
+
+//         // If in Arabic mode, convert search terms to English for comparison
+//         if (isArabic && searchMake) {
+//           searchMake = findEnglishMake(searchMake).toLowerCase();
+//         }
+
+//         if (isArabic && searchModel && searchMake) {
+//           searchModel = findEnglishModel(
+//             searchModel,
+//             search.make
+//           ).toLowerCase();
+//         }
+
+//         if (isArabic && searchLocation) {
+//           // Find English location equivalent
+//           const locationObj = locations.find(
+//             (loc) => loc.arValue.toLowerCase() === searchLocation
+//           );
+//           if (locationObj) {
+//             searchLocation = locationObj.value.toLowerCase();
+//           }
+//         }
+
 //         const carMake = car.make?.toLowerCase() || "";
 //         const carModel = car.model?.toLowerCase() || "";
 //         const carLocation = car.location?.toLowerCase() || "";
+
 //         return (
-//           (!makeLower || carMake.includes(makeLower)) &&
-//           (!modelLower || carModel.includes(modelLower)) &&
-//           (!locationLower || carLocation.includes(locationLower))
+//           (!searchMake || carMake.includes(searchMake)) &&
+//           (!searchModel || carModel.includes(searchModel)) &&
+//           (!searchLocation || carLocation.includes(searchLocation))
 //         );
 //       })
 //     : [];
@@ -654,11 +798,13 @@ const styles = StyleSheet.create({
 //         ) : cars.length === 0 ? (
 //           <Text style={[styles.noResults, rtlStyle]}>{t("noCars")}</Text>
 //         ) : filteredCars.length === 0 ? (
-//           <Text style={[styles.noResults, rtlStyle]}>
-//             {t("noResults", {
-//               search: search.make || search.model || search.location,
-//             })}
-//           </Text>
+//           <View style={styles.noResultsContainer}>
+//             <Text style={[styles.noResults, rtlStyle]}>
+//               {t("noResults", {
+//                 search: search.make || search.model || search.location,
+//               })}
+//             </Text>
+//           </View>
 //         ) : (
 //           <FlatList
 //             data={filteredCars}
@@ -717,7 +863,7 @@ const styles = StyleSheet.create({
 //     fontWeight: "700",
 //     color: "#ffffff",
 //     flex: 1,
-//     justifyContent: "center",
+//     textAlign: "center",
 //   },
 //   headerSpacer: {
 //     width: 40,
@@ -728,6 +874,13 @@ const styles = StyleSheet.create({
 //   },
 //   listContent: {
 //     paddingBottom: 20,
+//   },
+//   noResultsContainer: {
+//     flex: 1, // Ensures the container takes up available height
+//     justifyContent: "center", // Centers content vertically
+//     alignItems: "center", // Crucial: Centers children horizontally within this container
+//     paddingVertical: 30,
+//     backgroundColor: "#ffffff", // Your current background
 //   },
 //   noResults: {
 //     textAlign: "center",

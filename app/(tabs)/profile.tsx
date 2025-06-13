@@ -24,7 +24,7 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import Snackbar from "react-native-snackbar";
+import { showToastable } from "react-native-toastable";
 import CarCard from "../../components/car-card";
 import { useAuth } from "../../contexts/AuthContext";
 import { useRTL } from "../../hooks/useRTL";
@@ -94,12 +94,12 @@ export default function Profile() {
         profileImage: userData.profileImage || "",
       });
     } catch (error: any) {
-      console.error("Profile: Error fetching user details:", error);
-      Snackbar.show({
-        text: t("failedToFetchProfile"),
-        duration: 2000,
-        backgroundColor: "#B80200",
-        textColor: "#FFFFFF",
+      // console.error("Profile: Error fetching user details:", error);
+
+      showToastable({
+        message: t("failedToFetchProfile"),
+        status: "warning",
+        duration: 2000, // Matches Snackbar.LENGTH_LONG
       });
     } finally {
       setLoading(false);
@@ -112,12 +112,12 @@ export default function Profile() {
       const listingsData = response.data?.data || response.data;
       setListings(Array.isArray(listingsData) ? listingsData : []);
     } catch (error: any) {
-      console.error("Profile: Error fetching listings:", error);
-      Snackbar.show({
-        text: t("failedToFetchListings"),
-        duration: 2000,
-        backgroundColor: "#B80200",
-        textColor: "#FFFFFF",
+      // console.error("Profile: Error fetching listings:", error);
+
+      showToastable({
+        message: t("failedToFetchListings"),
+        status: "warning",
+        duration: 2000, // Matches Snackbar.LENGTH_LONG
       });
     }
   };
@@ -128,60 +128,170 @@ export default function Profile() {
     setRefreshing(false);
   };
 
+  // const handleImagePick = async (): Promise<void> => {
+  //   const permissionResult =
+  //     await ImagePicker.requestMediaLibraryPermissionsAsync();
+  //   if (!permissionResult.granted) {
+  //     showToastable({
+  //       message: t("photoPermissionRequired"),
+  //       status: "warning",
+  //       duration: 2000, // Matches Snackbar.LENGTH_LONG
+  //     });
+  //     return;
+  //   }
+
+  //   const result = await ImagePicker.launchImageLibraryAsync({
+  //     mediaTypes: ImagePicker.MediaTypeOptions.Images,
+  //     allowsEditing: true,
+  //     aspect: [1, 1],
+  //     quality: 0.8,
+  //   });
+
+  //   if (!result.canceled && result.assets[0].uri) {
+  //     setImageUploading(true);
+  //     try {
+  //       const formData = new FormData();
+  //       formData.append("profileImage", {
+  //         uri: result.assets[0].uri,
+  //         type: "image/jpeg",
+  //         name: "profile.jpg",
+  //       } as any);
+  //       const response = await updateProfileImage(user!._id, formData);
+  //       setUserDetails({
+  //         ...userDetails,
+  //         profileImage: response.data.profileImage,
+  //       });
+
+  //       showToastable({
+  //         message: t("profileImageUpdated"),
+  //         status: "success",
+  //         duration: 2000, // Matches Snackbar.LENGTH_LONG
+  //       });
+  //     } catch (error: any) {
+  //       console.error("Profile: Error updating profile image:", error);
+
+  //       showToastable({
+  //         message: t("failedToUpdateImage"),
+  //         status: "warning",
+  //         duration: 2000, // Matches Snackbar.LENGTH_LONG
+  //       });
+  //     } finally {
+  //       setImageUploading(false);
+  //     }
+  //   }
+  // };
   const handleImagePick = async (): Promise<void> => {
-    const permissionResult =
-      await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permissionResult.granted) {
-      Snackbar.show({
-        text: t("photoPermissionRequired"),
-        duration: 2000,
-        backgroundColor: "#B80200",
-        textColor: "#FFFFFF",
+    if (!user?._id) {
+      console.log("No user ID");
+      showToastable({
+        message: t("userNotAuthenticated"),
+        status: "warning",
+        duration: 3000,
       });
       return;
     }
 
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.8,
-    });
-
-    if (!result.canceled && result.assets[0].uri) {
-      setImageUploading(true);
-      try {
-        const formData = new FormData();
-        formData.append("profileImage", {
-          uri: result.assets[0].uri,
-          type: "image/jpeg",
-          name: "profile.jpg",
-        } as any);
-        const response = await updateProfileImage(user!._id, formData);
-        setUserDetails({
-          ...userDetails,
-          profileImage: response.data.profileImage,
+    try {
+      // Request permissions
+      // console.log("Requesting permissions...");
+      const permissionResult =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permissionResult || !permissionResult.granted) {
+        // console.log("Permission denied:", permissionResult);
+        showToastable({
+          message: t("photoPermissionRequired"),
+          status: "warning",
+          duration: 3000,
         });
-        Snackbar.show({
-          text: t("profileImageUpdated"),
-          duration: 2000,
-          backgroundColor: "green",
-          textColor: "#FFFFFF",
-        });
-      } catch (error: any) {
-        console.error("Profile: Error updating profile image:", error);
-        Snackbar.show({
-          text: t("failedToUpdateImage"),
-          duration: 2000,
-          backgroundColor: "#B80200",
-          textColor: "#FFFFFF",
-        });
-      } finally {
-        setImageUploading(false);
+        return;
       }
+
+      // Launch image picker
+      // console.log("Launching image picker...");
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: false, // No iOS crashes
+        quality: 0.3, // Low memory usage
+        base64: true, // For JSON API
+      });
+
+      // Check result
+      if (result?.canceled) {
+        // console.log("Image pick canceled");
+        showToastable({
+          message: t("imagePickCanceled"),
+          status: "info",
+          duration: 2000,
+        });
+        return;
+      }
+
+      if (
+        !result?.assets?.length ||
+        !result.assets[0]?.uri ||
+        !result.assets[0]?.base64
+      ) {
+        // console.log("Invalid image result:", result);
+        showToastable({
+          message: t("noImageSelected"),
+          status: "warning",
+          duration: 3000,
+        });
+        return;
+      }
+
+      // Prepare base64
+      // console.log("Image URI:", result.assets[0].uri);
+      setImageUploading(true);
+      const base64Image = `data:${
+        result.assets[0].mimeType || "image/jpeg"
+      };base64,${result.assets[0].base64}`;
+
+      // Call API with timeout
+      // console.log("Uploading image...");
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => {
+        controller.abort();
+        // console.log("Upload timed out");
+      }, 30000); // 30s timeout
+
+      const response = await updateProfileImage(user._id, base64Image);
+      clearTimeout(timeoutId);
+
+      // Check response
+      if (!response?.data?.profileImage) {
+        // console.log("Invalid response:", response);
+        showToastable({
+          message: t("failedToUpdateImage"),
+          status: "warning",
+          duration: 3000,
+        });
+        return;
+      }
+
+      // Update state
+      // console.log("Image uploaded:", response.data.profileImage);
+      setUserDetails({
+        ...userDetails,
+        profileImage: response.data.profileImage,
+      });
+
+      showToastable({
+        message: t("profileImageUpdated"),
+        status: "success",
+        duration: 2000,
+      });
+    } catch (error) {
+      // console.log("Error in handleImagePick:", error);
+      showToastable({
+        message: t("failedToUpdateImage"),
+        status: "warning",
+        duration: 3000,
+      });
+    } finally {
+      setImageUploading(false);
     }
   };
-
   const handleLogout = async (): Promise<void> => {
     setShowLogoutModal(true);
   };
@@ -190,20 +300,20 @@ export default function Profile() {
     setShowLogoutModal(false);
     try {
       await logout();
-      Snackbar.show({
-        text: t("loggedOut"),
-        duration: 2000,
-        backgroundColor: "green",
-        textColor: "#FFFFFF",
+
+      showToastable({
+        message: t("loggedOut"),
+        status: "success",
+        duration: 2000, // Matches Snackbar.LENGTH_LONG
       });
       router.replace("/(tabs)");
     } catch (error: any) {
       console.error("Profile: Error logging out:", error);
-      Snackbar.show({
-        text: t("failedToLogout"),
-        duration: 2000,
-        backgroundColor: "#B80200",
-        textColor: "#FFFFFF",
+
+      showToastable({
+        message: t("failedToLogout"),
+        status: "warning",
+        duration: 2000, // Matches Snackbar.LENGTH_LONG
       });
     }
   };
@@ -213,12 +323,10 @@ export default function Profile() {
       await i18n.changeLanguage(lang);
       await AsyncStorage.setItem("user-language", lang);
     } catch (error) {
-      console.error("Error changing language:", error);
-      Snackbar.show({
-        text: t("languageChangeFailed"),
-        duration: 2000,
-        backgroundColor: "#B80200",
-        textColor: "#FFFFFF",
+      showToastable({
+        message: t("languageChangeFailed"),
+        status: "warning",
+        duration: 2000, // Matches Snackbar.LENGTH_LONG
       });
     }
   };
@@ -242,20 +350,20 @@ export default function Profile() {
     setShowDeleteModal(false);
     try {
       await deleteCar(carToDelete);
-      Snackbar.show({
-        text: t("listingDeleted"),
+
+      showToastable({
+        message: t("listingDeleted"),
+        status: "success",
         duration: 2000,
-        backgroundColor: "green",
-        textColor: "#FFFFFF",
       });
       fetchUserListings();
     } catch (error: any) {
       console.error("Profile: Error deleting listing:", error);
-      Snackbar.show({
-        text: t("failedToDeleteListing"),
+
+      showToastable({
+        message: t("failedToDeleteListing"),
+        status: "warning",
         duration: 2000,
-        backgroundColor: "#B80200",
-        textColor: "#FFFFFF",
       });
     } finally {
       setCarToDelete(null);

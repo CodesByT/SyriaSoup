@@ -46,18 +46,15 @@ export default function ImageCarousel({
   };
 
   const handleImageLoadStart = (index: number) => {
-    console.log(`Image ${index} started loading`);
     setImageLoadingStates((prev) => ({ ...prev, [index]: true }));
     setImageErrors((prev) => ({ ...prev, [index]: false }));
   };
 
   const handleImageLoadEnd = (index: number) => {
-    console.log(`Image ${index} finished loading`);
     setImageLoadingStates((prev) => ({ ...prev, [index]: false }));
   };
 
   const handleImageError = (index: number, error: any) => {
-    console.error(`Image ${index} failed to load:`, error);
     setImageErrors((prev) => ({ ...prev, [index]: true }));
     setImageLoadingStates((prev) => ({ ...prev, [index]: false }));
   };
@@ -72,7 +69,6 @@ export default function ImageCarousel({
 
     // Construct the full URL
     const fullUrl = `${API_BASE_URL}/Uploads/cars/${imagePath}`;
-    console.log(`Constructed image URL: ${fullUrl}`);
     return fullUrl;
   };
 
@@ -86,13 +82,6 @@ export default function ImageCarousel({
     const isLoading = imageLoadingStates[index];
     const hasError = imageErrors[index];
     const imageUrl = constructImageUrl(item);
-
-    console.log(`Rendering image ${index}:`, {
-      originalPath: item,
-      constructedUrl: imageUrl,
-      isLoading,
-      hasError,
-    });
 
     return (
       <TouchableOpacity
@@ -130,8 +119,6 @@ export default function ImageCarousel({
 
   const validImages = images?.filter(Boolean) || [];
   const displayImages = validImages.length > 0 ? validImages : ["placeholder"];
-
-  console.log("ImageCarousel received images:", validImages);
 
   return (
     <View style={styles.container}>

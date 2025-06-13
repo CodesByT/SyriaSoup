@@ -21,7 +21,7 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import Snackbar from "react-native-snackbar";
+import { showToastable } from "react-native-toastable";
 import { useAuth } from "../contexts/AuthContext";
 import { useRTL } from "../hooks/useRTL";
 import type { Car } from "../types";
@@ -347,11 +347,11 @@ export default function EditListing(): JSX.Element {
       });
 
       await updateCar(carId as string, data);
-      Snackbar.show({
-        text: "listing_updated",
-        duration: 1000,
-        backgroundColor: "green",
-        textColor: "#fff",
+
+      showToastable({
+        message: t("listing_updated"),
+        status: "success",
+        duration: 2000,
       });
       // Alert.alert(t("success"), t("listing_updated"));
       router.back();

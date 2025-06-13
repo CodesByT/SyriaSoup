@@ -14,7 +14,7 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import Snackbar from "react-native-snackbar";
+import { showToastable } from "react-native-toastable";
 import CarCardBlock from "../../components/CarCardBlock";
 import { useAuth } from "../../contexts/AuthContext";
 import type { Wishlist } from "../../types";
@@ -84,10 +84,11 @@ export default function Favorites() {
       await fetchWishlist();
     } catch (error: any) {
       // console.error("Favorites: Error during refresh:", error);
-      Snackbar.show({
-        text: t("failed_to_refresh"),
-        duration: 1000,
-        backgroundColor: "#b80200",
+
+      showToastable({
+        message: t("failed_to_refresh"),
+        status: "warning",
+        duration: 2000, // Matches Snackbar.LENGTH_LONG
       });
     }
   }, [fetchWishlist, t]);
@@ -114,11 +115,11 @@ export default function Favorites() {
             (item) => item._id !== wishlistId
           );
           setWishlists(updatedWishlists);
-          Snackbar.show({
-            text: t("removedFromWishlist"),
-            duration: 1500,
-            backgroundColor: "#B80200",
-            textColor: "#FFFFFF",
+
+          showToastable({
+            message: t("removedFromWishlist"),
+            status: "success",
+            duration: 2000, // Matches Snackbar.LENGTH_LONG
           });
           if (updatedWishlists.length === 0) {
             setWishlists([]);
@@ -127,14 +128,10 @@ export default function Favorites() {
             fetchWishlist();
           }
         } catch (error: any) {
-          // console.error("Favorites: Error removing from wishlist:", error);
-          // Changed from Alert.alert to Snackbar for error for consistency,
-          // but you could also show a different modal for errors.
-          Snackbar.show({
-            text: t("failedToRemoveWishlist"),
-            duration: 1500,
-            backgroundColor: "#B80200",
-            textColor: "#FFFFFF",
+          showToastable({
+            message: t("failedToRemoveWishlist"),
+            status: "warning",
+            duration: 2000, // Matches Snackbar.LENGTH_LONG
           });
         } finally {
           setConfirmationModalVisible(false); // Close modal after action
