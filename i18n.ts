@@ -469,6 +469,9 @@ const en = {
   Apply: "Apply",
   km: "km",
   request_otp: "Request OTP",
+  facebook_socials: "Facebook",
+  instagram_socials: "Instagram",
+  email_socials: "Email",
   // test: "test",
   // test: "test",
   // test: "test",
@@ -479,6 +482,9 @@ const en = {
 };
 
 const ar = {
+  facebook_socials: "فيسبوك",
+  instagram_socials: "انستاغرام",
+  email_socials: "بريد إلكتروني",
   request_otp: "طلب رمز OTP",
   km: "كيلومتر",
   cylinder: "عدد الاسطوانات",

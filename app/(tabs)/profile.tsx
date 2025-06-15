@@ -13,6 +13,7 @@ import {
   Dimensions,
   FlatList,
   Image,
+  Linking,
   Modal,
   RefreshControl,
   ScrollView,
@@ -579,6 +580,76 @@ export default function Profile() {
             />
           </TouchableOpacity>
         ))}
+        <View
+          style={[
+            styles.socialLinksContainer,
+            {
+              flexDirection: getFlexDirection(),
+              justifyContent: "space-between",
+            },
+          ]}
+        >
+          <TouchableOpacity
+            style={[styles.optionItem, { flexDirection: getFlexDirection() }]}
+            activeOpacity={0.7}
+          >
+            <View
+              style={[
+                styles.socialLinksContainer,
+                {
+                  flexDirection: getFlexDirection(),
+                  justifyContent: "space-between",
+                },
+              ]}
+            >
+              <TouchableOpacity
+                style={[
+                  styles.socialLink,
+                  { flexDirection: getFlexDirection() },
+                ]}
+                onPress={() =>
+                  Linking.openURL(
+                    "https://www.facebook.com/people/SyriaSouq/61573530111795/"
+                  )
+                }
+                activeOpacity={0.7}
+              >
+                <Ionicons name="logo-facebook" size={25} color="#3b5998" />
+                <Text style={[styles.socialLinkText, rtlStyle]}>
+                  {t("facebook_socials")}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.socialLink,
+                  { flexDirection: getFlexDirection() },
+                ]}
+                onPress={() =>
+                  Linking.openURL("https://www.instagram.com/mysyriasouq")
+                }
+                activeOpacity={0.7}
+              >
+                <Ionicons name="logo-instagram" size={25} color="#e1306c" />
+                <Text style={[styles.socialLinkText, rtlStyle]}>
+                  {t("instagram_socials")}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.socialLink,
+                  { flexDirection: getFlexDirection() },
+                ]}
+                onPress={() => Linking.openURL("mailto:syriasouq@outlook.com")}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="mail-outline" size={25} color="#B80200" />
+                <Text style={[styles.socialLinkText, rtlStyle]}>
+                  {t("email_socials")}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Logout Button */}
@@ -1233,5 +1304,19 @@ const styles = StyleSheet.create({
   inputRTLFixed: {
     paddingRight: 15, // Space from phone icon
     paddingLeft: 50, // Space for edit button
+  },
+  //----------------------------------
+  socialLinksContainer: {
+    gap: 8,
+    justifyContent: "space-between",
+  },
+  socialLink: {
+    alignItems: "center",
+    gap: 6,
+  },
+  socialLinkText: {
+    fontSize: 14,
+    color: "#1a1a1a",
+    fontWeight: "400",
   },
 });
