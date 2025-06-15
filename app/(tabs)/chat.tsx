@@ -388,12 +388,12 @@ const Chat = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#1a1a1a",
+    backgroundColor: "#323332",
   },
   header: {
-    backgroundColor: "#1a1a1a",
+    backgroundColor: "#323332",
     paddingHorizontal: 20,
-    paddingVertical: 15, // justifyContent: "space-between", // Remove this line
+    // justifyContent: "space-between", // Remove this line
     alignItems: "center",
     borderBottomLeftRadius: 20,
     borderBottomRightRadius: 20,
@@ -406,6 +406,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 24,
+    paddingVertical: 15,
     fontWeight: "700",
     color: "#ffffff",
     textAlign: "center",

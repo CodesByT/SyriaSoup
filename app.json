@@ -13,7 +13,8 @@
       "bundleIdentifier": "com.ballpool.SyriaSouq",
       "buildNumber": "1",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSPhotoLibraryUsageDescription": "This app needs access to your photo library to allow you to select a profile image for your account."
       }
     },
     "android": {
@@ -35,7 +36,7 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/s-logo.png",
+          "image": "./assets/splashscreen_logo.png",
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"

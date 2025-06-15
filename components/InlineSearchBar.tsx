@@ -18,6 +18,7 @@ import {
   View,
 } from "react-native";
 import { useRTL } from "../hooks/useRTL";
+import ComprehensiveFilterModal from "./ComprehensiveFilterModal";
 import {
   KilometerFilterModal,
   PriceFilterModal,
@@ -27,7 +28,7 @@ import {
 interface SearchValue {
   make: string;
   model: string;
-  location: string;
+  location: string[]; // CHANGED: From 'string' to 'string[]'
   cylinder: string;
   transmission: string;
   fuelType: string;
@@ -59,7 +60,11 @@ export default function InlineSearchBar({
   const [bottomSheetVisible, setBottomSheetVisible] = useState(false);
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
 
-  // Separate modal states
+  // Comprehensive filter modal state
+  const [comprehensiveFilterVisible, setComprehensiveFilterVisible] =
+    useState(false);
+
+  // Separate modal states for individual filters
   const [yearFilterVisible, setYearFilterVisible] = useState(false);
   const [priceFilterVisible, setPriceFilterVisible] = useState(false);
   const [kilometerFilterVisible, setKilometerFilterVisible] = useState(false);
@@ -138,7 +143,7 @@ export default function InlineSearchBar({
 
   const handleSelectMake = (make: string) => {
     const selectedMake = currentMakesData.find(
-      (m) => m.label === make || m.value === make
+      (m) => m.value === make || m.label === make
     );
     onChange({
       ...value,
@@ -157,17 +162,19 @@ export default function InlineSearchBar({
     closeBottomSheet();
   };
 
+  // MODIFIED: handleSelectLocation to return an array for 'location'
   const handleSelectLocation = (location: string) => {
     const selectedLocation = currentLocationsData.find(
       (loc) => loc.label === location
     );
     onChange({
       ...value,
-      location: selectedLocation
-        ? selectedLocation.value
-        : location === t("All")
-        ? ""
-        : location,
+      location:
+        location === t("All")
+          ? [] // If "All" is selected, set location to an empty array
+          : selectedLocation
+          ? [selectedLocation.value] // If a specific location is selected, wrap it in an array
+          : [location], // Fallback to wrapping the original string in an array
     });
     closeBottomSheet();
   };
@@ -268,7 +275,7 @@ export default function InlineSearchBar({
             handleSelectModel(item);
             break;
           case "location":
-            handleSelectLocation(item);
+            handleSelectLocation(item); // This will now handle converting to array
             break;
           case "cylinder":
             handleSelectCylinder(item);
@@ -343,26 +350,27 @@ export default function InlineSearchBar({
   const getFilterTitle = () => {
     switch (activeFilter) {
       case "make":
-        return t("select_make");
+        return t("make");
       case "model":
-        return t("select_model");
+        return t("model");
       case "location":
-        return t("select_location");
+        return t("location");
       case "cylinder":
-        return t("select_cylinders");
+        return t("cylinder");
       case "transmission":
-        return t("select_transmission");
+        return t("transmission");
       case "fuelType":
-        return t("select_fuel_type");
+        return t("fuel_type");
       case "exteriorColor":
-        return t("select_exterior_color");
+        return t("exterior_color");
       case "interiorColor":
-        return t("select_interior_color");
+        return t("interior_color");
       default:
         return "";
     }
   };
 
+  // MODIFIED: getFilterValue for 'location' to handle arrays
   const getFilterValue = (filterName: string) => {
     switch (filterName) {
       case "make":
@@ -373,10 +381,29 @@ export default function InlineSearchBar({
       case "model":
         return value.model || t("model");
       case "location":
-        return value.location
-          ? currentLocationsData.find((loc) => loc.value === value.location)
-              ?.label || value.location
-          : t("location");
+        // Check if value.location is an array and not empty
+        if (Array.isArray(value.location) && value.location.length > 0) {
+          if (value.location.length === 1) {
+            // If only one location is selected, display its label
+            return (
+              currentLocationsData.find(
+                (loc) => loc.value === value.location[0]
+              )?.label || value.location[0]
+            );
+          } else {
+            // If multiple locations are selected, display a summary
+            // You should define 'locationsSelected' in your i18n translation files
+            return `${value.location.length} ${t("location")}`;
+            // Alternatively, to show a comma-separated list of the first few:
+            /*
+            const displayedLocations = value.location.slice(0, 2).map(locValue =>
+              currentLocationsData.find(loc => loc.value === locValue)?.label || locValue
+            ).join(', ');
+            return value.location.length > 2 ? `${displayedLocations}...` : displayedLocations;
+            */
+          }
+        }
+        return t("location"); // Default text if no locations are selected
       case "cylinder":
         return value.cylinder || t("cylinder");
       case "transmission":
@@ -392,12 +419,12 @@ export default function InlineSearchBar({
     }
   };
 
-  // Get active filter count
+  // MODIFIED: getActiveFilterCount to handle 'location' as an array
   const getActiveFilterCount = () => {
     let count = 0;
     if (value.make) count++;
     if (value.model) count++;
-    if (value.location) count++;
+    if (Array.isArray(value.location) && value.location.length > 0) count++; // CHANGED
     if (value.cylinder) count++;
     if (value.transmission) count++;
     if (value.fuelType) count++;
@@ -413,7 +440,7 @@ export default function InlineSearchBar({
 
   const bottomSheetHeight = bottomSheetAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: [0, height * 0.5],
+    outputRange: [0, height * 0.7],
   });
 
   // Format year range for display
@@ -511,12 +538,10 @@ export default function InlineSearchBar({
           contentContainerStyle={styles.pillsContainer}
           style={styles.pillsScrollView}
         >
-          {/* Filters Button - Fixed */}
+          {/* Filters Button - Opens Comprehensive Modal */}
           <TouchableOpacity
             style={styles.filtersButton}
-            onPress={() => {
-              /* Can add general filters modal here if needed */
-            }}
+            onPress={() => setComprehensiveFilterVisible(true)}
             activeOpacity={0.7}
           >
             <View style={styles.filterIconContainer}>
@@ -588,7 +613,9 @@ export default function InlineSearchBar({
           <TouchableOpacity
             style={[
               styles.pillButton,
-              value.location ? styles.pillButtonActive : null,
+              Array.isArray(value.location) && value.location.length > 0
+                ? styles.pillButtonActive
+                : null, // Updated active check
             ]}
             onPress={() => openBottomSheet("location")}
             activeOpacity={0.8}
@@ -768,6 +795,14 @@ export default function InlineSearchBar({
         </ScrollView>
       </View>
 
+      {/* Comprehensive Filter Modal */}
+      <ComprehensiveFilterModal
+        visible={comprehensiveFilterVisible}
+        onClose={() => setComprehensiveFilterVisible(false)}
+        value={value}
+        onChange={onChange}
+      />
+
       {/* Bottom Sheet Modal for individual filters */}
       <Modal
         visible={bottomSheetVisible}
@@ -861,9 +896,8 @@ export default function InlineSearchBar({
 const styles = StyleSheet.create({
   container: {
     backgroundColor: "#ffffff",
-    marginHorizontal: 0,
+    marginHorizontal: 16,
     marginVertical: 0,
-    marginStart: 10,
   },
   searchRow: {
     marginVertical: 10,
@@ -1013,6 +1047,7 @@ const styles = StyleSheet.create({
     fontStyle: "italic",
   },
 });
+// "use client";
 
 // import { arabicMakes, locations, makes } from "@/utils/constants";
 // import { Ionicons } from "@expo/vector-icons";
@@ -1020,43 +1055,71 @@ const styles = StyleSheet.create({
 // import { useTranslation } from "react-i18next";
 // import {
 //   Animated,
+//   Dimensions,
 //   FlatList,
+//   Modal,
 //   ScrollView,
 //   StyleSheet,
 //   Text,
 //   TextInput,
 //   TouchableOpacity,
+//   TouchableWithoutFeedback,
 //   View,
 // } from "react-native";
 // import { useRTL } from "../hooks/useRTL";
+// import ComprehensiveFilterModal from "./ComprehensiveFilterModal";
+// import {
+//   KilometerFilterModal,
+//   PriceFilterModal,
+//   YearFilterModal,
+// } from "./FilterBottomSheet";
 
 // interface SearchValue {
 //   make: string;
 //   model: string;
 //   location: string;
+//   cylinder: string;
+//   transmission: string;
+//   fuelType: string;
+//   exteriorColor: string;
+//   interiorColor: string;
+//   priceMin: string;
+//   priceMax: string;
+//   yearMin: string;
+//   yearMax: string;
+//   kilometerMin: string;
+//   kilometerMax: string;
 // }
 
 // interface InlineSearchBarProps {
 //   value: SearchValue;
 //   onChange: (value: SearchValue) => void;
 //   placeholder?: string;
-//   onFiltersPress?: () => void;
 // }
 
 // export default function InlineSearchBar({
 //   value,
 //   onChange,
 //   placeholder,
-//   onFiltersPress,
 // }: InlineSearchBarProps) {
 //   const { t, i18n } = useTranslation();
 //   const { rtlViewStyle, rtlStyle } = useRTL();
-//   const [activeDropdown, setActiveDropdown] = useState<
-//     "make" | "model" | "location" | null
-//   >(null);
 //   const [selectedMakeData, setSelectedMakeData] = useState<any | null>(null);
 //   const [searchQuery, setSearchQuery] = useState("");
-//   const fadeAnim = useRef(new Animated.Value(0)).current;
+//   const [bottomSheetVisible, setBottomSheetVisible] = useState(false);
+//   const [activeFilter, setActiveFilter] = useState<string | null>(null);
+
+//   // Comprehensive filter modal state
+//   const [comprehensiveFilterVisible, setComprehensiveFilterVisible] =
+//     useState(false);
+
+//   // Separate modal states for individual filters
+//   const [yearFilterVisible, setYearFilterVisible] = useState(false);
+//   const [priceFilterVisible, setPriceFilterVisible] = useState(false);
+//   const [kilometerFilterVisible, setKilometerFilterVisible] = useState(false);
+
+//   const bottomSheetAnim = useRef(new Animated.Value(0)).current;
+//   const { height } = Dimensions.get("window");
 
 //   const currentMakesData = i18n.language === "ar" ? arabicMakes : makes;
 //   const currentLocationsData = locations.map((loc) =>
@@ -1064,6 +1127,41 @@ const styles = StyleSheet.create({
 //       ? { ...loc, label: loc.arValue }
 //       : { ...loc, label: loc.label }
 //   );
+
+//   // Filter options
+//   const cylinderOptions = [
+//     t("All"),
+//     t("1"),
+//     t("2"),
+//     t("4"),
+//     t("6"),
+//     t("8"),
+//     t("Other"),
+//   ];
+//   const transmissionOptions = [t("All"), t("Automatic"), t("Manual")];
+//   const fuelTypeOptions = [
+//     t("All"),
+//     t("Petrol"),
+//     t("Diesel"),
+//     t("Electric"),
+//     t("Hybrid"),
+//   ];
+//   const colorOptions = [
+//     t("All"),
+//     t("Black"),
+//     t("White"),
+//     t("Red"),
+//     t("Blue"),
+//     t("Silver"),
+//     t("Gray"),
+//     t("Green"),
+//     t("Brown"),
+//     t("Yellow"),
+//     t("Orange"),
+//     t("Purple"),
+//     t("Gold"),
+//     t("Other"),
+//   ];
 
 //   useEffect(() => {
 //     if (value.make) {
@@ -1077,20 +1175,20 @@ const styles = StyleSheet.create({
 //   }, [value.make, i18n.language]);
 
 //   useEffect(() => {
-//     if (activeDropdown) {
-//       Animated.timing(fadeAnim, {
+//     if (bottomSheetVisible) {
+//       Animated.timing(bottomSheetAnim, {
 //         toValue: 1,
-//         duration: 250,
-//         useNativeDriver: true,
+//         duration: 300,
+//         useNativeDriver: false,
 //       }).start();
 //     } else {
-//       Animated.timing(fadeAnim, {
+//       Animated.timing(bottomSheetAnim, {
 //         toValue: 0,
-//         duration: 200,
-//         useNativeDriver: true,
+//         duration: 300,
+//         useNativeDriver: false,
 //       }).start();
 //     }
-//   }, [activeDropdown]);
+//   }, [bottomSheetVisible]);
 
 //   const handleSelectMake = (make: string) => {
 //     const selectedMake = currentMakesData.find(
@@ -1098,21 +1196,19 @@ const styles = StyleSheet.create({
 //     );
 //     onChange({
 //       ...value,
-//       make: selectedMake ? selectedMake.value : make === t("all") ? "" : make,
+//       make: selectedMake ? selectedMake.value : make === t("All") ? "" : make,
 //       model: "",
 //     });
 //     setSelectedMakeData(selectedMake || null);
-//     setActiveDropdown(null);
-//     setSearchQuery("");
+//     closeBottomSheet();
 //   };
 
 //   const handleSelectModel = (model: string) => {
 //     onChange({
 //       ...value,
-//       model: model === t("all") ? "" : model,
+//       model: model === t("All") ? "" : model,
 //     });
-//     setActiveDropdown(null);
-//     setSearchQuery("");
+//     closeBottomSheet();
 //   };
 
 //   const handleSelectLocation = (location: string) => {
@@ -1123,59 +1219,339 @@ const styles = StyleSheet.create({
 //       ...value,
 //       location: selectedLocation
 //         ? selectedLocation.value
-//         : location === t("all")
+//         : location === t("All")
 //         ? ""
 //         : location,
 //     });
-//     setActiveDropdown(null);
-//     setSearchQuery("");
+//     closeBottomSheet();
+//   };
+
+//   const handleSelectCylinder = (cylinder: string) => {
+//     onChange({
+//       ...value,
+//       cylinder: cylinder === t("All") ? "" : cylinder,
+//     });
+//     closeBottomSheet();
+//   };
+
+//   const handleSelectTransmission = (transmission: string) => {
+//     onChange({
+//       ...value,
+//       transmission: transmission === t("All") ? "" : transmission,
+//     });
+//     closeBottomSheet();
+//   };
+
+//   const handleSelectFuelType = (fuelType: string) => {
+//     onChange({
+//       ...value,
+//       fuelType: fuelType === t("All") ? "" : fuelType,
+//     });
+//     closeBottomSheet();
+//   };
+
+//   const handleSelectExteriorColor = (color: string) => {
+//     onChange({
+//       ...value,
+//       exteriorColor: color === t("All") ? "" : color,
+//     });
+//     closeBottomSheet();
+//   };
+
+//   const handleSelectInteriorColor = (color: string) => {
+//     onChange({
+//       ...value,
+//       interiorColor: color === t("All") ? "" : color,
+//     });
+//     closeBottomSheet();
+//   };
+
+//   // Range filter handlers
+//   const handleYearFilter = (yearMin: string, yearMax: string) => {
+//     onChange({
+//       ...value,
+//       yearMin,
+//       yearMax,
+//     });
+//   };
+
+//   const handlePriceFilter = (priceMin: string, priceMax: string) => {
+//     onChange({
+//       ...value,
+//       priceMin,
+//       priceMax,
+//     });
+//   };
+
+//   const handleKilometerFilter = (
+//     kilometerMin: string,
+//     kilometerMax: string
+//   ) => {
+//     onChange({
+//       ...value,
+//       kilometerMin,
+//       kilometerMax,
+//     });
 //   };
 
 //   const handleSearchChange = (text: string) => {
 //     setSearchQuery(text);
 //   };
 
-//   const renderDropdownItem = ({ item }: { item: string }) => (
+//   const openBottomSheet = (filter: string) => {
+//     setActiveFilter(filter);
+//     setSearchQuery("");
+//     setBottomSheetVisible(true);
+//   };
+
+//   const closeBottomSheet = () => {
+//     setBottomSheetVisible(false);
+//     setActiveFilter(null);
+//     setSearchQuery("");
+//   };
+
+//   const renderBottomSheetItem = ({ item }: { item: string }) => (
 //     <TouchableOpacity
-//       style={styles.dropdownItem}
+//       style={styles.bottomSheetItem}
 //       onPress={() => {
-//         if (activeDropdown === "make") {
-//           handleSelectMake(item);
-//         } else if (activeDropdown === "model") {
-//           handleSelectModel(item);
-//         } else if (activeDropdown === "location") {
-//           handleSelectLocation(item);
+//         switch (activeFilter) {
+//           case "make":
+//             handleSelectMake(item);
+//             break;
+//           case "model":
+//             handleSelectModel(item);
+//             break;
+//           case "location":
+//             handleSelectLocation(item);
+//             break;
+//           case "cylinder":
+//             handleSelectCylinder(item);
+//             break;
+//           case "transmission":
+//             handleSelectTransmission(item);
+//             break;
+//           case "fuelType":
+//             handleSelectFuelType(item);
+//             break;
+//           case "exteriorColor":
+//             handleSelectExteriorColor(item);
+//             break;
+//           case "interiorColor":
+//             handleSelectInteriorColor(item);
+//             break;
+//           default:
+//             break;
 //         }
 //       }}
 //       activeOpacity={0.7}
 //     >
-//       <Text style={[styles.dropdownItemText, rtlStyle]}>{item}</Text>
+//       <Text style={[styles.bottomSheetItemText, rtlStyle]}>{item}</Text>
 //     </TouchableOpacity>
 //   );
 
-//   const getDropdownData = () => {
-//     if (activeDropdown === "make") {
-//       const filteredMakes = currentMakesData
-//         .map((make) => make.label)
-//         .filter((label) =>
-//           label.toLowerCase().includes(searchQuery.toLowerCase())
+//   const getBottomSheetData = () => {
+//     switch (activeFilter) {
+//       case "make":
+//         const filteredMakes = currentMakesData
+//           .map((make) => make.label)
+//           .filter((label) =>
+//             label.toLowerCase().includes(searchQuery.toLowerCase())
+//           );
+//         return [t("All"), ...filteredMakes];
+//       case "model":
+//         if (!selectedMakeData) return [t("All")];
+//         const filteredModels = (selectedMakeData.models || []).filter(
+//           (model: string) =>
+//             model.toLowerCase().includes(searchQuery.toLowerCase())
 //         );
-//       return [t("all"), ...filteredMakes];
-//     } else if (activeDropdown === "model" && selectedMakeData) {
-//       const filteredModels = (selectedMakeData.models || []).filter(
-//         (model: string) =>
-//           model.toLowerCase().includes(searchQuery.toLowerCase())
-//       );
-//       return [t("all"), ...filteredModels];
-//     } else if (activeDropdown === "location") {
-//       const filteredLocations = currentLocationsData
-//         .map((loc) => loc.label)
-//         .filter((label) =>
-//           label.toLowerCase().includes(searchQuery.toLowerCase())
+//         return [t("All"), ...filteredModels];
+//       case "location":
+//         const filteredLocations = currentLocationsData
+//           .map((loc) => loc.label)
+//           .filter((label) =>
+//             label.toLowerCase().includes(searchQuery.toLowerCase())
+//           );
+//         return [t("All"), ...filteredLocations];
+//       case "cylinder":
+//         return cylinderOptions.filter((option) =>
+//           option.toLowerCase().includes(searchQuery.toLowerCase())
 //         );
-//       return [t("all"), ...filteredLocations];
+//       case "transmission":
+//         return transmissionOptions.filter((option) =>
+//           option.toLowerCase().includes(searchQuery.toLowerCase())
+//         );
+//       case "fuelType":
+//         return fuelTypeOptions.filter((option) =>
+//           option.toLowerCase().includes(searchQuery.toLowerCase())
+//         );
+//       case "exteriorColor":
+//       case "interiorColor":
+//         return colorOptions.filter((option) =>
+//           option.toLowerCase().includes(searchQuery.toLowerCase())
+//         );
+//       default:
+//         return [];
 //     }
-//     return [];
+//   };
+
+//   const getFilterTitle = () => {
+//     switch (activeFilter) {
+//       case "make":
+//         return t("Select Make");
+//       case "model":
+//         return t("Select Model");
+//       case "location":
+//         return t("Select Location");
+//       case "cylinder":
+//         return t("Select Cylinder");
+//       case "transmission":
+//         return t("Select Transmission");
+//       case "fuelType":
+//         return t("Select Fuel Type");
+//       case "exteriorColor":
+//         return t("Select Exterior Color");
+//       case "interiorColor":
+//         return t("Select Interior Color");
+//       default:
+//         return "";
+//     }
+//   };
+
+//   const getFilterValue = (filterName: string) => {
+//     switch (filterName) {
+//       case "make":
+//         return value.make
+//           ? currentMakesData.find((m) => m.value === value.make)?.label ||
+//               value.make
+//           : t("make");
+//       case "model":
+//         return value.model || t("model");
+//       case "location":
+//         return value.location
+//           ? currentLocationsData.find((loc) => loc.value === value.location)
+//               ?.label || value.location
+//           : t("location");
+//       case "cylinder":
+//         return value.cylinder || t("cylinder");
+//       case "transmission":
+//         return value.transmission || t("transmission");
+//       case "fuelType":
+//         return value.fuelType || t("fuel");
+//       case "exteriorColor":
+//         return value.exteriorColor || t("ext. color");
+//       case "interiorColor":
+//         return value.interiorColor || t("int. color");
+//       default:
+//         return "";
+//     }
+//   };
+
+//   // Get active filter count
+//   const getActiveFilterCount = () => {
+//     let count = 0;
+//     if (value.make) count++;
+//     if (value.model) count++;
+//     if (value.location) count++;
+//     if (value.cylinder) count++;
+//     if (value.transmission) count++;
+//     if (value.fuelType) count++;
+//     if (value.exteriorColor) count++;
+//     if (value.interiorColor) count++;
+//     if (value.yearMin || value.yearMax) count++;
+//     if (value.priceMin || value.priceMax) count++;
+//     if (value.kilometerMin || value.kilometerMax) count++;
+//     return count;
+//   };
+
+//   const activeFilterCount = getActiveFilterCount();
+
+//   const bottomSheetHeight = bottomSheetAnim.interpolate({
+//     inputRange: [0, 1],
+//     outputRange: [0, height * 0.7],
+//   });
+
+//   // Format year range for display
+//   const getYearRangeText = () => {
+//     if (value.yearMin && value.yearMax) {
+//       const minYear =
+//         i18n.language === "ar"
+//           ? value.yearMin.replace(/\d/g, (d) => "٠١٢٣٤٥٦٧٨٩"[parseInt(d)])
+//           : value.yearMin;
+//       const maxYear =
+//         i18n.language === "ar"
+//           ? value.yearMax.replace(/\d/g, (d) => "٠١٢٣٤٥٦٧٨٩"[parseInt(d)])
+//           : value.yearMax;
+//       return `${minYear} - ${maxYear}`;
+//     } else if (value.yearMin) {
+//       const minYear =
+//         i18n.language === "ar"
+//           ? value.yearMin.replace(/\d/g, (d) => "٠١٢٣٤٥٦٧٨٩"[parseInt(d)])
+//           : value.yearMin;
+//       return `${minYear}+`;
+//     } else if (value.yearMax) {
+//       const maxYear =
+//         i18n.language === "ar"
+//           ? value.yearMax.replace(/\d/g, (d) => "٠١٢٣٤٥٦٧٨٩"[parseInt(d)])
+//           : value.yearMax;
+//       return `≤${maxYear}`;
+//     }
+//     return t("year");
+//   };
+
+//   // Format price range for display
+//   const getPriceRangeText = () => {
+//     if (value.priceMin && value.priceMax) {
+//       const minPrice =
+//         i18n.language === "ar"
+//           ? Number.parseInt(value.priceMin).toLocaleString("ar-EG")
+//           : Number.parseInt(value.priceMin).toLocaleString();
+//       const maxPrice =
+//         i18n.language === "ar"
+//           ? Number.parseInt(value.priceMax).toLocaleString("ar-EG")
+//           : Number.parseInt(value.priceMax).toLocaleString();
+//       return `$${minPrice} - $${maxPrice}`;
+//     } else if (value.priceMin) {
+//       const minPrice =
+//         i18n.language === "ar"
+//           ? Number.parseInt(value.priceMin).toLocaleString("ar-EG")
+//           : Number.parseInt(value.priceMin).toLocaleString();
+//       return `$${minPrice}+`;
+//     } else if (value.priceMax) {
+//       const maxPrice =
+//         i18n.language === "ar"
+//           ? Number.parseInt(value.priceMax).toLocaleString("ar-EG")
+//           : Number.parseInt(value.priceMax).toLocaleString();
+//       return `≤$${maxPrice}`;
+//     }
+//     return t("price");
+//   };
+
+//   // Format kilometer range for display
+//   const getKilometerRangeText = () => {
+//     if (value.kilometerMin && value.kilometerMax) {
+//       const minKm =
+//         i18n.language === "ar"
+//           ? Number.parseInt(value.kilometerMin).toLocaleString("ar-EG")
+//           : Number.parseInt(value.kilometerMin).toLocaleString();
+//       const maxKm =
+//         i18n.language === "ar"
+//           ? Number.parseInt(value.kilometerMax).toLocaleString("ar-EG")
+//           : Number.parseInt(value.kilometerMax).toLocaleString();
+//       return `${minKm} - ${maxKm} ${i18n.language === "ar" ? "كم" : "km"}`;
+//     } else if (value.kilometerMin) {
+//       const minKm =
+//         i18n.language === "ar"
+//           ? Number.parseInt(value.kilometerMin).toLocaleString("ar-EG")
+//           : Number.parseInt(value.kilometerMin).toLocaleString();
+//       return `${minKm}+ ${i18n.language === "ar" ? "كم" : "km"}`;
+//     } else if (value.kilometerMax) {
+//       const maxKm =
+//         i18n.language === "ar"
+//           ? Number.parseInt(value.kilometerMax).toLocaleString("ar-EG")
+//           : Number.parseInt(value.kilometerMax).toLocaleString();
+//       return `≤${maxKm} ${i18n.language === "ar" ? "كم" : "km"}`;
+//     }
+//     return t("km");
 //   };
 
 //   return (
@@ -1189,33 +1565,36 @@ const styles = StyleSheet.create({
 //           contentContainerStyle={styles.pillsContainer}
 //           style={styles.pillsScrollView}
 //         >
-//           {/* Filters Button - Fixed */}
+//           {/* Filters Button - Opens Comprehensive Modal */}
 //           <TouchableOpacity
 //             style={styles.filtersButton}
-//             onPress={onFiltersPress}
+//             onPress={() => setComprehensiveFilterVisible(true)}
 //             activeOpacity={0.7}
 //           >
 //             <View style={styles.filterIconContainer}>
 //               <Ionicons name="options" size={18} color="#B80200" />
+//               {activeFilterCount > 0 && (
+//                 <View style={styles.filterBadge}>
+//                   <Text style={styles.filterBadgeText}>
+//                     {activeFilterCount}
+//                   </Text>
+//                 </View>
+//               )}
 //             </View>
 //             <Text style={[styles.filtersText, rtlStyle]}>{t("filters")}</Text>
 //           </TouchableOpacity>
-//           {/* Make Dropdown */}
+
+//           {/* Make Filter */}
 //           <TouchableOpacity
 //             style={[
 //               styles.pillButton,
-//               activeDropdown === "make" && styles.pillButtonActive,
+//               value.make ? styles.pillButtonActive : null,
 //             ]}
-//             onPress={() =>
-//               setActiveDropdown(activeDropdown === "make" ? null : "make")
-//             }
+//             onPress={() => openBottomSheet("make")}
 //             activeOpacity={0.8}
 //           >
 //             <Text style={[styles.pillButtonText, rtlStyle]}>
-//               {value.make
-//                 ? currentMakesData.find((m) => m.value === value.make)?.label ||
-//                   value.make
-//                 : t("make")}
+//               {getFilterValue("make")}
 //             </Text>
 //             <Ionicons
 //               name="chevron-down"
@@ -1225,15 +1604,16 @@ const styles = StyleSheet.create({
 //             />
 //           </TouchableOpacity>
 
-//           {/* Model Dropdown */}
+//           {/* Model Filter */}
 //           <TouchableOpacity
 //             style={[
 //               styles.pillButton,
 //               !value.make && styles.pillButtonDisabled,
+//               value.model ? styles.pillButtonActive : null,
 //             ]}
 //             onPress={() => {
 //               if (value.make) {
-//                 setActiveDropdown(activeDropdown === "model" ? null : "model");
+//                 openBottomSheet("model");
 //               }
 //             }}
 //             disabled={!value.make}
@@ -1246,7 +1626,7 @@ const styles = StyleSheet.create({
 //                 !value.make && styles.pillButtonTextDisabled,
 //               ]}
 //             >
-//               {value.model || t("model")}
+//               {getFilterValue("model")}
 //             </Text>
 //             <Ionicons
 //               name="chevron-down"
@@ -1256,22 +1636,179 @@ const styles = StyleSheet.create({
 //             />
 //           </TouchableOpacity>
 
-//           {/* Location Dropdown */}
+//           {/* Location Filter */}
 //           <TouchableOpacity
-//             style={[styles.pillButton]}
-//             onPress={() =>
-//               setActiveDropdown(
-//                 activeDropdown === "location" ? null : "location"
-//               )
-//             }
+//             style={[
+//               styles.pillButton,
+//               value.location ? styles.pillButtonActive : null,
+//             ]}
+//             onPress={() => openBottomSheet("location")}
 //             activeOpacity={0.8}
 //           >
 //             <Text style={[styles.pillButtonText, rtlStyle]}>
-//               {value.location
-//                 ? currentLocationsData.find(
-//                     (loc) => loc.value === value.location
-//                   )?.label || value.location
-//                 : t("location")}
+//               {getFilterValue("location")}
+//             </Text>
+//             <Ionicons
+//               name="chevron-down"
+//               size={16}
+//               color="#666"
+//               style={styles.chevronIcon}
+//             />
+//           </TouchableOpacity>
+
+//           {/* Year Range Filter */}
+//           <TouchableOpacity
+//             style={[
+//               styles.pillButton,
+//               value.yearMin || value.yearMax ? styles.pillButtonActive : null,
+//             ]}
+//             onPress={() => setYearFilterVisible(true)}
+//             activeOpacity={0.8}
+//           >
+//             <Text style={[styles.pillButtonText, rtlStyle]}>
+//               {getYearRangeText()}
+//             </Text>
+//             <Ionicons
+//               name="chevron-down"
+//               size={16}
+//               color="#666"
+//               style={styles.chevronIcon}
+//             />
+//           </TouchableOpacity>
+
+//           {/* Price Range Filter */}
+//           <TouchableOpacity
+//             style={[
+//               styles.pillButton,
+//               value.priceMin || value.priceMax ? styles.pillButtonActive : null,
+//             ]}
+//             onPress={() => setPriceFilterVisible(true)}
+//             activeOpacity={0.8}
+//           >
+//             <Text style={[styles.pillButtonText, rtlStyle]}>
+//               {getPriceRangeText()}
+//             </Text>
+//             <Ionicons
+//               name="chevron-down"
+//               size={16}
+//               color="#666"
+//               style={styles.chevronIcon}
+//             />
+//           </TouchableOpacity>
+
+//           {/* Kilometer Range Filter */}
+//           <TouchableOpacity
+//             style={[
+//               styles.pillButton,
+//               value.kilometerMin || value.kilometerMax
+//                 ? styles.pillButtonActive
+//                 : null,
+//             ]}
+//             onPress={() => setKilometerFilterVisible(true)}
+//             activeOpacity={0.8}
+//           >
+//             <Text style={[styles.pillButtonText, rtlStyle]}>
+//               {getKilometerRangeText()}
+//             </Text>
+//             <Ionicons
+//               name="chevron-down"
+//               size={16}
+//               color="#666"
+//               style={styles.chevronIcon}
+//             />
+//           </TouchableOpacity>
+
+//           {/* Cylinder Filter */}
+//           <TouchableOpacity
+//             style={[
+//               styles.pillButton,
+//               value.cylinder ? styles.pillButtonActive : null,
+//             ]}
+//             onPress={() => openBottomSheet("cylinder")}
+//             activeOpacity={0.8}
+//           >
+//             <Text style={[styles.pillButtonText, rtlStyle]}>
+//               {getFilterValue("cylinder")}
+//             </Text>
+//             <Ionicons
+//               name="chevron-down"
+//               size={16}
+//               color="#666"
+//               style={styles.chevronIcon}
+//             />
+//           </TouchableOpacity>
+
+//           {/* Transmission Filter */}
+//           <TouchableOpacity
+//             style={[
+//               styles.pillButton,
+//               value.transmission ? styles.pillButtonActive : null,
+//             ]}
+//             onPress={() => openBottomSheet("transmission")}
+//             activeOpacity={0.8}
+//           >
+//             <Text style={[styles.pillButtonText, rtlStyle]}>
+//               {getFilterValue("transmission")}
+//             </Text>
+//             <Ionicons
+//               name="chevron-down"
+//               size={16}
+//               color="#666"
+//               style={styles.chevronIcon}
+//             />
+//           </TouchableOpacity>
+
+//           {/* Fuel Type Filter */}
+//           <TouchableOpacity
+//             style={[
+//               styles.pillButton,
+//               value.fuelType ? styles.pillButtonActive : null,
+//             ]}
+//             onPress={() => openBottomSheet("fuelType")}
+//             activeOpacity={0.8}
+//           >
+//             <Text style={[styles.pillButtonText, rtlStyle]}>
+//               {getFilterValue("fuelType")}
+//             </Text>
+//             <Ionicons
+//               name="chevron-down"
+//               size={16}
+//               color="#666"
+//               style={styles.chevronIcon}
+//             />
+//           </TouchableOpacity>
+
+//           {/* Exterior Color Filter */}
+//           <TouchableOpacity
+//             style={[
+//               styles.pillButton,
+//               value.exteriorColor ? styles.pillButtonActive : null,
+//             ]}
+//             onPress={() => openBottomSheet("exteriorColor")}
+//             activeOpacity={0.8}
+//           >
+//             <Text style={[styles.pillButtonText, rtlStyle]}>
+//               {getFilterValue("exteriorColor")}
+//             </Text>
+//             <Ionicons
+//               name="chevron-down"
+//               size={16}
+//               color="#666"
+//               style={styles.chevronIcon}
+//             />
+//           </TouchableOpacity>
+
+//           {/* Interior Color Filter */}
+//           <TouchableOpacity
+//             style={[
+//               styles.pillButton,
+//               value.interiorColor ? styles.pillButtonActive : null,
+//             ]}
+//             onPress={() => openBottomSheet("interiorColor")}
+//             activeOpacity={0.8}
+//           >
+//             <Text style={[styles.pillButtonText, rtlStyle]}>
+//               {getFilterValue("interiorColor")}
 //             </Text>
 //             <Ionicons
 //               name="chevron-down"
@@ -1283,46 +1820,100 @@ const styles = StyleSheet.create({
 //         </ScrollView>
 //       </View>
 
-//       {/* Dropdown List */}
-//       {activeDropdown && (
-//         <Animated.View
-//           style={[styles.dropdownContainer, { opacity: fadeAnim }]}
-//         >
-//           {(activeDropdown === "make" || activeDropdown === "model") && (
-//             <View style={styles.searchInputContainer}>
-//               <Ionicons
-//                 name="search"
-//                 size={18}
-//                 color="#B80200"
-//                 style={styles.searchIcon}
-//               />
-//               <TextInput
-//                 style={[styles.searchInput, rtlStyle]}
-//                 value={searchQuery}
-//                 onChangeText={handleSearchChange}
-//                 placeholder={
-//                   activeDropdown === "make" ? t("searchMake") : t("searchModel")
-//                 }
-//                 placeholderTextColor="#666"
-//               />
-//             </View>
-//           )}
-//           <FlatList
-//             data={getDropdownData()}
-//             keyExtractor={(item, index) => `${activeDropdown}-${index}`}
-//             renderItem={renderDropdownItem}
-//             style={styles.dropdown}
-//             maxToRenderPerBatch={10}
-//             initialNumToRender={10}
-//             showsVerticalScrollIndicator={false}
-//             ListEmptyComponent={() => (
-//               <View style={styles.noResultsContainer}>
-//                 <Text style={styles.noResults}>{t("noResultsFound")}</Text>
-//               </View>
-//             )}
-//           />
-//         </Animated.View>
-//       )}
+//       {/* Comprehensive Filter Modal */}
+//       <ComprehensiveFilterModal
+//         visible={comprehensiveFilterVisible}
+//         onClose={() => setComprehensiveFilterVisible(false)}
+//         value={value}
+//         onChange={onChange}
+//       />
+
+//       {/* Bottom Sheet Modal for individual filters */}
+//       <Modal
+//         visible={bottomSheetVisible}
+//         transparent={true}
+//         animationType="none"
+//         onRequestClose={closeBottomSheet}
+//       >
+//         <TouchableWithoutFeedback onPress={closeBottomSheet}>
+//           <View style={styles.modalOverlay}>
+//             <TouchableWithoutFeedback>
+//               <Animated.View
+//                 style={[
+//                   styles.bottomSheetContainer,
+//                   { height: bottomSheetHeight },
+//                 ]}
+//               >
+//                 <View style={styles.bottomSheetHeader}>
+//                   <Text style={styles.bottomSheetTitle}>
+//                     {getFilterTitle()}
+//                   </Text>
+//                   <TouchableOpacity onPress={closeBottomSheet}>
+//                     <Ionicons name="close" size={24} color="#333" />
+//                   </TouchableOpacity>
+//                 </View>
+
+//                 <View style={styles.searchInputContainer}>
+//                   <Ionicons
+//                     name="search"
+//                     size={18}
+//                     color="#B80200"
+//                     style={styles.searchIcon}
+//                   />
+//                   <TextInput
+//                     style={[styles.searchInput, rtlStyle]}
+//                     value={searchQuery}
+//                     onChangeText={handleSearchChange}
+//                     placeholder={t("Search")}
+//                     placeholderTextColor="#666"
+//                     autoFocus={true}
+//                   />
+//                 </View>
+
+//                 <FlatList
+//                   data={getBottomSheetData()}
+//                   keyExtractor={(item, index) => `${activeFilter}-${index}`}
+//                   renderItem={renderBottomSheetItem}
+//                   style={styles.bottomSheetList}
+//                   showsVerticalScrollIndicator={true}
+//                   ListEmptyComponent={() => (
+//                     <View style={styles.noResultsContainer}>
+//                       <Text style={styles.noResults}>
+//                         {t("noResultsFound")}
+//                       </Text>
+//                     </View>
+//                   )}
+//                 />
+//               </Animated.View>
+//             </TouchableWithoutFeedback>
+//           </View>
+//         </TouchableWithoutFeedback>
+//       </Modal>
+
+//       {/* Range Filter Modals */}
+//       <YearFilterModal
+//         visible={yearFilterVisible}
+//         onClose={() => setYearFilterVisible(false)}
+//         yearMin={value.yearMin}
+//         yearMax={value.yearMax}
+//         onApply={handleYearFilter}
+//       />
+
+//       <PriceFilterModal
+//         visible={priceFilterVisible}
+//         onClose={() => setPriceFilterVisible(false)}
+//         priceMin={value.priceMin}
+//         priceMax={value.priceMax}
+//         onApply={handlePriceFilter}
+//       />
+
+//       <KilometerFilterModal
+//         visible={kilometerFilterVisible}
+//         onClose={() => setKilometerFilterVisible(false)}
+//         kilometerMin={value.kilometerMin}
+//         kilometerMax={value.kilometerMax}
+//         onApply={handleKilometerFilter}
+//       />
 //     </View>
 //   );
 // }
@@ -1352,6 +1943,23 @@ const styles = StyleSheet.create({
 //     height: 16,
 //     justifyContent: "center",
 //     alignItems: "center",
+//     position: "relative",
+//   },
+//   filterBadge: {
+//     position: "absolute",
+//     top: -8,
+//     right: -8,
+//     backgroundColor: "#b80200",
+//     borderRadius: 10,
+//     width: 16,
+//     height: 16,
+//     justifyContent: "center",
+//     alignItems: "center",
+//   },
+//   filterBadgeText: {
+//     color: "#ffffff",
+//     fontSize: 10,
+//     fontWeight: "bold",
 //   },
 //   filtersText: {
 //     fontSize: Math.max(16, 1),
@@ -1365,7 +1973,7 @@ const styles = StyleSheet.create({
 //     flexDirection: "row",
 //     alignItems: "center",
 //     gap: 8,
-//     paddingRight: 16, // Extra padding at the end for better scrolling
+//     paddingRight: 16,
 //   },
 //   pillButton: {
 //     flexDirection: "row",
@@ -1377,7 +1985,6 @@ const styles = StyleSheet.create({
 //     borderWidth: 1,
 //     borderColor: "#d0d0d0",
 //     minHeight: 40,
-//     // Remove flex: 1 to allow content-based sizing
 //   },
 //   pillButtonActive: {
 //     borderColor: "#B80200",
@@ -1390,51 +1997,45 @@ const styles = StyleSheet.create({
 //     fontSize: Math.max(13, 1),
 //     fontWeight: "400",
 //     color: "#333",
-//     // Remove flex: 1 to prevent text truncation
 //   },
 //   pillButtonTextDisabled: {
 //     color: "#aaa",
 //   },
 //   chevronIcon: {
-//     marginLeft: 8, // Space between text and icon
+//     marginLeft: 8,
 //   },
-//   dropdownContainer: {
-//     maxHeight: 250,
+//   modalOverlay: {
+//     flex: 1,
+//     backgroundColor: "rgba(0,0,0,0.5)",
+//     justifyContent: "flex-end",
+//   },
+//   bottomSheetContainer: {
 //     backgroundColor: "#ffffff",
-//     borderWidth: 1,
-//     borderColor: "#e0e0e0",
-//     borderRadius: 8,
-//     marginTop: 4,
-//     shadowColor: "#000",
-//     shadowOffset: { width: 0, height: 2 },
-//     shadowOpacity: 0.1,
-//     shadowRadius: 4,
-//     elevation: 3,
+//     borderTopLeftRadius: 20,
+//     borderTopRightRadius: 20,
+//     paddingBottom: 20,
 //   },
-//   dropdown: {
-//     backgroundColor: "#ffffff",
-//   },
-//   dropdownItem: {
+//   bottomSheetHeader: {
+//     flexDirection: "row",
+//     justifyContent: "space-between",
+//     alignItems: "center",
 //     paddingHorizontal: 20,
-//     paddingVertical: 15,
+//     paddingVertical: 16,
 //     borderBottomWidth: 1,
-//     borderBottomColor: "#f5f5f5",
-//     backgroundColor: "#ffffff",
+//     borderBottomColor: "#f0f0f0",
 //   },
-//   dropdownItemText: {
-//     fontSize: Math.max(14, 1),
+//   bottomSheetTitle: {
+//     fontSize: 18,
+//     fontWeight: "600",
 //     color: "#333",
-//     fontWeight: "400",
 //   },
 //   searchInputContainer: {
 //     flexDirection: "row",
 //     alignItems: "center",
-//     backgroundColor: "#ffffff",
+//     backgroundColor: "#f5f5f5",
 //     borderRadius: 8,
 //     paddingHorizontal: 16,
 //     margin: 12,
-//     borderWidth: 1,
-//     borderColor: "#e0e0e0",
 //   },
 //   searchIcon: {
 //     marginRight: 10,
@@ -1446,12 +2047,24 @@ const styles = StyleSheet.create({
 //     fontWeight: "400",
 //     color: "#333",
 //   },
+//   bottomSheetList: {
+//     flex: 1,
+//   },
+//   bottomSheetItem: {
+//     paddingHorizontal: 20,
+//     paddingVertical: 15,
+//     borderBottomWidth: 1,
+//     borderBottomColor: "#f5f5f5",
+//   },
+//   bottomSheetItemText: {
+//     fontSize: 16,
+//     color: "#333",
+//   },
 //   noResultsContainer: {
 //     flex: 1,
 //     justifyContent: "center",
 //     alignItems: "center",
 //     paddingVertical: 30,
-//     backgroundColor: "#ffffff",
 //   },
 //   noResults: {
 //     fontSize: Math.max(13, 1),

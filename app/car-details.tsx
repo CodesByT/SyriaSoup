@@ -681,7 +681,9 @@ export default function CarDetails(): JSX.Element {
         <View style={styles.modalContainer}>
           {/* Header */}
           <View style={styles.modalHeader}>
-            <Text style={[styles.modalTitle, rtlStyle]}>{t("report")}</Text>
+            <Text style={[styles.modalTitle, rtlStyle]}>
+              {t("report_listing")}
+            </Text>
             <TouchableOpacity onPress={() => setReportModalVisible(false)}>
               <Ionicons name="close" size={20} color="#666" />
             </TouchableOpacity>
@@ -1021,12 +1023,12 @@ export default function CarDetails(): JSX.Element {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#1a1a1a",
+    backgroundColor: "#323332",
   },
   header: {
-    backgroundColor: "#1a1a1a",
+    backgroundColor: "##323332",
     paddingHorizontal: 20,
-    paddingVertical: 15,
+    // paddingVertical: 15,
     alignItems: "center",
     justifyContent: "space-between",
     borderBottomLeftRadius: 20,
@@ -1047,6 +1049,8 @@ const styles = StyleSheet.create({
     color: "#ffffff",
     textAlign: "center",
     marginHorizontal: 16,
+    paddingVertical: 15,
+    paddingHorizontal: 15,
   },
   shareButton: {
     padding: 8,

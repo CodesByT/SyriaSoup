@@ -28,15 +28,22 @@ import {
 } from "../utils/api";
 import { arabicMakes, locations, makes } from "../utils/constants";
 
+// IMPORT SearchValue from your new shared types file
+import { SearchValue } from "../types/searchValues"; // Adjust path as needed, e.g., './types' or '@/types' or '../types/index'
+
 export default function AllCars() {
   const { t, i18n } = useTranslation();
   const { isAuthenticated, user } = useAuth();
   const { isRTL, rtlStyle, getFlexDirection } = useRTL();
   const [cars, setCars] = useState<Car[]>([]);
-  const [search, setSearch] = useState({
+
+  // Initialize search state with 'location' as an empty string,
+  // but ensure it's explicitly typed to allow for array as well.
+  const [search, setSearch] = useState<SearchValue>({
+    // Explicitly use the defined SearchValue interface
     make: "",
     model: "",
-    location: "",
+    location: [], // Initialized as an empty string for the single search bar context
     cylinder: "",
     transmission: "",
     fuelType: "",
@@ -49,6 +56,7 @@ export default function AllCars() {
     kilometerMin: "",
     kilometerMax: "",
   });
+
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -60,10 +68,13 @@ export default function AllCars() {
   const isArabic = i18n.language === "ar";
 
   useEffect(() => {
+    // When the component mounts or auth changes, reset search to its initial state.
+    // Set location to an empty string to match the default behavior of the InlineSearchBar
+    // when no specific location is selected, but it can later be updated to an array.
     setSearch({
       make: "",
       model: "",
-      location: "",
+      location: [], // Reset to empty string
       cylinder: "",
       transmission: "",
       fuelType: "",
@@ -248,12 +259,10 @@ export default function AllCars() {
 
   const filteredCars = Array.isArray(cars)
     ? cars.filter((car) => {
-        // Get search terms, accounting for language
         let searchMake = search.make.toLowerCase();
         let searchModel = search.model.toLowerCase();
-        let searchLocation = search.location.toLowerCase();
+        // REMOVED: `let searchLocation = search.location.toLowerCase();` as search.location is now an array.
 
-        // If in Arabic mode, convert search terms to English for comparison
         if (isArabic && searchMake) {
           searchMake = findEnglishMake(searchMake).toLowerCase();
         }
@@ -265,19 +274,30 @@ export default function AllCars() {
           ).toLowerCase();
         }
 
-        if (isArabic && searchLocation) {
-          // Find English location equivalent
-          const locationObj = locations.find(
-            (loc) => loc.arValue.toLowerCase() === searchLocation
-          );
-          if (locationObj) {
-            searchLocation = locationObj.value.toLowerCase();
-          }
-        }
-
-        const carMake = car.make?.toLowerCase() || "";
-        const carModel = car.model?.toLowerCase() || "";
+        // --- UPDATED LOCATION FILTERING LOGIC ---
         const carLocation = car.location?.toLowerCase() || "";
+        let locationMatch = true; // Assume true if no locations are selected in the filter
+
+        if (Array.isArray(search.location) && search.location.length > 0) {
+          // If there are selected locations, check if the car's location matches any of them
+          locationMatch = search.location.some((selectedLoc) => {
+            let processedSelectedLoc = selectedLoc.toLowerCase();
+            // Optional: If you need to translate selectedLoc from Arabic to English for comparison
+            if (isArabic) {
+              const locationObj = locations.find(
+                (loc) =>
+                  loc.arValue?.toLowerCase() === selectedLoc.toLowerCase()
+              );
+              if (locationObj) {
+                processedSelectedLoc = locationObj.value.toLowerCase();
+              }
+            }
+            return carLocation.includes(processedSelectedLoc);
+          });
+        }
+        // --- END UPDATED LOCATION FILTERING LOGIC ---
+        const carMake = car.make?.toLowerCase() || ""; // ADD THIS LINE
+        const carModel = car.model?.toLowerCase() || "";
         const carCylinder = car.engineSize?.toLowerCase() || "";
         const carTransmission = car.transmission?.toLowerCase() || "";
         const carFuelType = car.fuelType?.toLowerCase() || "";
@@ -287,14 +307,14 @@ export default function AllCars() {
         const carKilometer = Number.parseInt(
           car.kilometer?.replace(/,/g, "") || "0"
         );
+        const carPrice = Number.parseInt(
+          car.priceUSD?.replace(/,/g, "") || "0"
+        );
 
-        // Basic filters
         const makeMatch = !searchMake || carMake.includes(searchMake);
         const modelMatch = !searchModel || carModel.includes(searchModel);
-        const locationMatch =
-          !searchLocation || carLocation.includes(searchLocation);
+        // `locationMatch` is now handled by the updated logic above
 
-        // Additional filters
         const cylinderMatch =
           !search.cylinder ||
           carCylinder.includes(search.cylinder.toLowerCase());
@@ -311,7 +331,6 @@ export default function AllCars() {
           !search.interiorColor ||
           carInteriorColor.includes(search.interiorColor.toLowerCase());
 
-        // Range filters
         const yearMinMatch =
           !search.yearMin || carYear >= Number.parseInt(search.yearMin);
         const yearMaxMatch =
@@ -322,11 +341,15 @@ export default function AllCars() {
         const kilometerMaxMatch =
           !search.kilometerMax ||
           carKilometer <= Number.parseInt(search.kilometerMax);
+        const priceMinMatch =
+          !search.priceMin || carPrice >= Number.parseInt(search.priceMin);
+        const priceMaxMatch =
+          !search.priceMax || carPrice <= Number.parseInt(search.priceMax);
 
         return (
           makeMatch &&
           modelMatch &&
-          locationMatch &&
+          locationMatch && // This is the updated location match
           cylinderMatch &&
           transmissionMatch &&
           fuelTypeMatch &&
@@ -335,7 +358,9 @@ export default function AllCars() {
           yearMinMatch &&
           yearMaxMatch &&
           kilometerMinMatch &&
-          kilometerMaxMatch
+          kilometerMaxMatch &&
+          priceMinMatch &&
+          priceMaxMatch
         );
       })
     : [];
@@ -362,7 +387,7 @@ export default function AllCars() {
       <View style={styles.content}>
         <InlineSearchBar
           value={search}
-          onChange={setSearch}
+          onChange={setSearch} // This onChange expects SearchValue which now has location: string | string[]
           placeholder={t("Find Your Perfect Car")}
         />
 
@@ -386,7 +411,10 @@ export default function AllCars() {
           <View style={styles.noResultsContainer}>
             <Text style={[styles.noResults, rtlStyle]}>
               {t("noResults", {
-                search: search.make || search.model || search.location,
+                // Correctly display search.location for the "no results" message
+                search: Array.isArray(search.location)
+                  ? search.location.join(", ") // If it's an array, join elements
+                  : search.make || search.model || search.location, // Otherwise, use the string or other fallbacks
               })}
             </Text>
           </View>
@@ -424,16 +452,13 @@ export default function AllCars() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#1a1a1a",
+    backgroundColor: "#323332",
   },
   header: {
-    backgroundColor: "#1a1a1a",
+    backgroundColor: "#323332",
     paddingHorizontal: 20,
-    paddingVertical: 15,
     alignItems: "center",
     justifyContent: "space-between",
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -448,7 +473,9 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#ffffff",
     flex: 1,
+    paddingVertical: 15,
     textAlign: "center",
+    paddingHorizontal: 15,
   },
   headerSpacer: {
     width: 40,
@@ -461,11 +488,11 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   noResultsContainer: {
-    flex: 1, // Ensures the container takes up available height
-    justifyContent: "center", // Centers content vertically
-    alignItems: "center", // Crucial: Centers children horizontally within this container
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
     paddingVertical: 30,
-    backgroundColor: "#ffffff", // Your current background
+    backgroundColor: "#ffffff",
   },
   noResults: {
     textAlign: "center",
@@ -495,9 +522,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
 });
-
-// "use client";
-
 // import { Ionicons } from "@expo/vector-icons";
 // import { useRouter } from "expo-router";
 // import { useEffect, useState } from "react";
@@ -531,7 +555,22 @@ const styles = StyleSheet.create({
 //   const { isAuthenticated, user } = useAuth();
 //   const { isRTL, rtlStyle, getFlexDirection } = useRTL();
 //   const [cars, setCars] = useState<Car[]>([]);
-//   const [search, setSearch] = useState({ make: "", model: "", location: "" });
+//   const [search, setSearch] = useState({
+//     make: "",
+//     model: "",
+//     location: "",
+//     cylinder: "",
+//     transmission: "",
+//     fuelType: "",
+//     exteriorColor: "",
+//     interiorColor: "",
+//     priceMin: "",
+//     priceMax: "",
+//     yearMin: "",
+//     yearMax: "",
+//     kilometerMin: "",
+//     kilometerMax: "",
+//   });
 //   const [error, setError] = useState<string | null>(null);
 //   const [loading, setLoading] = useState(true);
 //   const [refreshing, setRefreshing] = useState(false);
@@ -543,7 +582,22 @@ const styles = StyleSheet.create({
 //   const isArabic = i18n.language === "ar";
 
 //   useEffect(() => {
-//     setSearch({ make: "", model: "", location: "" });
+//     setSearch({
+//       make: "",
+//       model: "",
+//       location: "",
+//       cylinder: "",
+//       transmission: "",
+//       fuelType: "",
+//       exteriorColor: "",
+//       interiorColor: "",
+//       priceMin: "",
+//       priceMax: "",
+//       yearMin: "",
+//       yearMax: "",
+//       kilometerMin: "",
+//       kilometerMax: "",
+//     });
 //     fetchAllCars();
 //     if (isAuthenticated && user?._id) {
 //       fetchWishlist();
@@ -746,11 +800,64 @@ const styles = StyleSheet.create({
 //         const carMake = car.make?.toLowerCase() || "";
 //         const carModel = car.model?.toLowerCase() || "";
 //         const carLocation = car.location?.toLowerCase() || "";
+//         const carCylinder = car.engineSize?.toLowerCase() || "";
+//         const carTransmission = car.transmission?.toLowerCase() || "";
+//         const carFuelType = car.fuelType?.toLowerCase() || "";
+//         const carExteriorColor = car.exteriorColor?.toLowerCase() || "";
+//         const carInteriorColor = car.interiorColor?.toLowerCase() || "";
+//         const carYear = Number.parseInt(car.year || "0");
+//         const carKilometer = Number.parseInt(
+//           car.kilometer?.replace(/,/g, "") || "0"
+//         );
+
+//         // Basic filters
+//         const makeMatch = !searchMake || carMake.includes(searchMake);
+//         const modelMatch = !searchModel || carModel.includes(searchModel);
+//         const locationMatch =
+//           !searchLocation || carLocation.includes(searchLocation);
+
+//         // Additional filters
+//         const cylinderMatch =
+//           !search.cylinder ||
+//           carCylinder.includes(search.cylinder.toLowerCase());
+//         const transmissionMatch =
+//           !search.transmission ||
+//           carTransmission.includes(search.transmission.toLowerCase());
+//         const fuelTypeMatch =
+//           !search.fuelType ||
+//           carFuelType.includes(search.fuelType.toLowerCase());
+//         const exteriorColorMatch =
+//           !search.exteriorColor ||
+//           carExteriorColor.includes(search.exteriorColor.toLowerCase());
+//         const interiorColorMatch =
+//           !search.interiorColor ||
+//           carInteriorColor.includes(search.interiorColor.toLowerCase());
+
+//         // Range filters
+//         const yearMinMatch =
+//           !search.yearMin || carYear >= Number.parseInt(search.yearMin);
+//         const yearMaxMatch =
+//           !search.yearMax || carYear <= Number.parseInt(search.yearMax);
+//         const kilometerMinMatch =
+//           !search.kilometerMin ||
+//           carKilometer >= Number.parseInt(search.kilometerMin);
+//         const kilometerMaxMatch =
+//           !search.kilometerMax ||
+//           carKilometer <= Number.parseInt(search.kilometerMax);
 
 //         return (
-//           (!searchMake || carMake.includes(searchMake)) &&
-//           (!searchModel || carModel.includes(searchModel)) &&
-//           (!searchLocation || carLocation.includes(searchLocation))
+//           makeMatch &&
+//           modelMatch &&
+//           locationMatch &&
+//           cylinderMatch &&
+//           transmissionMatch &&
+//           fuelTypeMatch &&
+//           exteriorColorMatch &&
+//           interiorColorMatch &&
+//           yearMinMatch &&
+//           yearMaxMatch &&
+//           kilometerMinMatch &&
+//           kilometerMaxMatch
 //         );
 //       })
 //     : [];
@@ -839,16 +946,14 @@ const styles = StyleSheet.create({
 // const styles = StyleSheet.create({
 //   container: {
 //     flex: 1,
-//     backgroundColor: "#1a1a1a",
+//     backgroundColor: "#323332",
 //   },
 //   header: {
-//     backgroundColor: "#1a1a1a",
+//     backgroundColor: "#323332",
 //     paddingHorizontal: 20,
-//     paddingVertical: 15,
+//     // paddingVertical: 15,
 //     alignItems: "center",
 //     justifyContent: "space-between",
-//     borderBottomLeftRadius: 20,
-//     borderBottomRightRadius: 20,
 //     shadowColor: "#000",
 //     shadowOffset: { width: 0, height: 2 },
 //     shadowOpacity: 0.1,
@@ -863,7 +968,9 @@ const styles = StyleSheet.create({
 //     fontWeight: "700",
 //     color: "#ffffff",
 //     flex: 1,
+//     paddingVertical: 15,
 //     textAlign: "center",
+//     paddingHorizontal: 15,
 //   },
 //   headerSpacer: {
 //     width: 40,

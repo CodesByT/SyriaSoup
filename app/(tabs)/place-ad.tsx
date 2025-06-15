@@ -188,7 +188,7 @@ export default function PlaceAd() {
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ["images"],
       allowsMultipleSelection: true,
       selectionLimit: 20 - images.length,
       quality: 0.7,
@@ -214,9 +214,9 @@ export default function PlaceAd() {
       return;
     }
 
-    console.log("Starting form submission...");
-    console.log("Form data:", formData);
-    console.log("Images:", images.length);
+    // console.log("Starting form submission...");
+    // console.log("Form data:", formData);
+    // console.log("Images:", images.length);
 
     setLoading(true);
     try {
@@ -240,14 +240,14 @@ export default function PlaceAd() {
       );
       data.append("description", formData.description);
 
-      console.log("Adding images to FormData...");
+      // console.log("Adding images to FormData...");
 
       // Use EXACTLY the same approach as edit-listing.tsx
       images.forEach((uri, index) => {
         const fileType = uri.split(".").pop() || "jpg";
         const name = `image-${Date.now()}-${index}.${fileType}`;
 
-        console.log(`Adding image ${index + 1}:`, name);
+        // console.log(`Adding image ${index + 1}:`, name);
 
         // Use "images" field name - EXACTLY like edit-listing.tsx
         data.append("images", {
@@ -257,9 +257,9 @@ export default function PlaceAd() {
         } as any);
       });
 
-      console.log("Sending request to API...");
+      // console.log("Sending request to API...");
       const response = await addCar(data);
-      console.log("API Response:", response.data);
+      // console.log("API Response:", response.data);
 
       showToastable({
         message: t("car_listing_created"),
@@ -286,12 +286,12 @@ export default function PlaceAd() {
       setImages([]);
       router.push("/(tabs)");
     } catch (error: any) {
-      console.error("PlaceAd: Error submitting listing:", error);
-      console.error("Error details:", {
-        message: error.message,
-        response: error.response?.data,
-        status: error.response?.status,
-      });
+      // console.error("PlaceAd: Error submitting listing:", error);
+      // console.error("Error details:", {
+      //   message: error.message,
+      //   response: error.response?.data,
+      //   status: error.response?.status,
+      // });
 
       showToastable({
         message: t("failed_to_create_car"),
@@ -305,11 +305,11 @@ export default function PlaceAd() {
 
   const renderForm = () => (
     <View style={styles.form}>
-      <Text style={[styles.section_title, rtlStyle]}>{t("general_info")}</Text>
+      <Text style={[styles.section_title, rtlStyle]}>{t("add_listing")}</Text>
       <View style={styles.section_divider} />
 
       <View style={styles.input_container}>
-        <Text style={[styles.label, rtlStyle]}>{t("make")}</Text>
+        <Text style={[styles.label, rtlStyle]}>{t("Make")}</Text>
         <TouchableOpacity
           style={[styles.picker, { flexDirection: getFlexDirection() }]}
           onPress={() => openPicker("make", makeOptions)}
@@ -367,7 +367,7 @@ export default function PlaceAd() {
           style={[styles.input, styles.left_align, rtlStyle]}
           value={formData.price_usd}
           onChangeText={(value) => handleInputChange("price_usd", value)}
-          placeholder="$"
+          placeholder={t("price_year_kilometer_place_holder")}
           placeholderTextColor="#999999"
           keyboardType="numeric"
           textAlign={isRTL ? "right" : "left"}
@@ -380,7 +380,7 @@ export default function PlaceAd() {
           style={[styles.input, styles.left_align, rtlStyle]}
           value={formData.year}
           onChangeText={(value) => handleInputChange("year", value)}
-          placeholder={t("year_placeholder")}
+          placeholder={t("price_year_kilometer_place_holder")}
           placeholderTextColor="#999999"
           keyboardType="numeric"
           textAlign={isRTL ? "right" : "left"}
@@ -393,7 +393,7 @@ export default function PlaceAd() {
           style={[styles.input, styles.left_align, rtlStyle]}
           value={formData.kilometer}
           onChangeText={(value) => handleInputChange("kilometer", value)}
-          placeholder={t("kilometer_placeholder")}
+          placeholder={t("price_year_kilometer_place_holder")}
           placeholderTextColor="#999999"
           keyboardType="numeric"
           textAlign={isRTL ? "right" : "left"}
@@ -633,7 +633,7 @@ export default function PlaceAd() {
           <ActivityIndicator size="small" color="#ffffff" />
         ) : (
           <Text style={[styles.submit_button_text, rtlStyle]}>
-            {t("add_listing")}
+            {t("add_listing2")}
           </Text>
         )}
       </TouchableOpacity>
@@ -749,12 +749,12 @@ export default function PlaceAd() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#1a1a1a",
+    backgroundColor: "#323332",
   },
   header: {
-    backgroundColor: "#1a1a1a",
+    backgroundColor: "#323332",
     paddingHorizontal: 20,
-    paddingVertical: 15,
+    // paddingVertical: 15,
     alignItems: "center",
     borderBottomLeftRadius: 20,
     borderBottomRightRadius: 20,
@@ -770,6 +770,7 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: "700",
     color: "#ffffff",
+    paddingVertical: 15,
   },
   content: {
     flex: 1,

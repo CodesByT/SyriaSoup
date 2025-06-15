@@ -348,12 +348,12 @@ export default function Conversation() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#1a1a1a",
+    backgroundColor: "#323332",
   },
   header: {
-    backgroundColor: "#1a1a1a",
+    backgroundColor: "#323332",
     paddingHorizontal: 20,
-    paddingVertical: 15,
+    // paddingVertical: 15,
     alignItems: "center",
     borderBottomLeftRadius: 20,
     borderBottomRightRadius: 20,
@@ -373,6 +373,8 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "600",
     color: "#ffffff",
+    paddingVertical: 15,
+    paddingHorizontal: 15,
   },
   keyboardAvoidingContainer: {
     flex: 1,

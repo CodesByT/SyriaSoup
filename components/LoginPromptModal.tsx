@@ -71,8 +71,6 @@ export default function LoginPromptModal({
 
           <View style={styles.titleContainer}>
             <Text style={styles.brandText}> {t("syria_souq")} </Text>
-            <View style={styles.brandUnderline} />
-            <Text style={styles.subtitle}>{t("loginPrompt")}</Text>
           </View>
         </View>
 
@@ -104,9 +102,7 @@ export default function LoginPromptModal({
                 color="#ffffff"
                 style={styles.buttonIcon}
               />
-              <Text style={styles.loginButtonText}>
-                {t("continueWithPhone")}
-              </Text>
+              <Text style={styles.loginButtonText}>{t("login")}</Text>
             </View>
           </TouchableOpacity>
 
@@ -126,9 +122,7 @@ export default function LoginPromptModal({
                 color="#b80200"
                 style={styles.buttonIcon}
               />
-              <Text style={styles.registerButtonText}>
-                {t("createAccount")}
-              </Text>
+              <Text style={styles.registerButtonText}>{t("register")}</Text>
             </View>
           </TouchableOpacity>
         </View>
@@ -145,7 +139,7 @@ export default function LoginPromptModal({
 }
 
 const styles = StyleSheet.create({
-  logo: { width: 200, height: 70, marginBottom: 10 },
+  logo: { width: 200, height: 80, marginBottom: 10 },
   modal: {
     margin: 0,
     justifyContent: "flex-start",

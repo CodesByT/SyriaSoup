@@ -40,9 +40,9 @@ export default function AboutUs() {
           hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
         >
           <Ionicons
-            name={isRTL ? "chevron-forward" : "chevron-back"}
+            name={isRTL ? "arrow-forward" : "arrow-back"}
             size={24}
-            color="#FFFFFF"
+            color="#ffffff"
           />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t("aboutUs")}</Text>
@@ -172,7 +172,7 @@ export default function AboutUs() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#1a1a1a",
+    backgroundColor: "#323332",
   },
   header: {
     flexDirection: "row",
@@ -180,7 +180,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingVertical: 16,
-    backgroundColor: "#1a1a1a",
+    backgroundColor: "#323332",
   },
   backButton: {
     width: 40,

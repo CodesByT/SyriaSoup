@@ -128,58 +128,6 @@ export default function Profile() {
     setRefreshing(false);
   };
 
-  // const handleImagePick = async (): Promise<void> => {
-  //   const permissionResult =
-  //     await ImagePicker.requestMediaLibraryPermissionsAsync();
-  //   if (!permissionResult.granted) {
-  //     showToastable({
-  //       message: t("photoPermissionRequired"),
-  //       status: "warning",
-  //       duration: 2000, // Matches Snackbar.LENGTH_LONG
-  //     });
-  //     return;
-  //   }
-
-  //   const result = await ImagePicker.launchImageLibraryAsync({
-  //     mediaTypes: ImagePicker.MediaTypeOptions.Images,
-  //     allowsEditing: true,
-  //     aspect: [1, 1],
-  //     quality: 0.8,
-  //   });
-
-  //   if (!result.canceled && result.assets[0].uri) {
-  //     setImageUploading(true);
-  //     try {
-  //       const formData = new FormData();
-  //       formData.append("profileImage", {
-  //         uri: result.assets[0].uri,
-  //         type: "image/jpeg",
-  //         name: "profile.jpg",
-  //       } as any);
-  //       const response = await updateProfileImage(user!._id, formData);
-  //       setUserDetails({
-  //         ...userDetails,
-  //         profileImage: response.data.profileImage,
-  //       });
-
-  //       showToastable({
-  //         message: t("profileImageUpdated"),
-  //         status: "success",
-  //         duration: 2000, // Matches Snackbar.LENGTH_LONG
-  //       });
-  //     } catch (error: any) {
-  //       console.error("Profile: Error updating profile image:", error);
-
-  //       showToastable({
-  //         message: t("failedToUpdateImage"),
-  //         status: "warning",
-  //         duration: 2000, // Matches Snackbar.LENGTH_LONG
-  //       });
-  //     } finally {
-  //       setImageUploading(false);
-  //     }
-  //   }
-  // };
   const handleImagePick = async (): Promise<void> => {
     if (!user?._id) {
       console.log("No user ID");
@@ -206,13 +154,11 @@ export default function Profile() {
         return;
       }
 
-      // Launch image picker
-      // console.log("Launching image picker...");
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: false, // No iOS crashes
-        quality: 0.3, // Low memory usage
-        base64: true, // For JSON API
+        mediaTypes: ["images"],
+        allowsEditing: false,
+        quality: 0.7,
+        base64: true,
       });
 
       // Check result
@@ -332,11 +278,11 @@ export default function Profile() {
   };
 
   const handleEditListing = (carId: string): void => {
-    router.push(`/edit-listing?carId=${carId}`);
+    router.push(`../edit-listing?carId=${carId}`);
   };
 
   const handleViewListing = (carId: string): void => {
-    router.push(`/car-details?carId=${carId}`);
+    router.push(`../car-details?carId=${carId}`);
   };
 
   const handleDeleteListing = (carId: string): void => {
@@ -672,7 +618,7 @@ export default function Profile() {
           </Text>
           <TouchableOpacity
             style={styles.addListingButton}
-            onPress={() => router.push("./add-listing")}
+            onPress={() => router.push("/place-ad")}
             activeOpacity={0.8}
           >
             <Ionicons name="add" size={20} color="#FFFFFF" />
@@ -867,10 +813,10 @@ export default function Profile() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#1a1a1a",
+    backgroundColor: "#323332",
   },
   header: {
-    backgroundColor: "#1a1a1a",
+    backgroundColor: "#323332",
     paddingTop: 15,
     paddingBottom: 20,
     paddingHorizontal: 20,
@@ -1036,7 +982,7 @@ const styles = StyleSheet.create({
     paddingRight: 50, // Space for edit button on right
   },
   inputRTL: {
-    paddingRight: 65, // Space from phone icon on right (50px icon + 15px padding)
+    paddingRight: 15, // Space from phone icon on right (50px icon + 15px padding)
     paddingLeft: 50, // Space for edit button on left
   },
   inputDisabled: {

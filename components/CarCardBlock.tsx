@@ -4,7 +4,13 @@ import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  ActivityIndicator,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { useRTL } from "../hooks/useRTL";
 import type { Car } from "../types";
 import {
@@ -45,12 +51,15 @@ export default function CarCardBlock({
     );
   }
 
+  // const imageUrl = car.images?.[0]
+  //   ? `${car.images[0]}?t=${Date.now()}`
+  //   : "https://via.placeholder.com/400x200?text=No+Image";
   const imageUrl = car.images?.[0]
-    ? `${car.images[0]}?t=${Date.now()}`
+    ? `${car.images[0]}`
     : "https://via.placeholder.com/400x200?text=No+Image";
-  const placeholderUrl = car.images?.[0]
-    ? `${car.images[0]}?w=50&h=50`
-    : "https://via.placeholder.com/50x50?text=Loading"; // Low-res placeholder
+  // const placeholderUrl = car.images?.[0]
+  //   ? `${car.images[0]}?w=50&h=50`
+  //   : "https://via.placeholder.com/50x50?text=Loading"; // Low-res placeholder
 
   // Get translated values
   const make = translateMake(car.make, isArabic);
@@ -62,10 +71,10 @@ export default function CarCardBlock({
       <TouchableOpacity onPress={onPress} style={styles.card}>
         <View style={styles.imageContainer}>
           {isLoading && (
-            <Image
-              source={{ uri: placeholderUrl }}
-              style={styles.placeholderImage}
-              contentFit="cover"
+            <ActivityIndicator
+              size="large"
+              color="#b80200"
+              style={styles.loadingIndicator}
             />
           )}
           <Image

@@ -156,10 +156,10 @@ export default function TermsOfUse() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#1a1a1a",
+    backgroundColor: "#323332",
   },
   header: {
-    backgroundColor: "#1a1a1a",
+    backgroundColor: "#323332",
     paddingHorizontal: 20,
     paddingVertical: 15,
     alignItems: "center",
