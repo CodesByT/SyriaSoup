@@ -4,7 +4,6 @@ import type React from "react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { PanResponder, StyleSheet, Text, View } from "react-native";
-import { ScrollView } from "react-native-gesture-handler";
 
 interface RangeSliderProps {
   min: number;
@@ -173,7 +172,7 @@ const RangeSlider: React.FC<RangeSliderProps> = ({
   }
 
   return (
-    <ScrollView style={styles.container}>
+    <View style={styles.container}>
       {title && (
         <View style={styles.titleContainer}>
           <Text style={styles.title}>{title}</Text>
@@ -225,7 +224,7 @@ const RangeSlider: React.FC<RangeSliderProps> = ({
         <Text style={styles.label}>{formatValue(min)}</Text>
         <Text style={styles.label}>{formatValue(max)}</Text>
       </View>
-    </ScrollView>
+    </View>
   );
 };
 
@@ -272,8 +271,8 @@ const styles = StyleSheet.create({
     position: "absolute",
   },
   thumb: {
-    width: 24,
-    height: 24,
+    width: 30,
+    height: 30,
     borderRadius: 12,
     backgroundColor: "#ffffff",
     position: "absolute",

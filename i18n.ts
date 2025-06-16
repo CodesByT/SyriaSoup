@@ -241,10 +241,10 @@ const en = {
   addedToWishlist: " Added to Wishlist",
   update_listing: "Update listing",
   listing_updated: "Listing updated !",
-  1: "1",
-  2: "2",
+  3: "3",
+  5: "5",
   4: "4",
-  6: "5",
+  6: "6",
   8: "8",
   please_login_to_wishlist: "Please Login First",
   loginPrompt: "Login Please",
@@ -349,7 +349,7 @@ const en = {
   limitationOfLiabilityContent:
     "The Platform and its Content are provided 'as is' without warranties. SyriaSouq is not liable for business losses, data loss, or indirect damages resulting from your use of the Platform.",
   exploreListings: "Explore Listings",
-  example_phone_number: "e.g (981 278 848)",
+  example_phone_number: "e.g (934 567 890)",
   register_new_account: "Register New Account",
   enter_username: "Enter Username",
   enter_password: "Enter Password",
@@ -367,7 +367,7 @@ const en = {
   contactDescription:
     "We'd love to hear from you! Reach out with any questions or feedback.",
   address: "Address",
-  companyAddress: "Damascus, Syria",
+  companyAddress: "Syria",
   sendMessage: "Send Message",
   formDescription:
     "Fill out the form below, and we'll get back to you as soon as possible.",
@@ -472,6 +472,41 @@ const en = {
   facebook_socials: "Facebook",
   instagram_socials: "Instagram",
   email_socials: "Email",
+  Unknown: "Unknown",
+  frequentlyAskedQuestionsTitle: "Common Questions",
+  frequentlyAskedQuestionssubTitle:
+    "Find answers to the most common questions about our services and platform",
+  faqQuestion1: "How can I track my order?",
+  faqAnswer1:
+    "You can track your order by logging into your account and visiting the 'My Orders' section. There you will find all your orders with their current status and tracking information.",
+  faqQuestion2: "What payment methods do you accept?",
+  faqAnswer2:
+    "We accept various payment methods including credit/debit cards, PayPal, and bank transfers. For certain regions, we also offer cash on delivery options.",
+  faqQuestion3: "How long does shipping take?",
+  faqAnswer3:
+    "Shipping times vary depending on your location. Domestic orders typically arrive within 3-5 business days, while international orders may take 7-14 business days. Expedited shipping options are available at checkout.",
+  faqQuestion4: "What is your return policy?",
+  faqAnswer4:
+    "We offer a 30-day return policy for most items. Products must be in their original condition with all tags and packaging. Please note that certain items like personalized products cannot be returned unless defective.",
+  faqQuestion5: "Do you ship internationally?",
+  faqAnswer5:
+    "Yes, we ship to most countries worldwide. International shipping costs and delivery times vary by location. You can see the shipping options available to your country during checkout.",
+  cant_find_looking: "Can't find what you're looking for?",
+  contact_support: "Contact our support team",
+
+  howItWorksTitle: "How SyriaSouq works",
+  searchTitle: "Search",
+  searchDescription:
+    "Use the Search bar and the icons to find what you are looking for.",
+  findTitle: "Find",
+  findDescription:
+    "Check out each brand, type and model of car you are looking for.",
+  connectTitle: "Connect",
+  connectDescription:
+    "Connect to the seller through easy communication and get your car today!",
+  newsletterSignupTitle: "Sign up to receive the latest news",
+  newsletterSignupDescription: "All you need to know about everything",
+  enterYourEmail: "Email",
   // test: "test",
   // test: "test",
   // test: "test",
@@ -482,6 +517,40 @@ const en = {
 };
 
 const ar = {
+  howItWorksTitle: "كيف يعمل Syriasouq",
+  searchTitle: "البحث",
+  searchDescription: "استخدم شريط البحث والرموز للعثور على ما تبحث عنه.",
+  findTitle: "اكتشف",
+  findDescription:
+    "تحقق من كل علامة تجارية ونوع ونموذج السيارة التي تبحث عنها.",
+  connectTitle: "تواصل",
+  connectDescription:
+    "تواصل بالبائع من خلال التواصل السهل واحصل على سيارتك اليوم!",
+  newsletterSignupTitle: "إشترك لتلقي آخر الأخبار",
+  newsletterSignupDescription: "اشترك الأن لتصلك أحدث المعلومات حول كل ما يهمك",
+  enterYourEmail: "ايميل",
+
+  cant_find_looking: "لا يمكنك العثور على ما تبحث عنه؟",
+  contact_support: "اتصل بفريق الدعم الخاص بنا",
+  frequentlyAskedQuestionsTitle: "أسئلة مشتركة",
+  frequentlyAskedQuestionssubTitle:
+    "ابحث عن إجابات على الأسئلة الأكثر شيوعًا حول خدماتنا ومنصتنا",
+  faqQuestion1: "كيف يمكنني تتبع طلبي؟",
+  faqAnswer1:
+    "يمكنك تتبع طلبك عن طريق تسجيل الدخول إلى حسابك وزيارة قسم' الطلبات '. هناك ستجد جميع الطلبات الخاصة بك مع وضعهم الحالي ومعلومات تتبعهم.",
+  faqQuestion2: "ما هي طرق الدفع التي تقبلها؟",
+  faqAnswer2:
+    "نحن نقبل العديد من طرق الدفع بما في ذلك بطاقات الائتمان/الخصم ، و PayPal ، والتحويلات المصرفية. بالنسبة لبعض المناطق ، نقدم أيضًا نقودًا على خيارات التسليم.",
+  faqQuestion3: "كم من الوقت يستغرق الشحن؟",
+  faqAnswer3:
+    "تختلف أوقات الشحن حسب موقعك. تصل الطلبات المحلية عادةً خلال 3-5 أيام عمل ، في حين أن الطلبات الدولية قد تستغرق 7-14 أيام عمل. خيارات الشحن المعجلة متوفرة عند الخروج.",
+  faqQuestion4: "ما هي سياسة العودة الخاصة بك؟",
+  faqAnswer4:
+    "نحن نقدم سياسة إرجاع مدتها 30 يومًا لمعظم العناصر. يجب أن تكون المنتجات في حالتها الأصلية مع جميع العلامات والتعبئة والتغليف. يرجى ملاحظة أنه لا يمكن إرجاع بعض العناصر مثل المنتجات المخصصة ما لم يكن معيبًا.",
+  faqQuestion5: "هل تشحن دوليا؟",
+  faqAnswer5:
+    "نعم ، نحن نشحن إلى معظم البلدان في جميع أنحاء العالم. تختلف تكاليف الشحن الدولية وأوقات التسليم حسب الموقع. يمكنك رؤية خيارات الشحن المتاحة لبلدك أثناء الخروج.",
+  Unknown: "غير معروف",
   facebook_socials: "فيسبوك",
   instagram_socials: "انستاغرام",
   email_socials: "بريد إلكتروني",
@@ -528,7 +597,7 @@ const ar = {
   enterPhoneToReset: "أدخل رقم الهاتف لإعادة التعيين",
   enterOtpAndNewPass: "أدخل رمز التحقق وكلمة المرور الجديدة",
   phoneNumber: "رقم الهاتف",
-  example_phone_number: "981 278 848",
+  example_phone_number: "934 567 890",
   otp: "OTP",
   enterOTP: "أدخل رمز التحقق",
   newPassword: "كلمة المرور الجديدة",
@@ -562,17 +631,17 @@ const ar = {
   email: "البريد الإلكتروني للتواصل",
   whatsapp: "واتساب",
   address: "العنوان",
-  companyAddress: "دمشق، سوريا",
+  companyAddress: "سيريا",
   sendMessage: "إرسال الرسالة",
   formDescription: "املأ النموذج أدناه، وسنتواصل معك في أقرب وقت ممكن.",
-  fullName: "الاسم الكامل",
+  fullName: "اسم",
   enterFullName: "أدخل الاسم الكامل",
-  enterEmail: "أدخل البريد الإلكتروني",
-  enterPhoneNumber: "أدخل رقم الهاتف",
+  enterEmail: "بريد إلكتروني",
+  enterPhoneNumber: "هاتف",
   subject: "الموضوع",
   enterSubject: "أدخل الموضوع",
   message: "الرسالة",
-  enterMessage: "أدخل الرسالة",
+  enterMessage: "الرسالة",
   contactUs: "تواصل معنا",
   exploreListings: "استكشاف القوائم",
   //PRIVACY POLICY
@@ -614,7 +683,7 @@ const ar = {
   syrianSalesWebsite: "تطبيق المبيعات السوري الأول",
   aboutUsDescription:
     "أفضل وأبسط موقع لشراء وبيع السيارات عبر الإنترنت في سوريا. استكشف مجموعة واسعة من السيارات، قارن الأسعار، وتواصل مع البائعين مباشرة بسهولة. تجربة موثوقة وسريعة ومجانية تمامًا بدون وسطاء أو تعقيدات.",
-  ourMission: "مهمتنا",
+  ourMission: "بيع وشراء مع سيريا سوق",
   missionDescription:
     "بيع سيارتك عبر الإنترنت في سوريا، السيارات المستعملة في سوريا، شراء سيارات مستعملة بأسعار معقولة، بيع السيارات المستعملة في دمشق، أفضل السيارات المستعملة في سوريا، بيع السيارة بسرعة في سوريا، المركبات المستعملة في سوريا.",
   safeAndSecure: "آمن ومحمي",
@@ -686,9 +755,9 @@ const ar = {
   no_result_found: "لم يتم العثور على نتائج",
   noResults: "لم يتم العثور على نتائج",
   no_results: "لم يتم العثور على نتائج",
-  1: "١",
-  2: "٢",
+  3: "٣",
   4: "٤",
+  5: "٥",
   6: "٦",
   8: "٨",
   Aleppo: "حلب",

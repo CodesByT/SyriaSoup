@@ -114,7 +114,15 @@ export default function EditListing(): JSX.Element {
 
   const modelOptions = getModelOptions(formData.make);
 
-  const cylinderOptions = [t("1"), t("2"), t("4"), t("6"), t("8"), t("Other")];
+  const cylinderOptions = [
+    t("3"),
+    t("4"),
+    t("5"),
+    t("6"),
+    t("8"),
+    t("Other"),
+    t("Unknown"),
+  ];
   const locationOptions = [
     t("Aleppo"),
     t("Damascus"),

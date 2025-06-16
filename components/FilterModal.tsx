@@ -48,6 +48,7 @@ interface FilterModalProps {
   sections: FilterSection[]; // These are now the base sections from ComprehensiveFilterModal
   initialFilters?: Record<string, any>;
   allMakesData: MakeData[]; // New prop to receive all makes data
+  disableVerticalScroll?: boolean;
 }
 
 const FilterModal: React.FC<FilterModalProps> = ({
@@ -57,6 +58,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
   sections: baseSections, // Renamed to avoid confusion with internal dynamicSections
   initialFilters = {},
   allMakesData, // Destructure new prop
+  disableVerticalScroll = false,
 }) => {
   const { t, i18n } = useTranslation();
   const { rtlViewStyle, rtlStyle } = useRTL();
@@ -252,7 +254,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
           renderItem={renderSection}
           keyExtractor={(item) => item.id}
           style={localStyles.sectionsContainer}
-          showsVerticalScrollIndicator={true}
+          showsVerticalScrollIndicator={!disableVerticalScroll}
           contentContainerStyle={localStyles.sectionsContent}
         />
 

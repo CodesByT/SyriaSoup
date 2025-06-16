@@ -27,6 +27,7 @@ interface FilterProps {
   defaultMin: number;
   defaultMax: number;
   step?: number;
+  disableVerticalScroll: boolean; // Disable vertical scrolling for this specific modal
 }
 
 // Export FilterModal directly for reuse in the new AllFiltersModal
@@ -203,6 +204,7 @@ export const YearFilterModal: React.FC<{
       defaultMin={1970}
       defaultMax={currentYear}
       step={1}
+      disableVerticalScroll={true} // Disable vertical scrolling for this specific modal
     />
   );
 };
@@ -238,6 +240,7 @@ export const PriceFilterModal: React.FC<{
       defaultMin={0}
       defaultMax={1000000} // Increased max price for better range
       step={1000}
+      disableVerticalScroll={true} // Disable vertical scrolling for this specific modal
     />
   );
 };
@@ -273,6 +276,7 @@ export const KilometerFilterModal: React.FC<{
       defaultMin={0}
       defaultMax={500000} // Increased max kilometer for better range
       step={1000}
+      disableVerticalScroll={true} // Disable vertical scrolling for this specific modal
     />
   );
 };

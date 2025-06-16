@@ -82,12 +82,13 @@ export default function InlineSearchBar({
   // Filter options
   const cylinderOptions = [
     t("All"),
-    t("1"),
-    t("2"),
+    t("3"),
     t("4"),
+    t("5"),
     t("6"),
     t("8"),
     t("Other"),
+    t("Unknown"),
   ];
   const transmissionOptions = [t("All"), t("Automatic"), t("Manual")];
   const fuelTypeOptions = [
