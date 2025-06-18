@@ -436,7 +436,9 @@ export default function CarDetails(): JSX.Element {
             { flexDirection: isRTL ? "row-reverse" : "row" },
           ]}
         >
-          <Text style={[styles.specLabel, rtlStyle]}>{t("make")}:</Text>
+          <Text style={[styles.specLabel, rtlStyle]}>
+            {t("make_from_car_details_screen")}:
+          </Text>
           <Text
             style={[
               styles.specValue,
@@ -453,7 +455,9 @@ export default function CarDetails(): JSX.Element {
             { flexDirection: isRTL ? "row-reverse" : "row" },
           ]}
         >
-          <Text style={[styles.specLabel, rtlStyle]}>{t("model")}:</Text>
+          <Text style={[styles.specLabel, rtlStyle]}>
+            {t("model_from_car_details_screen")}:
+          </Text>
           <Text
             style={[
               styles.specValue,
@@ -470,7 +474,9 @@ export default function CarDetails(): JSX.Element {
             { flexDirection: isRTL ? "row-reverse" : "row" },
           ]}
         >
-          <Text style={[styles.specLabel, rtlStyle]}>{t("kilometer")}:</Text>
+          <Text style={[styles.specLabel, rtlStyle]}>
+            {t("kilometer_from_car_detail_screen")}:
+          </Text>
           <Text
             style={[
               styles.specValue,
@@ -489,7 +495,7 @@ export default function CarDetails(): JSX.Element {
             { flexDirection: isRTL ? "row-reverse" : "row" },
           ]}
         >
-          <Text style={[styles.specLabel, rtlStyle]}>{t("price")}:</Text>
+          <Text style={[styles.specLabel, rtlStyle]}>{t("Price")}:</Text>
           <Text
             style={[
               styles.specValue,
@@ -655,9 +661,9 @@ export default function CarDetails(): JSX.Element {
         </Text>
       </View>
       <View style={styles.quickInfoItem}>
-        <Ionicons name="flash-outline" size={20} color="#b80200" />
+        <Ionicons name="calendar-outline" size={20} color="#b80200" />
         <Text style={[styles.quickInfoText, rtlStyle]}>
-          {translatedCar?.fuelType || t("notSpecified")}
+          {car?.year || t("notSpecified")}
         </Text>
       </View>
     </View>
@@ -864,9 +870,9 @@ export default function CarDetails(): JSX.Element {
             color="#ffffff"
           />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, rtlStyle]} numberOfLines={1}>
+        {/* <Text style={[styles.headerTitle, rtlStyle]} numberOfLines={1}>
           {translatedCar?.make || car.make} {translatedCar?.model || car.model}
-        </Text>
+        </Text> */}
       </View>
 
       <ScrollView

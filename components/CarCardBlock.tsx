@@ -1,5 +1,6 @@
 "use client";
 
+import { locationOptionsData } from "@/utils/constants";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { useState } from "react";
@@ -66,6 +67,22 @@ export default function CarCardBlock({
   const model = translateModel(car.model, car.make, isArabic);
   const location = translateLocation(car.location, isArabic);
 
+  // Helper function to get the localized display value for location
+  const getLocalizedLocation = (
+    englishLocation: string | undefined
+  ): string => {
+    if (!englishLocation) {
+      return t("notSpecified"); // Use t() for "Not Specified" if it's a translatable string
+    }
+
+    const foundItem = locationOptionsData.find(
+      (item) => item.en === englishLocation
+    );
+    if (foundItem) {
+      return isArabic ? foundItem.ar : foundItem.en;
+    }
+    return englishLocation; // Fallback to English if no translation found
+  };
   return (
     <View style={styles.container}>
       <TouchableOpacity onPress={onPress} style={styles.card}>
@@ -129,7 +146,7 @@ export default function CarCardBlock({
                   { textAlign: isRTL ? "right" : "left" },
                 ]}
               >
-                {location}
+                {getLocalizedLocation(car.location)}
               </Text>
             </View>
             <View

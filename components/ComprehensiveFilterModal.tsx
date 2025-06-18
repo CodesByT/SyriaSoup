@@ -1,18 +1,14 @@
-// ComprehensiveFilterModal.tsx
 "use client";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Dimensions } from "react-native";
 import { useRTL } from "../hooks/useRTL";
-import { arabicMakes, locations, makes } from "../utils/constants"; // Ensure this path is correct
+import { arabicMakes, locations, makes } from "../utils/constants";
 
-// Import the FilterModal component
 import FilterModal from "./FilterModal";
 
 const { width, height } = Dimensions.get("window");
 
-// Define interfaces for FilterOption and FilterSection here
-// to ensure type consistency when creating the 'sections' array.
 interface FilterOption {
   id: string;
   label: string;
@@ -47,7 +43,6 @@ interface SearchValue {
   kilometerMax?: string;
 }
 
-// ComprehensiveFilterModal - now acts as a wrapper for the new FilterModal
 export default function ComprehensiveFilterModal({
   visible,
   onClose,
@@ -65,7 +60,6 @@ export default function ComprehensiveFilterModal({
 
   const [localFilters, setLocalFilters] = useState<Record<string, any>>(value);
 
-  // Use currentMakesData and currentLocationsData as before
   const currentMakesData = i18n.language === "ar" ? arabicMakes : makes;
   const currentLocationsData = locations.map((loc) =>
     i18n.language === "ar"
@@ -75,7 +69,6 @@ export default function ComprehensiveFilterModal({
 
   useEffect(() => {
     if (visible) {
-      // When modal opens, sync internal state with external value
       setLocalFilters(value);
     }
   }, [visible, value]);
@@ -83,9 +76,9 @@ export default function ComprehensiveFilterModal({
   const cylinderOptions = useMemo<FilterOption[]>(
     () => [
       { id: "all_cyl", label: t("All"), value: "" },
-      { id: "1_cyl", label: t("1"), value: "1" },
-      { id: "2_cyl", label: t("2"), value: "2" },
+      { id: "3_cyl", label: t("3"), value: "3" },
       { id: "4_cyl", label: t("4"), value: "4" },
+      { id: "5_cyl", label: t("5"), value: "5" },
       { id: "6_cyl", label: t("6"), value: "6" },
       { id: "8_cyl", label: t("8"), value: "8" },
       { id: "other_cyl", label: t("Other"), value: "Other" },
@@ -117,32 +110,27 @@ export default function ComprehensiveFilterModal({
     () => [
       { id: "all_color", label: t("All"), value: "" },
       { id: "blue_color", label: t("Blue"), value: "Blue" },
-      { id: "beige_color", label: t("Beige"), value: "Beige" },
       { id: "black_color", label: t("Black"), value: "Black" },
-      { id: "white_color", label: t("White"), value: "White" },
       { id: "brown_color", label: t("Brown"), value: "Brown" },
+      { id: "gold_color", label: t("Gold"), value: "Gold" },
+      { id: "green_color", label: t("Green"), value: "Green" },
       { id: "red_color", label: t("Red"), value: "Red" },
+      { id: "prink_color", label: t("Pink"), value: "Pink" },
+      { id: "purple_color", label: t("Purple"), value: "Purple" },
+      { id: "silver_color", label: t("Silver"), value: "Silver" },
+      { id: "white_color", label: t("White"), value: "White" },
       { id: "other_color", label: t("Other"), value: "Other" },
-
-      // { id: "silver_color", label: t("Silver"), value: "Silver" },
-      // { id: "gray_color", label: t("Gray"), value: "Gray" },
-      // { id: "green_color", label: t("Green"), value: "Green" },
-      // { id: "yellow_color", label: t("Yellow"), value: "Yellow" },
-      // { id: "orange_color", label: t("Orange"), value: "Orange" },
-      // { id: "purple_color", label: t("Purple"), value: "Purple" },
-      // { id: "gold_color", label: t("Gold"), value: "Gold" },
     ],
     [t]
   );
 
   const currentYear = new Date().getFullYear();
 
-  // Define the base sections array here
   const baseSections = useMemo<FilterSection[]>(
     () => [
       {
         id: "make",
-        title: t("Make"),
+        title: t("make_from_car_details_screen"),
         type: "single",
         options: [
           { id: "all_make", label: t("All"), value: "" },
@@ -157,20 +145,20 @@ export default function ComprehensiveFilterModal({
         id: "model",
         title: t("Model"),
         type: "single",
-        // Options will be dynamically populated by FilterModal based on selected make
-        options: [], // Initially empty, FilterModal will fill this
+        options: [],
       },
       {
         id: "yearRange",
-        title: t("Year"),
+        title: t("year_for_filer"),
         type: "range",
         min: 1970,
         max: currentYear,
         step: 1,
+        // No 'unit' prop here for year, as per the RangeSlider logic
       },
       {
         id: "priceRange",
-        title: t("Price"),
+        title: t("Price_for_filter"),
         type: "range",
         min: 0,
         max: 100000,
@@ -179,7 +167,7 @@ export default function ComprehensiveFilterModal({
       },
       {
         id: "kilometerRange",
-        title: t("Kilometers"),
+        title: t("Kilometers_for_filters"),
         type: "range",
         min: 0,
         max: 200000,
@@ -239,42 +227,59 @@ export default function ComprehensiveFilterModal({
     ]
   );
 
-  const convertLocalFiltersToNewFormat = useCallback((filters: SearchValue) => {
-    const newFilters: Record<string, any> = {};
+  // This function converts the external 'value' (SearchValue) into the internal 'newFilters' format for FilterModal/RangeSlider
+  const convertSearchValueToFilterModalFormat = useCallback(
+    (filters: SearchValue) => {
+      const newFilters: Record<string, any> = {};
 
-    if (filters.make) newFilters.make = filters.make;
-    if (filters.model) newFilters.model = filters.model;
-    if (filters.cylinder) newFilters.cylinder = filters.cylinder;
-    if (filters.transmission) newFilters.transmission = filters.transmission;
-    if (filters.fuelType) newFilters.fuelType = filters.fuelType;
-    if (filters.exteriorColor) newFilters.exteriorColor = filters.exteriorColor;
-    if (filters.interiorColor) newFilters.interiorColor = filters.interiorColor;
+      if (filters.make) newFilters.make = filters.make;
+      if (filters.model) newFilters.model = filters.model;
+      if (filters.cylinder) newFilters.cylinder = filters.cylinder;
+      if (filters.transmission) newFilters.transmission = filters.transmission;
+      if (filters.fuelType) newFilters.fuelType = filters.fuelType;
+      if (filters.exteriorColor)
+        newFilters.exteriorColor = filters.exteriorColor;
+      if (filters.interiorColor)
+        newFilters.interiorColor = filters.interiorColor;
 
-    if (filters.location && filters.location.length > 0)
-      newFilters.location = filters.location;
+      if (filters.location && filters.location.length > 0)
+        newFilters.location = filters.location;
 
-    if (filters.yearMin || filters.yearMax) {
-      newFilters.yearRange = {
-        min: filters.yearMin ? parseInt(filters.yearMin) : undefined,
-        max: filters.yearMax ? parseInt(filters.yearMax) : undefined,
-      };
-    }
-    if (filters.priceMin || filters.priceMax) {
-      newFilters.priceRange = {
-        min: filters.priceMin ? parseInt(filters.priceMin) : undefined,
-        max: filters.priceMax ? parseInt(filters.priceMax) : undefined,
-      };
-    }
-    if (filters.kilometerMin || filters.kilometerMax) {
-      newFilters.kilometerRange = {
-        min: filters.kilometerMin ? parseInt(filters.kilometerMin) : undefined,
-        max: filters.kilometerMax ? parseInt(filters.kilometerMax) : undefined,
-      };
-    }
-    return newFilters;
-  }, []);
+      // Ensure yearRange always has valid numbers, defaulting to full range if not set
+      const yearSectionConfig = baseSections.find((s) => s.id === "yearRange");
+      if (yearSectionConfig) {
+        const defaultMinYear = yearSectionConfig.min || 1970;
+        const defaultMaxYear = yearSectionConfig.max || currentYear;
 
-  const convertNewFiltersToLocalFormat = useCallback(
+        newFilters.yearRange = {
+          min: filters.yearMin ? parseInt(filters.yearMin) : defaultMinYear,
+          max: filters.yearMax ? parseInt(filters.yearMax) : defaultMaxYear,
+        };
+      }
+
+      if (filters.priceMin || filters.priceMax) {
+        newFilters.priceRange = {
+          min: filters.priceMin ? parseInt(filters.priceMin) : undefined,
+          max: filters.priceMax ? parseInt(filters.priceMax) : undefined,
+        };
+      }
+      if (filters.kilometerMin || filters.kilometerMax) {
+        newFilters.kilometerRange = {
+          min: filters.kilometerMin
+            ? parseInt(filters.kilometerMin)
+            : undefined,
+          max: filters.kilometerMax
+            ? parseInt(filters.kilometerMax)
+            : undefined,
+        };
+      }
+      return newFilters;
+    },
+    [baseSections, currentYear]
+  );
+
+  // This function converts the internal 'newFilters' format from FilterModal/RangeSlider back to external 'SearchValue'
+  const convertFilterModalFormatToSearchValue = useCallback(
     (newFilters: Record<string, any>): SearchValue => {
       const oldFilters: SearchValue = {
         make: newFilters.make || "",
@@ -293,13 +298,9 @@ export default function ComprehensiveFilterModal({
         kilometerMax: newFilters.kilometerRange?.max?.toString() || "",
       };
 
-      // Apply default value conditions for clearing filters if they match initial range values
-      // Find the specific section from baseSections to get its min/max
-      const yearSection = baseSections.find((s) => s.id === "yearRange");
-      if (yearSection && oldFilters.yearMin === yearSection.min?.toString())
-        oldFilters.yearMin = "";
-      if (yearSection && oldFilters.yearMax === yearSection.max?.toString())
-        oldFilters.yearMax = "";
+      // --- CRITICAL FIX: DO NOT SET yearMin/Max to empty string ---
+      // This is the key. We want year to always be numbers, not "" for "All".
+      // NO LOGIC HERE FOR yearMin/Max that turns them into "" if they match max range.
 
       const priceSection = baseSections.find((s) => s.id === "priceRange");
       if (priceSection && oldFilters.priceMin === priceSection.min?.toString())
@@ -323,21 +324,22 @@ export default function ComprehensiveFilterModal({
 
       return oldFilters;
     },
-    [baseSections] // Depend on baseSections to get min/max
+    [baseSections]
   );
 
   const handleApply = useCallback(
     (newFilters: Record<string, any>) => {
-      const convertedFilters = convertNewFiltersToLocalFormat(newFilters);
+      const convertedFilters =
+        convertFilterModalFormatToSearchValue(newFilters);
       onChange(convertedFilters);
       onClose();
     },
-    [onChange, onClose, convertNewFiltersToLocalFormat]
+    [onChange, onClose, convertFilterModalFormatToSearchValue]
   );
 
   const initialFiltersConverted = useMemo(
-    () => convertLocalFiltersToNewFormat(value),
-    [value, convertLocalFiltersToNewFormat]
+    () => convertSearchValueToFilterModalFormat(value),
+    [value, convertSearchValueToFilterModalFormat]
   );
 
   return (
@@ -345,12 +347,367 @@ export default function ComprehensiveFilterModal({
       visible={visible}
       onClose={onClose}
       onApply={handleApply}
-      sections={baseSections} // Pass the base sections
+      sections={baseSections}
       initialFilters={initialFiltersConverted}
-      allMakesData={currentMakesData} // Pass all makes data for dynamic model loading
+      allMakesData={currentMakesData}
     />
   );
 }
+//----------------------------------------------------------------------------------
+
+// "use client";
+// import React, { useCallback, useEffect, useMemo, useState } from "react";
+// import { useTranslation } from "react-i18next";
+// import { Dimensions } from "react-native";
+// import { useRTL } from "../hooks/useRTL";
+// import { arabicMakes, locations, makes } from "../utils/constants"; // Ensure this path is correct
+
+// // Import the FilterModal component
+// import FilterModal from "./FilterModal";
+
+// const { width, height } = Dimensions.get("window");
+
+// // Define interfaces for FilterOption and FilterSection here
+// // to ensure type consistency when creating the 'sections' array.
+// interface FilterOption {
+//   id: string;
+//   label: string;
+//   value: any;
+// }
+
+// interface FilterSection {
+//   id: string;
+//   title: string;
+//   type: "single" | "multiple" | "range" | "search";
+//   options?: FilterOption[];
+//   min?: number;
+//   max?: number;
+//   step?: number;
+//   unit?: string;
+// }
+
+// interface SearchValue {
+//   make?: string;
+//   model?: string;
+//   location?: string[];
+//   cylinder?: string;
+//   transmission?: string;
+//   fuelType?: string;
+//   exteriorColor?: string;
+//   interiorColor?: string;
+//   priceMin?: string;
+//   priceMax?: string;
+//   yearMin?: string;
+//   yearMax?: string;
+//   kilometerMin?: string;
+//   kilometerMax?: string;
+// }
+
+// // ComprehensiveFilterModal - now acts as a wrapper for the new FilterModal
+// export default function ComprehensiveFilterModal({
+//   visible,
+//   onClose,
+//   value,
+//   onChange,
+// }: {
+//   visible: boolean;
+//   onClose: () => void;
+//   value: any;
+//   onChange: (value: any) => void;
+// }) {
+//   const { t, i18n } = useTranslation();
+//   const { rtlViewStyle, rtlStyle, getFlexDirection } = useRTL();
+//   const isArabic = i18n.language === "ar";
+
+//   const [localFilters, setLocalFilters] = useState<Record<string, any>>(value);
+
+//   // Use currentMakesData and currentLocationsData as before
+//   const currentMakesData = i18n.language === "ar" ? arabicMakes : makes;
+//   const currentLocationsData = locations.map((loc) =>
+//     i18n.language === "ar"
+//       ? { ...loc, label: loc.arValue }
+//       : { ...loc, label: loc.label }
+//   );
+
+//   useEffect(() => {
+//     if (visible) {
+//       // When modal opens, sync internal state with external value
+//       setLocalFilters(value);
+//     }
+//   }, [visible, value]);
+
+//   const cylinderOptions = useMemo<FilterOption[]>(
+//     () => [
+//       { id: "all_cyl", label: t("All"), value: "" },
+//       { id: "3_cyl", label: t("3"), value: "3" },
+//       { id: "4_cyl", label: t("4"), value: "4" },
+//       { id: "5_cyl", label: t("5"), value: "5" },
+//       { id: "6_cyl", label: t("6"), value: "6" },
+//       { id: "8_cyl", label: t("8"), value: "8" },
+//       { id: "other_cyl", label: t("Other"), value: "Other" },
+//     ],
+//     [t]
+//   );
+
+//   const transmissionOptions = useMemo<FilterOption[]>(
+//     () => [
+//       { id: "all_trans", label: t("All"), value: "" },
+//       { id: "auto_trans", label: t("Automatic"), value: "Automatic" },
+//       { id: "manual_trans", label: t("Manual"), value: "Manual" },
+//     ],
+//     [t]
+//   );
+
+//   const fuelTypeOptions = useMemo<FilterOption[]>(
+//     () => [
+//       { id: "all_fuel", label: t("All"), value: "" },
+//       { id: "petrol_fuel", label: t("Petrol"), value: "Petrol" },
+//       { id: "diesel_fuel", label: t("Diesel"), value: "Diesel" },
+//       { id: "electric_fuel", label: t("Electric"), value: "Electric" },
+//       { id: "hybrid_fuel", label: t("Hybrid"), value: "Hybrid" },
+//     ],
+//     [t]
+//   );
+
+//   const colorOptions = useMemo<FilterOption[]>(
+//     () => [
+//       { id: "all_color", label: t("All"), value: "" },
+//       { id: "blue_color", label: t("Blue"), value: "Blue" },
+//       { id: "beige_color", label: t("Beige"), value: "Beige" },
+//       { id: "black_color", label: t("Black"), value: "Black" },
+//       { id: "white_color", label: t("White"), value: "White" },
+//       { id: "brown_color", label: t("Brown"), value: "Brown" },
+//       { id: "red_color", label: t("Red"), value: "Red" },
+//       { id: "other_color", label: t("Other"), value: "Other" },
+
+//       // { id: "silver_color", label: t("Silver"), value: "Silver" },
+//       // { id: "gray_color", label: t("Gray"), value: "Gray" },
+//       // { id: "green_color", label: t("Green"), value: "Green" },
+//       // { id: "yellow_color", label: t("Yellow"), value: "Yellow" },
+//       // { id: "orange_color", label: t("Orange"), value: "Orange" },
+//       // { id: "purple_color", label: t("Purple"), value: "Purple" },
+//       // { id: "gold_color", label: t("Gold"), value: "Gold" },
+//     ],
+//     [t]
+//   );
+
+//   const currentYear = new Date().getFullYear();
+
+//   // Define the base sections array here
+//   const baseSections = useMemo<FilterSection[]>(
+//     () => [
+//       {
+//         id: "make",
+//         title: t("make"),
+//         type: "single",
+//         options: [
+//           { id: "all_make", label: t("All"), value: "" },
+//           ...currentMakesData.map((m: any) => ({
+//             id: `make_${m.value}`,
+//             label: m.label,
+//             value: m.value,
+//           })),
+//         ],
+//       },
+//       {
+//         id: "model",
+//         title: t("Model"),
+//         type: "single",
+//         // Options will be dynamically populated by FilterModal based on selected make
+//         options: [], // Initially empty, FilterModal will fill this
+//       },
+//       {
+//         id: "yearRange",
+//         title: t("year"),
+//         type: "range",
+//         min: 1970,
+//         max: currentYear,
+//         step: 1,
+//       },
+//       {
+//         id: "priceRange",
+//         title: t("Price_for_filter"),
+//         type: "range",
+//         min: 0,
+//         max: 100000,
+//         step: 1000,
+//         unit: "$",
+//       },
+//       {
+//         id: "kilometerRange",
+//         title: t("Kilometers_for_filters"),
+//         type: "range",
+//         min: 0,
+//         max: 200000,
+//         step: 1000,
+//         unit: t("km"),
+//       },
+//       {
+//         id: "location",
+//         title: t("location"),
+//         type: "multiple",
+//         options: currentLocationsData.map((loc: any) => ({
+//           id: `loc_${loc.value}`,
+//           label: loc.label,
+//           value: loc.value,
+//         })),
+//       },
+//       {
+//         id: "cylinder",
+//         title: t("cylinder"),
+//         type: "single",
+//         options: cylinderOptions,
+//       },
+//       {
+//         id: "transmission",
+//         title: t("transmission"),
+//         type: "single",
+//         options: transmissionOptions,
+//       },
+//       {
+//         id: "fuelType",
+//         title: t("fuel_type"),
+//         type: "single",
+//         options: fuelTypeOptions,
+//       },
+//       {
+//         id: "exteriorColor",
+//         title: t("exterior_color"),
+//         type: "single",
+//         options: colorOptions,
+//       },
+//       {
+//         id: "interiorColor",
+//         title: t("interior_color"),
+//         type: "single",
+//         options: colorOptions,
+//       },
+//     ],
+//     [
+//       t,
+//       currentMakesData,
+//       currentLocationsData,
+//       currentYear,
+//       cylinderOptions,
+//       transmissionOptions,
+//       fuelTypeOptions,
+//       colorOptions,
+//     ]
+//   );
+
+//   const convertLocalFiltersToNewFormat = useCallback((filters: SearchValue) => {
+//     const newFilters: Record<string, any> = {};
+
+//     if (filters.make) newFilters.make = filters.make;
+//     if (filters.model) newFilters.model = filters.model;
+//     if (filters.cylinder) newFilters.cylinder = filters.cylinder;
+//     if (filters.transmission) newFilters.transmission = filters.transmission;
+//     if (filters.fuelType) newFilters.fuelType = filters.fuelType;
+//     if (filters.exteriorColor) newFilters.exteriorColor = filters.exteriorColor;
+//     if (filters.interiorColor) newFilters.interiorColor = filters.interiorColor;
+
+//     if (filters.location && filters.location.length > 0)
+//       newFilters.location = filters.location;
+
+//     if (filters.yearMin || filters.yearMax) {
+//       newFilters.yearRange = {
+//         min: filters.yearMin ? parseInt(filters.yearMin) : undefined,
+//         max: filters.yearMax ? parseInt(filters.yearMax) : undefined,
+//       };
+//     }
+//     if (filters.priceMin || filters.priceMax) {
+//       newFilters.priceRange = {
+//         min: filters.priceMin ? parseInt(filters.priceMin) : undefined,
+//         max: filters.priceMax ? parseInt(filters.priceMax) : undefined,
+//       };
+//     }
+//     if (filters.kilometerMin || filters.kilometerMax) {
+//       newFilters.kilometerRange = {
+//         min: filters.kilometerMin ? parseInt(filters.kilometerMin) : undefined,
+//         max: filters.kilometerMax ? parseInt(filters.kilometerMax) : undefined,
+//       };
+//     }
+//     return newFilters;
+//   }, []);
+
+//   const convertNewFiltersToLocalFormat = useCallback(
+//     (newFilters: Record<string, any>): SearchValue => {
+//       const oldFilters: SearchValue = {
+//         make: newFilters.make || "",
+//         model: newFilters.model || "",
+//         location: newFilters.location || [],
+//         cylinder: newFilters.cylinder || "",
+//         transmission: newFilters.transmission || "",
+//         fuelType: newFilters.fuelType || "",
+//         exteriorColor: newFilters.exteriorColor || "",
+//         interiorColor: newFilters.interiorColor || "",
+//         priceMin: newFilters.priceRange?.min?.toString() || "",
+//         priceMax: newFilters.priceRange?.max?.toString() || "",
+//         yearMin: newFilters.yearRange?.min?.toString() || "",
+//         yearMax: newFilters.yearRange?.max?.toString() || "",
+//         kilometerMin: newFilters.kilometerRange?.min?.toString() || "",
+//         kilometerMax: newFilters.kilometerRange?.max?.toString() || "",
+//       };
+
+//       // Apply default value conditions for clearing filters if they match initial range values
+//       // Find the specific section from baseSections to get its min/max
+//       const yearSection = baseSections.find((s) => s.id === "yearRange");
+//       if (yearSection && oldFilters.yearMin === yearSection.min?.toString())
+//         oldFilters.yearMin = "1970";
+//       if (yearSection && oldFilters.yearMax === yearSection.max?.toString())
+//         oldFilters.yearMax = "";
+
+//       const priceSection = baseSections.find((s) => s.id === "priceRange");
+//       if (priceSection && oldFilters.priceMin === priceSection.min?.toString())
+//         oldFilters.priceMin = "";
+//       if (priceSection && oldFilters.priceMax === priceSection.max?.toString())
+//         oldFilters.priceMax = "";
+
+//       const kilometerSection = baseSections.find(
+//         (s) => s.id === "kilometerRange"
+//       );
+//       if (
+//         kilometerSection &&
+//         oldFilters.kilometerMin === kilometerSection.min?.toString()
+//       )
+//         oldFilters.kilometerMin = "";
+//       if (
+//         kilometerSection &&
+//         oldFilters.kilometerMax === kilometerSection.max?.toString()
+//       )
+//         oldFilters.kilometerMax = "";
+
+//       return oldFilters;
+//     },
+//     [baseSections] // Depend on baseSections to get min/max
+//   );
+
+//   const handleApply = useCallback(
+//     (newFilters: Record<string, any>) => {
+//       const convertedFilters = convertNewFiltersToLocalFormat(newFilters);
+//       onChange(convertedFilters);
+//       onClose();
+//     },
+//     [onChange, onClose, convertNewFiltersToLocalFormat]
+//   );
+
+//   const initialFiltersConverted = useMemo(
+//     () => convertLocalFiltersToNewFormat(value),
+//     [value, convertLocalFiltersToNewFormat]
+//   );
+
+//   return (
+//     <FilterModal
+//       visible={visible}
+//       onClose={onClose}
+//       onApply={handleApply}
+//       sections={baseSections} // Pass the base sections
+//       initialFilters={initialFiltersConverted}
+//       allMakesData={currentMakesData} // Pass all makes data for dynamic model loading
+//     />
+//   );
+// }
+//---------------------------------------------------------------------------------------------
 // "use client";
 // import { useTranslation } from "react-i18next";
 

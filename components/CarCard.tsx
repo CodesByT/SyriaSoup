@@ -1,5 +1,6 @@
 "use client";
 
+import { locationOptionsData } from "@/utils/constants";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { useState } from "react";
@@ -42,7 +43,21 @@ export default function CarCard({
   const { isRTL } = useRTL();
   const [isLoading, setIsLoading] = useState(true);
   const isArabic = i18n.language === "ar";
+  const getLocalizedLocation = (
+    englishLocation: string | undefined
+  ): string => {
+    if (!englishLocation) {
+      return t("notSpecified"); // Use t() for "Not Specified" if it's a translatable string
+    }
 
+    const foundItem = locationOptionsData.find(
+      (item) => item.en === englishLocation
+    );
+    if (foundItem) {
+      return isArabic ? foundItem.ar : foundItem.en;
+    }
+    return englishLocation; // Fallback to English if no translation found
+  };
   if (!car) {
     return (
       <View style={styles.container}>
@@ -164,7 +179,7 @@ ${shareUrl}`;
                   { textAlign: isRTL ? "right" : "left" },
                 ]}
               >
-                {location}
+                {getLocalizedLocation(car.location)}
               </Text>
             </View>
             <View

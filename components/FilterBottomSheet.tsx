@@ -238,7 +238,7 @@ export const PriceFilterModal: React.FC<{
       title="Price"
       formatLabel={formatPrice}
       defaultMin={0}
-      defaultMax={1000000} // Increased max price for better range
+      defaultMax={124000} // Increased max price for better range
       step={1000}
       disableVerticalScroll={true} // Disable vertical scrolling for this specific modal
     />

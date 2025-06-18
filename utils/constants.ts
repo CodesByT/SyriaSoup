@@ -3260,3 +3260,114 @@ export const arabicMakes = [
     models: ["الكل", "001", "007", "009", "X", "آخرى"],
   },
 ];
+
+// --- New Data Structures with Key, English, and Arabic Translations ---
+
+export const cylinderOptionsData = [
+  { key: "3", en: "3", ar: "٣" },
+  { key: "4", en: "4", ar: "٤" },
+  { key: "5", en: "5", ar: "٥" },
+  { key: "6", en: "6", ar: "٦" },
+  { key: "8", en: "8", ar: "٨" },
+  { key: "Other", en: "Other", ar: "أخرى" },
+  { key: "Unknown", en: "Unknown", ar: "غير معروف" },
+];
+
+export const locationOptionsData = [
+  { key: "Aleppo", en: "Aleppo", ar: "حلب" },
+  { key: "Damascus", en: "Damascus", ar: "دمشق" },
+  { key: "Daraa", en: "Daraa", ar: "درعا" },
+  { key: "Deir_ez_Zor", en: "Deir ez Zor", ar: "ديرالزور" },
+  { key: "Hama", en: "Hama", ar: "حماة" },
+  { key: "Hasaka", en: "Hasaka", ar: "الحسكة" },
+  { key: "Homs", en: "Homs", ar: "حمص" },
+  { key: "Idlib", en: "Idlib", ar: "ادلب" },
+  { key: "Latakia", en: "Latakia", ar: "اللاذقية" },
+  { key: "Qamishli", en: "Qamishli", ar: "القامشلي" },
+  { key: "Raqqa", en: "Raqqa", ar: "الرقة" },
+  { key: "Suweida", en: "Suweida", ar: "السويداء" },
+  { key: "Tartus", en: "Tartus", ar: "طرطوس" },
+];
+
+export const transmissionOptionsData = [
+  { key: "Automatic", en: "Automatic", ar: "اتوماتيك" },
+  { key: "Manual", en: "Manual", ar: "يدوي" },
+];
+
+export const fuelTypeOptionsData = [
+  { key: "Petrol", en: "Petrol", ar: "بنزين" },
+  { key: "Diesel", en: "Diesel", ar: "ديزل" },
+  { key: "Electric", en: "Electric", ar: "كهربائي" },
+  { key: "Hybrid", en: "Hybrid", ar: "هجين" },
+];
+
+export const colorOptionsData = [
+  { key: "Black", en: "Black", ar: "أسود" },
+  { key: "Blue", en: "Blue", ar: "أزرق" },
+  { key: "Brown", en: "Brown", ar: "بني" },
+  { key: "Gold", en: "Gold", ar: "ذهبي" },
+  { key: "Green", en: "Green", ar: "أخضر" },
+  { key: "Red", en: "Red", ar: "أحمر" },
+  { key: "Pink", en: "Pink", ar: "وردي" },
+  { key: "Purple", en: "Pruple", ar: "أرجواني" },
+  { key: "Silver", en: "Silver", ar: "فضي" },
+  { key: "White", en: "White", ar: "أبيض" },
+  { key: "Other", en: "Other", ar: "أخرى" },
+];
+
+export const featureOptionsData = [
+  {
+    key: "ThreeSixty_degree_camera",
+    en: "360-degree camera",
+    ar: "كاميرا ٣٦٠ درجة",
+  },
+  {
+    key: "Adaptive_headlights",
+    en: "Adaptive headlights",
+    ar: "مصابيح امامية تكيفية",
+  },
+  {
+    key: "Blind_spot_warning",
+    en: "Blind spot warning",
+    ar: "مراقبة النقطة العمياء",
+  },
+  { key: "Cooled_Seats", en: "Cooled Seats", ar: "مقاعد مبردة" },
+  { key: "Heated_seats", en: "Heated seats", ar: "مقاعد بتدفئة" },
+  { key: "LED_headlights", en: "LED headlights", ar: "LED مصابيح امامية" },
+  { key: "Performance_tyres", en: "Performance tyres", ar: "اطارات اداء عالي" },
+  { key: "Sound_system", en: "Sound system", ar: "نظام صوت" },
+  { key: "ABS", en: "ABS", ar: "مكابح مانعة للانغلاق ABS" },
+  { key: "Bluetooth", en: "Bluetooth", ar: "نظام بلوتوث" },
+  {
+    key: "Extensive_tool_kit",
+    en: "Extensive tool kit",
+    ar: "صندوق ادوات الاصلاح",
+  },
+  { key: "Keyless_start", en: "Keyless start", ar: "تشغيل بدون مفتاح" },
+  { key: "Memory_seat", en: "Memory seat", ar: "ذاكرة للمقاعد" },
+  { key: "Reversing_camera", en: "Reversing camera", ar: "كاميرة خلفية" },
+  {
+    key: "Traction_control",
+    en: "Traction control",
+    ar: "مسند الرأس النشط",
+  },
+  {
+    key: "Active_head_restraints",
+    en: "Active head restraints",
+    ar: "مراقبة  النقطة  العمياء",
+  },
+  {
+    key: "Blind_spot_alert",
+    en: "Blind spot alert",
+    ar: "مساعدة الفرامل",
+  },
+  {
+    key: "Forward_collision_warning",
+    en: "Forward collision warning",
+    ar: "تحذير الاصطدام الأمامي",
+  },
+  { key: "Leather_seats", en: "Leather seats", ar: "مقاعد جلدية" },
+  { key: "Navigation_system", en: "Navigation system", ar: "نظام الملاحة" },
+  { key: "Side_airbags", en: "Side airbags", ar: "اكياس هواء جانبية" },
+  { key: "USB_port", en: "USB port", ar: "منفذ USB" },
+];

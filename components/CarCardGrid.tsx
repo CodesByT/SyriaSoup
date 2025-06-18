@@ -1,5 +1,6 @@
 "use client";
 
+import { locationOptionsData } from "@/utils/constants";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { useState } from "react";
@@ -45,7 +46,22 @@ export default function CarCardGrid({
   const [imageError, setImageError] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
   const isArabic = i18n.language === "ar";
+  // Helper function to get the localized display value for location
+  const getLocalizedLocation = (
+    englishLocation: string | undefined
+  ): string => {
+    if (!englishLocation) {
+      return t("notSpecified"); // Use t() for "Not Specified" if it's a translatable string
+    }
 
+    const foundItem = locationOptionsData.find(
+      (item) => item.en === englishLocation
+    );
+    if (foundItem) {
+      return isArabic ? foundItem.ar : foundItem.en;
+    }
+    return englishLocation; // Fallback to English if no translation found
+  };
   if (!car) {
     return (
       <View style={[styles.container, rtlViewStyle]}>
@@ -155,7 +171,7 @@ export default function CarCardGrid({
                 ]}
               />
               <Text style={[styles.detailText, rtlStyle]}>
-                {translatedLocation}
+                {getLocalizedLocation(car.location)}
               </Text>
             </View>
             <View

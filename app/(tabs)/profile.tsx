@@ -684,9 +684,9 @@ export default function Profile() {
           <Text style={[styles.emptyStateTitle, rtlStyle]}>
             {t("noListings")}
           </Text>
-          <Text style={[styles.emptyStateDescription, rtlStyle]}>
+          {/* <Text style={[styles.emptyStateDescription, rtlStyle]}>
             {t("noListingsDescription")}
-          </Text>
+          </Text> */}
           <TouchableOpacity
             style={styles.addListingButton}
             onPress={() => router.push("/place-ad")}

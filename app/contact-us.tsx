@@ -253,7 +253,7 @@ export default function ContactUs() {
 
   const renderContactForm = () => (
     <SafeAreaView style={styles.formSection}>
-      <Text style={[styles.sectionTitle, rtlStyle]}>{t("sendMessage")}</Text>
+      <Text style={[styles.sectionTitle2, rtlStyle]}>{t("sendMessage")}</Text>
       {/* <Text style={[styles.sectionDescription, rtlStyle]}>
         {t("formDescription")}
       </Text> */}
@@ -500,6 +500,7 @@ const styles = StyleSheet.create({
     width: 40,
   },
   scrollContainer: {
+    width: "100%", // Explicitly set width to 100%
     flex: 1,
     backgroundColor: "#f8f9fa",
   },
@@ -520,7 +521,8 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   formSection: {
-    backgroundColor: "#ffffff",
+    backgroundColor: "#314352",
+
     borderRadius: 15,
     padding: 20,
     shadowColor: "#000",
@@ -535,6 +537,13 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "700",
     color: "#1a1a1a",
+    marginBottom: 20,
+    textAlign: "center", // <--- Add this
+  },
+  sectionTitle2: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#fff",
     marginBottom: 20,
     textAlign: "center", // <--- Add this
   },
@@ -629,7 +638,7 @@ const styles = StyleSheet.create({
   },
   inputWrapper: {
     position: "relative",
-    backgroundColor: "#f8f9fa",
+    backgroundColor: "#314352",
     borderRadius: 12,
     borderWidth: 1.5,
     borderColor: "#e9ecef",
@@ -638,12 +647,13 @@ const styles = StyleSheet.create({
   textInputSimple: {
     height: 50,
     fontSize: Math.max(15, 1),
-    color: "#1a1a1a",
+    color: "#fff",
     fontWeight: "500",
+    paddingHorizontal: 20,
     backgroundColor: "transparent",
   },
   textAreaWrapper: {
-    backgroundColor: "#f8f9fa",
+    backgroundColor: "#314352",
     borderRadius: 12,
     borderWidth: 1.5,
     borderColor: "#e9ecef",
@@ -652,11 +662,12 @@ const styles = StyleSheet.create({
   },
   textAreaSimple: {
     fontSize: Math.max(15, 1),
-    color: "#1a1a1a",
     fontWeight: "500",
     textAlignVertical: "top",
     minHeight: 80,
     backgroundColor: "transparent",
+    paddingHorizontal: 20,
+    color: "#FFFFFF",
   },
   inputIcon: {
     position: "absolute",
@@ -713,7 +724,6 @@ const styles = StyleSheet.create({
 // import {
 //   ActivityIndicator,
 //   Dimensions,
-//   KeyboardAvoidingView,
 //   Linking,
 //   ScrollView,
 //   StyleSheet,

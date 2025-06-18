@@ -378,9 +378,9 @@ export default function AllCars() {
             color="#ffffff"
           />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, rtlStyle]}>
+        {/* <Text style={[styles.headerTitle, rtlStyle]}>
           {t("all_available_cars")}
-        </Text>
+        </Text> */}
         <View style={styles.headerSpacer} />
       </View>
 

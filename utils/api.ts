@@ -74,6 +74,7 @@ export const resetPassword = (
 ) => api.post("/api/auth/reset-password", { phone, otp, newPassword });
 export const logout = () => api.post("/api/auth/logout");
 export const getCars = (params: { sort?: string; limit?: number } = {}) =>
+  // api.get("/api/cars?status=pending", { params });
   api.get("/api/cars?status=available", { params });
 export const getCarById = (id: string) => api.get(`/api/cars/${id}`);
 export const getUserById = (id: string) => api.get(`/api/users/${id}`);
