@@ -123,6 +123,19 @@ export default function ComprehensiveFilterModal({
     ],
     [t]
   );
+  const interiorColorOptions = useMemo<FilterOption[]>(
+    () => [
+      { id: "all_color", label: t("All"), value: "" },
+      { id: "beige_color", label: t("Beige"), value: "Beige" },
+      { id: "black_color", label: t("Black"), value: "Black" },
+      { id: "blue_color", label: t("Blue"), value: "Blue" },
+      { id: "brown_color", label: t("Brown"), value: "Brown" },
+      { id: "red_color", label: t("Red"), value: "Red" },
+      { id: "white_color", label: t("White"), value: "White" },
+      { id: "other_color", label: t("Other"), value: "Other" },
+    ],
+    [t]
+  );
 
   const currentYear = new Date().getFullYear();
 
@@ -212,7 +225,7 @@ export default function ComprehensiveFilterModal({
         id: "interiorColor",
         title: t("interior_color"),
         type: "single",
-        options: colorOptions,
+        options: interiorColorOptions,
       },
     ],
     [
@@ -224,6 +237,7 @@ export default function ComprehensiveFilterModal({
       transmissionOptions,
       fuelTypeOptions,
       colorOptions,
+      interiorColorOptions,
     ]
   );
 

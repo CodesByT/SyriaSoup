@@ -1,5 +1,6 @@
 "use client";
 
+import { cylinderOptionsData } from "@/utils/constants";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import type { JSX } from "react";
@@ -88,7 +89,22 @@ export default function CarDetails(): JSX.Element {
       );
     }
   }, [car, isArabic]);
+  const getLocalizedCylinderCount = (
+    englishCylinderCount: string | undefined
+  ): string => {
+    if (!englishCylinderCount) {
+      return t("notSpecified"); // Use your i18n translation for "Not Specified"
+    }
 
+    const foundItem = cylinderOptionsData.find(
+      (item) => item.en === englishCylinderCount
+    );
+
+    if (foundItem) {
+      return isArabic ? foundItem.ar : foundItem.en;
+    }
+    return englishCylinderCount; // Fallback to English if no translation found
+  };
   // Function to translate features
   const translateFeatures = (features: string[]): string => {
     if (!features || features.length === 0) return "N/A";
@@ -558,7 +574,8 @@ export default function CarDetails(): JSX.Element {
               { textAlign: isRTL ? "left" : "right" },
             ]}
           >
-            {car?.engineSize || t("notSpecified")}
+            {/* {car?.engineSize || t("notSpecified")} */}
+            {getLocalizedCylinderCount(car?.engineSize)}
           </Text>
         </View>
         <View

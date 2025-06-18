@@ -1,5 +1,3 @@
-"use client";
-
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
@@ -96,7 +94,7 @@ export default function AllCars() {
   const fetchAllCars = async () => {
     try {
       setLoading(true);
-      const response = await getCars();
+      const response = await getCars({ limit: Number.MAX_SAFE_INTEGER });
       const data = response.data?.data || response.data;
       const carArray = Array.isArray(data) ? data : [];
       setCars(carArray);
@@ -438,10 +436,6 @@ export default function AllCars() {
             refreshControl={
               <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
             }
-            initialNumToRender={10}
-            maxToRenderPerBatch={5}
-            windowSize={5}
-            removeClippedSubviews={true}
           />
         )}
       </View>
@@ -522,6 +516,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
 });
+//-----------------------------------------------------------------------------------------------
 // import { Ionicons } from "@expo/vector-icons";
 // import { useRouter } from "expo-router";
 // import { useEffect, useState } from "react";

@@ -29,6 +29,7 @@ import {
   cylinderOptionsData,
   featureOptionsData,
   fuelTypeOptionsData,
+  interiorColorOptionsData,
   locationOptionsData,
   makes,
   transmissionOptionsData,
@@ -118,7 +119,7 @@ export default function PlaceAd() {
         dataArray = colorOptionsData;
         break;
       case "interior_color":
-        dataArray = colorOptionsData;
+        dataArray = interiorColorOptionsData;
         break;
       case "selected_features":
         dataArray = featureOptionsData;
@@ -184,7 +185,7 @@ export default function PlaceAd() {
         dataArray = colorOptionsData;
         break;
       case "interior_color":
-        dataArray = colorOptionsData;
+        dataArray = interiorColorOptionsData;
         break;
       case "selected_features":
         dataArray = featureOptionsData;
@@ -238,6 +239,9 @@ export default function PlaceAd() {
     isRTL ? item.ar : item.en
   );
   const colorDisplayOptions = colorOptionsData.map((item) =>
+    isRTL ? item.ar : item.en
+  );
+  const interiorColorOptions = interiorColorOptionsData.map((item) =>
     isRTL ? item.ar : item.en
   );
   const featureDisplayOptions = featureOptionsData.map((item) =>
@@ -657,7 +661,7 @@ export default function PlaceAd() {
         <Text style={[styles.label, rtlStyle]}>{t("interior_color")}</Text>
         <TouchableOpacity
           style={[styles.picker, { flexDirection: getFlexDirection() }]}
-          onPress={() => openPicker("interior_color", colorDisplayOptions)} // Pass display strings
+          onPress={() => openPicker("interior_color", interiorColorOptions)} // Pass display strings
         >
           <Text
             style={[

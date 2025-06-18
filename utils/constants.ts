@@ -3309,8 +3309,17 @@ export const colorOptionsData = [
   { key: "Green", en: "Green", ar: "أخضر" },
   { key: "Red", en: "Red", ar: "أحمر" },
   { key: "Pink", en: "Pink", ar: "وردي" },
-  { key: "Purple", en: "Pruple", ar: "أرجواني" },
+  { key: "Purple", en: "Purple", ar: "أرجواني" },
   { key: "Silver", en: "Silver", ar: "فضي" },
+  { key: "White", en: "White", ar: "أبيض" },
+  { key: "Other", en: "Other", ar: "أخرى" },
+];
+export const interiorColorOptionsData = [
+  { key: "Beige", en: "Beige", ar: "البيج" },
+  { key: "Black", en: "Black", ar: "أسود" },
+  { key: "Blue", en: "Blue", ar: "أزرق" },
+  { key: "Brown", en: "Brown", ar: "بني" },
+  { key: "Red", en: "Red", ar: "أحمر" },
   { key: "White", en: "White", ar: "أبيض" },
   { key: "Other", en: "Other", ar: "أخرى" },
 ];

@@ -118,17 +118,29 @@ export default function InlineSearchBar({
     () => [
       { id: "", label: t("All") },
       { id: "Black", label: t("Black") },
-      { id: "White", label: t("White") },
-      { id: "Red", label: t("Red") },
       { id: "Blue", label: t("Blue") },
-      { id: "Silver", label: t("Silver") },
-      { id: "Gray", label: t("Gray") },
-      { id: "Green", label: t("Green") },
       { id: "Brown", label: t("Brown") },
-      { id: "Yellow", label: t("Yellow") },
-      { id: "Orange", label: t("Orange") },
-      { id: "Purple", label: t("Purple") },
       { id: "Gold", label: t("Gold") },
+      { id: "Green", label: t("Green") },
+      { id: "Red", label: t("Red") },
+
+      { id: "Pink", label: t("Pink") },
+      { id: "Purple", label: t("Purple") },
+      { id: "Silver", label: t("Silver") },
+      { id: "White", label: t("White") },
+      { id: "Other", label: t("Other") },
+    ],
+    [i18n.language, t]
+  );
+  const interiorColorOptions = useMemo(
+    () => [
+      { id: "", label: t("All") },
+      { id: "Beige", label: t("Beige") },
+      { id: "Black", label: t("Black") },
+      { id: "Blue", label: t("Blue") },
+      { id: "Brown", label: t("Brown") },
+      { id: "Red", label: t("Red") },
+      { id: "White", label: t("White") },
       { id: "Other", label: t("Other") },
     ],
     [i18n.language, t]
@@ -331,8 +343,11 @@ export default function InlineSearchBar({
           option.label.toLowerCase().includes(searchQuery.toLowerCase())
         );
       case "exteriorColor":
-      case "interiorColor":
         return colorOptions.filter((option) =>
+          option.label.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+      case "interiorColor":
+        return interiorColorOptions.filter((option) =>
           option.label.toLowerCase().includes(searchQuery.toLowerCase())
         );
       default:
@@ -433,8 +448,8 @@ export default function InlineSearchBar({
           : t("exterior_color");
       case "interiorColor":
         return value.interiorColor
-          ? colorOptions.find((opt) => opt.id === value.interiorColor)?.label ||
-              value.interiorColor
+          ? interiorColorOptions.find((opt) => opt.id === value.interiorColor)
+              ?.label || value.interiorColor
           : t("interior_color");
       default:
         return "";

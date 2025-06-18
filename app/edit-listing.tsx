@@ -33,6 +33,7 @@ import {
   cylinderOptionsData,
   featureOptionsData,
   fuelTypeOptionsData,
+  interiorColorOptionsData,
   locationOptionsData,
   makes,
   transmissionOptionsData,
@@ -142,7 +143,7 @@ export default function EditListing(): JSX.Element {
         dataArray = colorOptionsData;
         break;
       case "interior_color":
-        dataArray = colorOptionsData;
+        dataArray = interiorColorOptionsData;
         break;
       case "selected_features":
         dataArray = featureOptionsData;
@@ -215,7 +216,7 @@ export default function EditListing(): JSX.Element {
         dataArray = colorOptionsData;
         break;
       case "interior_color":
-        dataArray = colorOptionsData;
+        dataArray = interiorColorOptionsData;
         break;
       case "selected_features":
         dataArray = featureOptionsData;
@@ -275,6 +276,10 @@ export default function EditListing(): JSX.Element {
   const colorDisplayOptions = colorOptionsData.map((item) =>
     isRTL ? item.ar : item.en
   );
+  const interiorColorOptions = interiorColorOptionsData.map((item) =>
+    isRTL ? item.ar : item.en
+  );
+
   const featureDisplayOptions = featureOptionsData.map((item) =>
     isRTL ? item.ar : item.en
   );
@@ -921,7 +926,7 @@ export default function EditListing(): JSX.Element {
         <Text style={[styles.label, rtlStyle]}>{t("interior_color")}</Text>
         <TouchableOpacity
           style={[styles.picker, { flexDirection: getFlexDirection() }]}
-          onPress={() => openPicker("interior_color", colorDisplayOptions)}
+          onPress={() => openPicker("interior_color", interiorColorOptions)}
         >
           <Text
             style={[
