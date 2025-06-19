@@ -461,7 +461,7 @@ export default function ContactUs() {
         contentContainerStyle={styles.scrollContent}
       >
         {renderContactForm()}
-        {renderFAQSection()}
+        {/* {renderFAQSection()} */}
         {renderContactInfo()}
       </ScrollView>
     </View>
