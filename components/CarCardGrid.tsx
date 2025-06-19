@@ -1,5 +1,3 @@
-"use client";
-
 import { locationOptionsData } from "@/utils/constants";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
@@ -31,6 +29,22 @@ interface CarCardGridProps {
   wishlistId?: string;
   isAuthenticated: boolean;
 }
+
+// Helper function to format price with commas
+const formatPriceWithCommas = (priceString: string): string => {
+  // Remove any existing dollar sign and commas
+  const cleanPrice = priceString.replace(/\$|,/g, "");
+
+  // Split into integer and decimal parts if a decimal exists
+  const parts = cleanPrice.split(".");
+  let integerPart = parts[0];
+  const decimalPart = parts.length > 1 ? "." + parts[1] : "";
+
+  // Add commas to the integer part
+  integerPart = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+
+  return `$${integerPart}${decimalPart}`;
+};
 
 export default function CarCardGrid({
   car,
@@ -92,7 +106,9 @@ export default function CarCardGrid({
   const handleShare = async () => {
     try {
       const shareUrl = `https://syriasouq.com/car/${car._id}`;
-      const message = `Check out this ${car.year} ${translatedMake} ${translatedModel} for $${car.priceUSD} on Syria Souq!\n\n${shareUrl}`;
+      // Use the formatted price in the share message
+      const formattedPriceForShare = formatPriceWithCommas(car.priceUSD);
+      const message = `Check out this ${car.year} ${translatedMake} ${translatedModel} for ${formattedPriceForShare} on Syria Souq!\n\n${shareUrl}`;
 
       await Share.share({
         message,
@@ -154,7 +170,10 @@ export default function CarCardGrid({
           >
             {`${translatedMake} ${translatedModel} ${car.year}`}
           </Text>
-          <Text style={[styles.price, rtlStyle]}>${car.priceUSD}</Text>
+          {/* Apply the price formatting here */}
+          <Text style={[styles.price, rtlStyle]}>
+            {formatPriceWithCommas(car.priceUSD)}
+          </Text>
           <View
             style={[styles.detailsRow, { flexDirection: getFlexDirection() }]}
           >

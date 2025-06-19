@@ -1,5 +1,3 @@
-"use client";
-
 import { locationOptionsData } from "@/utils/constants";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
@@ -29,6 +27,39 @@ interface CarCardBlockProps {
   showDeleteIcon?: boolean;
 }
 
+// Custom function to format number with commas (re-used from previous component)
+const formatNumberWithCommas = (value: string | number | undefined): string => {
+  if (value === undefined || value === null || value === "") {
+    return ""; // Or some default like "N/A"
+  }
+
+  let numString: string;
+
+  // If it's a string, try to remove non-digit characters (like '$') and parse it
+  if (typeof value === "string") {
+    const cleanValue = value.replace(/[^0-9.]/g, ""); // Remove non-numeric characters except '.'
+    const parsedValue = parseFloat(cleanValue);
+    if (isNaN(parsedValue)) {
+      return value; // Return original string if it can't be parsed
+    }
+    numString = parsedValue.toString();
+  } else if (typeof value === "number") {
+    numString = value.toString();
+  } else {
+    return ""; // Handle other unexpected types
+  }
+
+  // Split into integer and decimal parts
+  const parts = numString.split(".");
+  let integerPart = parts[0];
+  const decimalPart = parts.length > 1 ? "." + parts[1] : "";
+
+  // Add commas to the integer part
+  integerPart = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+
+  return integerPart + decimalPart;
+};
+
 export default function CarCardBlock({
   car,
   onWishlist,
@@ -52,15 +83,9 @@ export default function CarCardBlock({
     );
   }
 
-  // const imageUrl = car.images?.[0]
-  //   ? `${car.images[0]}?t=${Date.now()}`
-  //   : "https://via.placeholder.com/400x200?text=No+Image";
   const imageUrl = car.images?.[0]
     ? `${car.images[0]}`
     : "https://via.placeholder.com/400x200?text=No+Image";
-  // const placeholderUrl = car.images?.[0]
-  //   ? `${car.images[0]}?w=50&h=50`
-  //   : "https://via.placeholder.com/50x50?text=Loading"; // Low-res placeholder
 
   // Get translated values
   const make = translateMake(car.make, isArabic);
@@ -83,6 +108,12 @@ export default function CarCardBlock({
     }
     return englishLocation; // Fallback to English if no translation found
   };
+
+  // Format price with commas using the custom function
+  const displayPrice = car.priceUSD
+    ? `$${formatNumberWithCommas(car.priceUSD)}`
+    : t("notSpecified");
+
   return (
     <View style={styles.container}>
       <TouchableOpacity onPress={onPress} style={styles.card}>
@@ -117,7 +148,7 @@ export default function CarCardBlock({
             {`${make} ${model} ${car.year}`}
           </Text>
           <Text style={[styles.price, { textAlign: isRTL ? "right" : "left" }]}>
-            ${car.priceUSD}
+            {displayPrice}
           </Text>
           <View
             style={[

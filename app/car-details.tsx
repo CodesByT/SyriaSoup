@@ -1,5 +1,6 @@
 "use client";
 
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { cylinderOptionsData } from "@/utils/constants";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -56,6 +57,7 @@ export default function CarDetails(): JSX.Element {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const isArabic = i18n.language === "ar";
+  const [languageSwitcherWidth, setLanguageSwitcherWidth] = useState(0);
 
   const [car, setCar] = useState<Car | null>(null);
   const [carOwner, setCarOwner] = useState<any>(null);
@@ -875,7 +877,7 @@ export default function CarDetails(): JSX.Element {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      {/* Header with proper Arabic translation */}
+      {/* Header with proper Arabic translation 
       <View style={[styles.header, { flexDirection: getFlexDirection() }]}>
         <TouchableOpacity
           onPress={() => router.back()}
@@ -887,11 +889,35 @@ export default function CarDetails(): JSX.Element {
             color="#ffffff"
           />
         </TouchableOpacity>
-        {/* <Text style={[styles.headerTitle, rtlStyle]} numberOfLines={1}>
+       <Text style={[styles.headerTitle, rtlStyle]} numberOfLines={1}>
           {translatedCar?.make || car.make} {translatedCar?.model || car.model}
-        </Text> */}
-      </View>
+        </Text> 
+      </View>*/}
+      <View style={styles.header}>
+        <View style={styles.headerContent}>
+          <TouchableOpacity
+            style={styles.back_button}
+            onPress={() => router.back()}
+            activeOpacity={0.7}
+          >
+            <Ionicons name={"arrow-back"} size={24} color="#ffffff" />
+          </TouchableOpacity>
 
+          {/* LANGUAGE SWITCHER CONTAINER - ADD ONLAYOUT PROP HERE */}
+          <View
+            style={styles.languageSwitcherContainer}
+            onLayout={(event) => {
+              const { width } = event.nativeEvent.layout;
+              if (width !== languageSwitcherWidth) {
+                // Only update if width changed
+                setLanguageSwitcherWidth(width);
+              }
+            }}
+          >
+            <LanguageSwitcher compact={true} />
+          </View>
+        </View>
+      </View>
       <ScrollView
         style={styles.scrollContainer}
         showsVerticalScrollIndicator={false}
@@ -1048,33 +1074,71 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#323332",
   },
+  // header: {
+  //   backgroundColor: "##323332",
+  //   paddingHorizontal: 20,
+  //   // paddingVertical: 15,
+  //   alignItems: "center",
+  //   justifyContent: "space-between",
+  //   borderBottomLeftRadius: 20,
+  //   borderBottomRightRadius: 20,
+  //   shadowColor: "#000",
+  //   shadowOffset: { width: 0, height: 2 },
+  //   shadowOpacity: 0.1,
+  //   shadowRadius: 4,
+  //   elevation: 3,
+  // },
+  back_button: {
+    padding: 8,
+  },
+  // headerTitle: {
+  //   flex: 1,
+  //   fontSize: 18,
+  //   fontWeight: "600",
+  //   color: "#ffffff",
+  //   textAlign: "center",
+  //   marginHorizontal: 16,
+  //   paddingVertical: 15,
+  //   paddingHorizontal: 15,
+  // },
   header: {
-    backgroundColor: "##323332",
-    paddingHorizontal: 20,
-    // paddingVertical: 15,
-    alignItems: "center",
-    justifyContent: "space-between",
+    backgroundColor: "#323332",
     borderBottomLeftRadius: 20,
     borderBottomRightRadius: 20,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 3,
+    elevation: 5,
   },
-  backButton: {
-    padding: 8,
+  headerContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between", // Stays "space-between"
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+  },
+  headerSpacer: {
+    // This style will now dynamically get its width from state
+    // We keep it empty here, as its width is set inline
+  },
+  headerTitleContainer: {
+    flex: 1, // Remains flex: 1
+    alignItems: "center", // Remains centered
   },
   headerTitle: {
-    flex: 1,
-    fontSize: 18,
-    fontWeight: "600",
+    fontSize: 24,
+    fontWeight: "bold",
     color: "#ffffff",
-    textAlign: "center",
-    marginHorizontal: 16,
-    paddingVertical: 15,
-    paddingHorizontal: 15,
   },
+  headerLogo: {
+    width: 150, // Adjust width as needed for your logo
+    height: 40, // Adjust height as needed for your logo
+  },
+  languageSwitcherContainer: {
+    // No changes needed here
+  },
+
   shareButton: {
     padding: 8,
   },

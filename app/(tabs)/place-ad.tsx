@@ -20,6 +20,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { showToastable } from "react-native-toastable"; // Assuming this is correct import
+import { LanguageSwitcher } from "../../components/LanguageSwitcher";
 import { useAuth } from "../../contexts/AuthContext";
 import { useRTL } from "../../hooks/useRTL";
 import { addCar } from "../../utils/api";
@@ -41,6 +42,7 @@ export default function PlaceAd() {
   const { isRTL, rtlStyle, getFlexDirection } = useRTL();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const [languageSwitcherWidth, setLanguageSwitcherWidth] = useState(0);
 
   const [formData, setFormData] = useState({
     make: "", // Stores English key (from makes.label)
@@ -820,8 +822,36 @@ export default function PlaceAd() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
+      {/* 
       <View style={[styles.header, { flexDirection: getFlexDirection() }]}>
         <Text style={[styles.headerTitle, rtlStyle]}>{t("add_listing")}</Text>
+      </View>*/}
+      <View style={styles.header}>
+        <View style={styles.headerContent}>
+          {/* LEFT SPACER VIEW - NOW USES DYNAMIC WIDTH */}
+          <View
+            style={[styles.headerSpacer, { width: languageSwitcherWidth }]}
+          />
+
+          <View style={styles.headerTitleContainer}>
+            <Text style={[styles.headerTitle, rtlStyle]}>
+              {t("add_listing")}
+            </Text>
+          </View>
+          {/* LANGUAGE SWITCHER CONTAINER - ADD ONLAYOUT PROP HERE */}
+          <View
+            style={styles.languageSwitcherContainer}
+            onLayout={(event) => {
+              const { width } = event.nativeEvent.layout;
+              if (width !== languageSwitcherWidth) {
+                // Only update if width changed
+                setLanguageSwitcherWidth(width);
+              }
+            }}
+          >
+            <LanguageSwitcher compact={true} />
+          </View>
+        </View>
       </View>
 
       <View style={styles.content}>
@@ -927,24 +957,61 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#323332",
   },
+  // header: {
+  //   backgroundColor: "#323332",
+  //   paddingHorizontal: 20,
+  //   alignItems: "center",
+  //   borderBottomLeftRadius: 20,
+  //   borderBottomRightRadius: 20,
+  //   shadowColor: "#000",
+  //   shadowOffset: { width: 0, height: 2 },
+  //   shadowOpacity: 0.1,
+  //   shadowRadius: 4,
+  //   elevation: 3,
+  //   justifyContent: "center",
+  // },
+  // headerTitle: {
+  //   fontSize: 24,
+  //   fontWeight: "700",
+  //   color: "#ffffff",
+  //   paddingVertical: 15,
+  // },
   header: {
     backgroundColor: "#323332",
-    paddingHorizontal: 20,
-    alignItems: "center",
     borderBottomLeftRadius: 20,
     borderBottomRightRadius: 20,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 3,
-    justifyContent: "center",
+    elevation: 5,
+  },
+  headerContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between", // Stays "space-between"
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+  },
+  headerSpacer: {
+    // This style will now dynamically get its width from state
+    // We keep it empty here, as its width is set inline
+  },
+  headerTitleContainer: {
+    flex: 1, // Remains flex: 1
+    alignItems: "center", // Remains centered
   },
   headerTitle: {
     fontSize: 24,
-    fontWeight: "700",
+    fontWeight: "bold",
     color: "#ffffff",
-    paddingVertical: 15,
+  },
+  headerLogo: {
+    width: 150, // Adjust width as needed for your logo
+    height: 40, // Adjust height as needed for your logo
+  },
+  languageSwitcherContainer: {
+    // No changes needed here
   },
   content: {
     flex: 1,

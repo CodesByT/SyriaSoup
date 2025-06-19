@@ -27,6 +27,7 @@ import {
 import { arabicMakes, locations, makes } from "../utils/constants";
 
 // IMPORT SearchValue from your new shared types file
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { SearchValue } from "../types/searchValues"; // Adjust path as needed, e.g., './types' or '@/types' or '../types/index'
 
 export default function AllCars() {
@@ -34,6 +35,7 @@ export default function AllCars() {
   const { isAuthenticated, user } = useAuth();
   const { isRTL, rtlStyle, getFlexDirection } = useRTL();
   const [cars, setCars] = useState<Car[]>([]);
+  const [languageSwitcherWidth, setLanguageSwitcherWidth] = useState(0);
 
   // Initialize search state with 'location' as an empty string,
   // but ensure it's explicitly typed to allow for array as well.
@@ -365,7 +367,7 @@ export default function AllCars() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      <View style={[styles.header, { flexDirection: getFlexDirection() }]}>
+      {/* <View style={[styles.header, { flexDirection: getFlexDirection() }]}>
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => router.back()}
@@ -376,10 +378,36 @@ export default function AllCars() {
             color="#ffffff"
           />
         </TouchableOpacity>
-        {/* <Text style={[styles.headerTitle, rtlStyle]}>
+       <Text style={[styles.headerTitle, rtlStyle]}>
           {t("all_available_cars")}
-        </Text> */}
+        </Text> 
         <View style={styles.headerSpacer} />
+      </View> */}
+
+      <View style={styles.header}>
+        <View style={styles.headerContent}>
+          <TouchableOpacity
+            style={styles.back_button}
+            onPress={() => router.back()}
+            activeOpacity={0.7}
+          >
+            <Ionicons name={"arrow-back"} size={24} color="#ffffff" />
+          </TouchableOpacity>
+
+          {/* LANGUAGE SWITCHER CONTAINER - ADD ONLAYOUT PROP HERE */}
+          <View
+            style={styles.languageSwitcherContainer}
+            onLayout={(event) => {
+              const { width } = event.nativeEvent.layout;
+              if (width !== languageSwitcherWidth) {
+                // Only update if width changed
+                setLanguageSwitcherWidth(width);
+              }
+            }}
+          >
+            <LanguageSwitcher compact={true} />
+          </View>
+        </View>
       </View>
 
       <View style={styles.content}>
@@ -448,32 +476,70 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#323332",
   },
+  // header: {
+  //   backgroundColor: "#323332",
+  //   paddingHorizontal: 20,
+  //   alignItems: "center",
+  //   justifyContent: "space-between",
+  //   shadowColor: "#000",
+  //   shadowOffset: { width: 0, height: 2 },
+  //   shadowOpacity: 0.1,
+  //   shadowRadius: 4,
+  //   elevation: 3,
+  // },
+  back_button: {
+    padding: 8,
+  },
+  // headerTitle: {
+  //   fontSize: 20,
+  //   fontWeight: "700",
+  //   color: "#ffffff",
+  //   flex: 1,
+  //   paddingVertical: 15,
+  //   textAlign: "center",
+  //   paddingHorizontal: 15,
+  // },
+  // headerSpacer: {
+  //   width: 40,
+  // },
   header: {
     backgroundColor: "#323332",
-    paddingHorizontal: 20,
-    alignItems: "center",
-    justifyContent: "space-between",
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 3,
+    elevation: 5,
   },
-  backButton: {
-    padding: 8,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: "#ffffff",
-    flex: 1,
-    paddingVertical: 15,
-    textAlign: "center",
-    paddingHorizontal: 15,
+  headerContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between", // Stays "space-between"
+    paddingHorizontal: 20,
+    paddingVertical: 10,
   },
   headerSpacer: {
-    width: 40,
+    // This style will now dynamically get its width from state
+    // We keep it empty here, as its width is set inline
   },
+  headerTitleContainer: {
+    flex: 1, // Remains flex: 1
+    alignItems: "center", // Remains centered
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#ffffff",
+  },
+  headerLogo: {
+    width: 150, // Adjust width as needed for your logo
+    height: 40, // Adjust height as needed for your logo
+  },
+  languageSwitcherContainer: {
+    // No changes needed here
+  },
+
   content: {
     flex: 1,
     backgroundColor: "#f8f9fa",

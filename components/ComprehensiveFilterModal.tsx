@@ -75,7 +75,7 @@ export default function ComprehensiveFilterModal({
 
   const cylinderOptions = useMemo<FilterOption[]>(
     () => [
-      { id: "all_cyl", label: t("All"), value: "" },
+      // { id: "all_cyl", label: t("All"), value: "" },
       { id: "3_cyl", label: t("3"), value: "3" },
       { id: "4_cyl", label: t("4"), value: "4" },
       { id: "5_cyl", label: t("5"), value: "5" },
@@ -88,7 +88,7 @@ export default function ComprehensiveFilterModal({
 
   const transmissionOptions = useMemo<FilterOption[]>(
     () => [
-      { id: "all_trans", label: t("All"), value: "" },
+      // { id: "all_trans", label: t("All"), value: "" },
       { id: "auto_trans", label: t("Automatic"), value: "Automatic" },
       { id: "manual_trans", label: t("Manual"), value: "Manual" },
     ],
@@ -97,7 +97,7 @@ export default function ComprehensiveFilterModal({
 
   const fuelTypeOptions = useMemo<FilterOption[]>(
     () => [
-      { id: "all_fuel", label: t("All"), value: "" },
+      // { id: "all_fuel", label: t("All"), value: "" },
       { id: "petrol_fuel", label: t("Petrol"), value: "Petrol" },
       { id: "diesel_fuel", label: t("Diesel"), value: "Diesel" },
       { id: "electric_fuel", label: t("Electric"), value: "Electric" },
@@ -108,7 +108,7 @@ export default function ComprehensiveFilterModal({
 
   const colorOptions = useMemo<FilterOption[]>(
     () => [
-      { id: "all_color", label: t("All"), value: "" },
+      // { id: "all_color", label: t("All"), value: "" },
       { id: "blue_color", label: t("Blue"), value: "Blue" },
       { id: "black_color", label: t("Black"), value: "Black" },
       { id: "brown_color", label: t("Brown"), value: "Brown" },
@@ -125,7 +125,7 @@ export default function ComprehensiveFilterModal({
   );
   const interiorColorOptions = useMemo<FilterOption[]>(
     () => [
-      { id: "all_color", label: t("All"), value: "" },
+      // { id: "all_color", label: t("All"), value: "" },
       { id: "beige_color", label: t("Beige"), value: "Beige" },
       { id: "black_color", label: t("Black"), value: "Black" },
       { id: "blue_color", label: t("Blue"), value: "Blue" },

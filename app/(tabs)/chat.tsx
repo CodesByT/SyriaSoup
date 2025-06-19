@@ -1,5 +1,6 @@
 "use client";
 
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
@@ -26,6 +27,7 @@ import {
 } from "../../utils/chat-api";
 
 const Chat = () => {
+  const [languageSwitcherWidth, setLanguageSwitcherWidth] = useState(0);
   const { t } = useTranslation();
   const router = useRouter();
   const { user, isAuthenticated } = useAuth();
@@ -349,11 +351,35 @@ const Chat = () => {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      {/* Header */}
+      {/* Header 
       <View style={[styles.header, rtlViewStyle]}>
         <Text style={[styles.headerTitle, rtlStyle]}>{t("messages")}</Text>
-      </View>
+      </View>*/}
+      <View style={styles.header}>
+        <View style={styles.headerContent}>
+          {/* LEFT SPACER VIEW - NOW USES DYNAMIC WIDTH */}
+          <View
+            style={[styles.headerSpacer, { width: languageSwitcherWidth }]}
+          />
 
+          <View style={styles.headerTitleContainer}>
+            <Text style={[styles.headerTitle, rtlStyle]}>{t("messages")}</Text>
+          </View>
+          {/* LANGUAGE SWITCHER CONTAINER - ADD ONLAYOUT PROP HERE */}
+          <View
+            style={styles.languageSwitcherContainer}
+            onLayout={(event) => {
+              const { width } = event.nativeEvent.layout;
+              if (width !== languageSwitcherWidth) {
+                // Only update if width changed
+                setLanguageSwitcherWidth(width);
+              }
+            }}
+          >
+            <LanguageSwitcher compact={true} />
+          </View>
+        </View>
+      </View>
       {/* Content */}
       <View style={styles.content}>
         {loading ? (
@@ -390,29 +416,66 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#323332",
   },
+  // header: {
+  //   backgroundColor: "#323332",
+  //   paddingHorizontal: 20,
+  //   // justifyContent: "space-between", // Remove this line
+  //   alignItems: "center",
+  //   borderBottomLeftRadius: 20,
+  //   borderBottomRightRadius: 20,
+  //   shadowColor: "#000",
+  //   shadowOffset: { width: 0, height: 2 },
+  //   shadowOpacity: 0.1,
+  //   shadowRadius: 4,
+  //   elevation: 3, // Add this to center content horizontally
+  //   justifyContent: "center",
+  // },
+  // headerTitle: {
+  //   fontSize: 24,
+  //   paddingVertical: 15,
+  //   fontWeight: "700",
+  //   color: "#ffffff",
+  //   textAlign: "center",
+  // },
+  // headerButton: {
+  //   padding: 8,
+  // },
   header: {
     backgroundColor: "#323332",
-    paddingHorizontal: 20,
-    // justifyContent: "space-between", // Remove this line
-    alignItems: "center",
     borderBottomLeftRadius: 20,
     borderBottomRightRadius: 20,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 3, // Add this to center content horizontally
-    justifyContent: "center",
+    elevation: 5,
+  },
+  headerContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between", // Stays "space-between"
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+  },
+  headerSpacer: {
+    // This style will now dynamically get its width from state
+    // We keep it empty here, as its width is set inline
+  },
+  headerTitleContainer: {
+    flex: 1, // Remains flex: 1
+    alignItems: "center", // Remains centered
   },
   headerTitle: {
     fontSize: 24,
-    paddingVertical: 15,
-    fontWeight: "700",
+    fontWeight: "bold",
     color: "#ffffff",
-    textAlign: "center",
   },
-  headerButton: {
-    padding: 8,
+  headerLogo: {
+    width: 150, // Adjust width as needed for your logo
+    height: 40, // Adjust height as needed for your logo
+  },
+  languageSwitcherContainer: {
+    // No changes needed here
   },
   content: {
     flex: 1,

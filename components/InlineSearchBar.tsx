@@ -82,21 +82,21 @@ export default function InlineSearchBar({
   // Filter options - MODIFIED to use objects with id and label
   const cylinderOptions = useMemo(
     () => [
-      { id: "", label: t("All") },
+      // { id: "", label: t("All") },
       { id: "3", label: t("3") },
       { id: "4", label: t("4") },
       { id: "5", label: t("5") },
       { id: "6", label: t("6") },
       { id: "8", label: t("8") },
       { id: "Other", label: t("Other") },
-      { id: "Unknown", label: t("Unknown") },
+      // { id: "Unknown", label: t("Unknown") },
     ],
     [i18n.language, t]
   );
 
   const transmissionOptions = useMemo(
     () => [
-      { id: "", label: t("All") },
+      // { id: "", label: t("All") },
       { id: "Automatic", label: t("Automatic") },
       { id: "Manual", label: t("Manual") },
     ],
@@ -105,7 +105,7 @@ export default function InlineSearchBar({
 
   const fuelTypeOptions = useMemo(
     () => [
-      { id: "", label: t("All") },
+      // { id: "", label: t("All") },
       { id: "Petrol", label: t("Petrol") },
       { id: "Diesel", label: t("Diesel") },
       { id: "Electric", label: t("Electric") },
@@ -116,7 +116,7 @@ export default function InlineSearchBar({
 
   const colorOptions = useMemo(
     () => [
-      { id: "", label: t("All") },
+      // { id: "", label: t("All") },
       { id: "Black", label: t("Black") },
       { id: "Blue", label: t("Blue") },
       { id: "Brown", label: t("Brown") },
@@ -134,7 +134,7 @@ export default function InlineSearchBar({
   );
   const interiorColorOptions = useMemo(
     () => [
-      { id: "", label: t("All") },
+      // { id: "", label: t("All") },
       { id: "Beige", label: t("Beige") },
       { id: "Black", label: t("Black") },
       { id: "Blue", label: t("Blue") },

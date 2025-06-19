@@ -31,6 +31,39 @@ interface CarCardProps {
   isAuthenticated?: boolean;
 }
 
+// Custom function to format number with commas
+const formatNumberWithCommas = (value: string | number | undefined): string => {
+  if (value === undefined || value === null || value === "") {
+    return ""; // Or some default like "N/A"
+  }
+
+  let numString: string;
+
+  // If it's a string, try to remove non-digit characters (like '$') and parse it
+  if (typeof value === "string") {
+    const cleanValue = value.replace(/[^0-9.]/g, ""); // Remove non-numeric characters except '.'
+    const parsedValue = parseFloat(cleanValue);
+    if (isNaN(parsedValue)) {
+      return value; // Return original string if it can't be parsed
+    }
+    numString = parsedValue.toString();
+  } else if (typeof value === "number") {
+    numString = value.toString();
+  } else {
+    return ""; // Handle other unexpected types
+  }
+
+  // Split into integer and decimal parts
+  const parts = numString.split(".");
+  let integerPart = parts[0];
+  const decimalPart = parts.length > 1 ? "." + parts[1] : "";
+
+  // Add commas to the integer part
+  integerPart = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+
+  return integerPart + decimalPart;
+};
+
 export default function CarCard({
   car,
   onWishlist,
@@ -74,10 +107,16 @@ export default function CarCard({
   const model = translateModel(car.model, car.make, isArabic);
   const location = translateLocation(car.location, isArabic);
 
+  // Format price with commas using the custom function
+  const displayPrice = car.priceUSD
+    ? `$${formatNumberWithCommas(car.priceUSD)}`
+    : t("notSpecified");
+
   const handleShare = async () => {
     try {
       const shareUrl = `https://syriasouq.com/car/${car._id}`;
-      const message = `Check out this ${car.year} ${car.make} ${car.model} for $${car.priceUSD} on Syria Souq!
+      // Use the formatted price for sharing
+      const message = `Check out this ${car.year} ${car.make} ${car.model} for ${displayPrice} on Syria Souq!
 
 ${shareUrl}`;
 
@@ -143,7 +182,7 @@ ${shareUrl}`;
         </View>
         <View style={styles.info}>
           <Text style={[styles.price, { textAlign: isRTL ? "right" : "left" }]}>
-            ${car.priceUSD}
+            {displayPrice}
           </Text>
           <Text
             style={[styles.title, { textAlign: isRTL ? "right" : "left" }]}

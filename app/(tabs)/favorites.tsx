@@ -15,6 +15,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { showToastable } from "react-native-toastable";
 import CarCardBlock from "../../components/CarCardBlock";
+import { LanguageSwitcher } from "../../components/LanguageSwitcher";
 import { useAuth } from "../../contexts/AuthContext";
 import type { Wishlist } from "../../types";
 import { getWishlistByUserId, removeFromWishlist } from "../../utils/api";
@@ -29,6 +30,7 @@ export default function Favorites() {
   const router = useRouter();
   const isFetching = useRef(false);
   const insets = useSafeAreaInsets();
+  const [languageSwitcherWidth, setLanguageSwitcherWidth] = useState(0);
 
   const fetchWishlist = useCallback(async () => {
     if (!user?._id || isFetching.current) {
@@ -130,11 +132,36 @@ export default function Favorites() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      {/* Header */}
+      {/* Header 
       <View style={styles.header}>
         <Text style={styles.headerTitle}>{t("favorites")}</Text>
       </View>
+      */}
+      <View style={styles.header}>
+        <View style={styles.headerContent}>
+          {/* LEFT SPACER VIEW - NOW USES DYNAMIC WIDTH */}
+          <View
+            style={[styles.headerSpacer, { width: languageSwitcherWidth }]}
+          />
 
+          <View style={styles.headerTitleContainer}>
+            <Text style={styles.headerTitle}>{t("favorites")}</Text>
+          </View>
+          {/* LANGUAGE SWITCHER CONTAINER - ADD ONLAYOUT PROP HERE */}
+          <View
+            style={styles.languageSwitcherContainer}
+            onLayout={(event) => {
+              const { width } = event.nativeEvent.layout;
+              if (width !== languageSwitcherWidth) {
+                // Only update if width changed
+                setLanguageSwitcherWidth(width);
+              }
+            }}
+          >
+            <LanguageSwitcher compact={true} />
+          </View>
+        </View>
+      </View>
       {/* Content */}
       <View style={styles.content}>
         {loading && !wishlists.length ? (
@@ -193,23 +220,60 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#323332",
   },
+  // header: {
+  //   backgroundColor: "#323332",
+  //   paddingHorizontal: 20,
+  //   alignItems: "center",
+  //   borderBottomLeftRadius: 20,
+  //   borderBottomRightRadius: 20,
+  //   shadowColor: "#000",
+  //   shadowOffset: { width: 0, height: 2 },
+  //   shadowOpacity: 0.1,
+  //   shadowRadius: 4,
+  //   elevation: 3,
+  // },
+  // headerTitle: {
+  //   fontSize: 24,
+  //   paddingVertical: 15,
+  //   fontWeight: "700",
+  //   color: "#ffffff",
+  // },
   header: {
     backgroundColor: "#323332",
-    paddingHorizontal: 20,
-    alignItems: "center",
     borderBottomLeftRadius: 20,
     borderBottomRightRadius: 20,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 3,
+    elevation: 5,
+  },
+  headerContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between", // Stays "space-between"
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+  },
+  headerSpacer: {
+    // This style will now dynamically get its width from state
+    // We keep it empty here, as its width is set inline
+  },
+  headerTitleContainer: {
+    flex: 1, // Remains flex: 1
+    alignItems: "center", // Remains centered
   },
   headerTitle: {
     fontSize: 24,
-    paddingVertical: 15,
-    fontWeight: "700",
+    fontWeight: "bold",
     color: "#ffffff",
+  },
+  headerLogo: {
+    width: 150, // Adjust width as needed for your logo
+    height: 40, // Adjust height as needed for your logo
+  },
+  languageSwitcherContainer: {
+    // No changes needed here
   },
   content: {
     flex: 1,
